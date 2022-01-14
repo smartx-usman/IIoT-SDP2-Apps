@@ -21,7 +21,7 @@ jobs:
         with:
           image: usman476/mqtt-kafka-faust
           dockerfile: Dockerfile
-          directory: ./mqtt
+          directory: mqtt
           tag: latest
           registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
