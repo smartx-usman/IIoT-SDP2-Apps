@@ -23,7 +23,7 @@ spec:
     - name: MQTT_TOPIC
       value: "mqtt/temperature/readings"
     - name: VALUE_TYPE
-      value: "integer"
+      value: "float"
     - name: START_VALUE
       value: "1.0"
     - name: END_VALUE
