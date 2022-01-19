@@ -1,9 +1,8 @@
 # python 3.6
 import logging
 import os
+import random
 import time
-from random import randint
-from random import seed
 from threading import Thread
 
 from paho.mqtt import client as mqtt_client
@@ -26,6 +25,12 @@ if value_type == 'integer':
     end_value = int(os.environ['END_VALUE'])
     invalid_value = int(os.environ['INVALID_VALUE'])
 
+# Cast values from string to flaot
+if value_type == 'float':
+    start_value = float(os.environ['START_VALUE'])
+    end_value = float(os.environ['END_VALUE'])
+    invalid_value = float(os.environ['INVALID_VALUE'])
+
 
 # Connect to MQTT broker
 def connect_mqtt(clientID):
@@ -44,7 +49,17 @@ def connect_mqtt(clientID):
 
 # Generate integer values based on given range of values
 def generate_integer_values(msg_count):
-    generated_value = randint(start_value, end_value)
+    generated_value = random(start_value, end_value)
+
+    if msg_count == invalid_value_occurrence:
+        generated_value = invalid_value
+
+    return generated_value
+
+
+# Generate float values based on given range of values
+def generate_float_values(msg_count):
+    generated_value = round(random.uniform(start_value, end_value), 4)
 
     if msg_count == invalid_value_occurrence:
         generated_value = invalid_value
@@ -55,7 +70,6 @@ def generate_integer_values(msg_count):
 # Publish message to MQTT topic
 def mqtt_publish_message(client_id, delay):
     msg_count = 1
-    seed(1)
     client = connect_mqtt(client_id)
     client.loop_start()
 
@@ -65,6 +79,8 @@ def mqtt_publish_message(client_id, delay):
 
         if value_type == 'integer':
             value = generate_integer_values(msg_count)
+        elif value_type == 'float':
+            value = generate_float_values(msg_count)
         else:
             logging.critical(
                 f"Failed to create value of type {value_type}. No function is defined for {value_type} value type.")

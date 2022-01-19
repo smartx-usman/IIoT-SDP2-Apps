@@ -17,7 +17,7 @@ spec:
     - name: MQTT_BROKER_PORT
       value: "1883"
     - name: SENSORS
-      value: "2"
+      value: "1"
     - name: MESSAGE_DELAY
       value: "0.5"
     - name: MQTT_TOPIC
@@ -25,13 +25,13 @@ spec:
     - name: VALUE_TYPE
       value: "integer"
     - name: START_VALUE
-      value: "1"
+      value: "1.0"
     - name: END_VALUE
-      value: "10"
+      value: "99.99"
     - name: INVALID_VALUE_OCCURRENCE
-      value: "10"
+      value: "100"
     - name: INVALID_VALUE
-      value: "99"
+      value: "200.0"
     command: ["python3"]
     args: ["publisher.py"]
     imagePullPolicy: "IfNotPresent"
