@@ -14,6 +14,7 @@ mqtt_topic = os.environ['MQTT_TOPIC']
 value_type = os.environ['VALUE_TYPE']
 invalid_value_occurrence = int(os.environ['INVALID_VALUE_OCCURRENCE'])
 mqtt_port = int(os.environ['MQTT_BROKER_PORT'])
+input_file = os.environ['INPUT_FILE']
 
 # topic = "mqtt/temperature"
 # username = 'emqx'
@@ -74,35 +75,61 @@ def mqtt_publish_message(client_id, delay):
     client.loop_start()
 
     while True:
-        time.sleep(delay)
+
         start_time = time.perf_counter()
 
-        if value_type == 'integer':
-            value = generate_integer_values(msg_count)
-        elif value_type == 'float':
-            value = generate_float_values(msg_count)
-        else:
-            logging.critical(
-                f"Failed to create value of type {value_type}. No function is defined for {value_type} value type.")
+        # if value_type == 'integer':
+        #    value = generate_integer_values(msg_count)
+        # elif value_type == 'float':
+        #    value = generate_float_values(msg_count)
+        # else:
+        #    logging.critical(
+        #        f"Failed to create value of type {value_type}. No function is defined for {value_type} value type.")
 
-        time_ms = round(time.time() * 1000)
-        msg = f"measurement_timestamp: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {value}"
-        result = client.publish(mqtt_topic, msg)
-        status = result[0]
+        count = 1
 
-        if status == 0:
-            logging.info(f"Send `{msg}` to topic `{mqtt_topic}`")
-        else:
-            logging.error(f"Failed to send message to topic {mqtt_topic}")
+        with open(f'/data/{input_file}') as fp:
+            values = fp.readlines()
+            for value in values:
 
-        if value == invalid_value:
-            msg_count = 1
-        else:
-            msg_count += 1
+                if count == invalid_value_occurrence:
+                    value = invalid_value
+                    count = 1
+
+                time_ms = round(time.time() * 1000)
+                msg = f"measurement_timestamp: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {str(value).strip()}"
+                result = client.publish(mqtt_topic, msg)
+                status = result[0]
+
+                if status == 0:
+                    logging.info(f"Send `{msg}` to topic `{mqtt_topic}`")
+                else:
+                    logging.error(f"Failed to send message to topic {mqtt_topic}")
+
+                count += 1
+                msg_count += 1
+                time.sleep(delay)
 
         end_time = time.perf_counter()
 
         logging.info(f'It took {end_time - start_time: 0.4f} second(s) to complete.')
+
+
+# using readlines()
+def get_generated_data():
+    count = 0
+    print("Using readlines()")
+
+    with open(f'data/{input_file}') as fp:
+        Lines = fp.readlines()
+        for line in Lines:
+            count += 1
+            print("Line{}: {}".format(count, line.strip()))
+            time.sleep(1)
+
+
+# while(True):
+#     get_generated_data()
 
 
 def run():

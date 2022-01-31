@@ -29,12 +29,24 @@ spec:
     - name: END_VALUE
       value: "99.99"
     - name: INVALID_VALUE_OCCURRENCE
-      value: "100"
+      value: "5"
     - name: INVALID_VALUE
       value: "200.0"
+    - name: INPUT_FILE
+      value: "generated_values.csv"
     command: ["python3"]
     args: ["publisher.py"]
     imagePullPolicy: "IfNotPresent"
+    volumeMounts:
+    - mountPath: /data
+      name: data-volume
   restartPolicy: Always
   nodeSelector:
     kubernetes.io/hostname: worker-vm-1
+  volumes:
+  - name: data-volume
+    hostPath:
+      # directory location on host
+      path: /opt/data
+      # this field is optional
+      type: Directory
