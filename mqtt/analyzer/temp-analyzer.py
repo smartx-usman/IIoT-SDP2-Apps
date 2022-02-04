@@ -5,9 +5,11 @@ import sys
 import time
 
 import faust
+from cassandra.auth import PlainTextAuthProvider
+from cassandra.cluster import Cluster
 from paho.mqtt import client as mqtt_client
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.WARN)
 
 mqtt_broker = os.environ['MQTT_BROKER']
 mqtt_port = int(os.environ['MQTT_BROKER_PORT'])
@@ -22,6 +24,61 @@ actuator_id = 'actuator-0'
 actuator_actions = ['power-on', 'pause', 'shutdown']
 
 
+def connect_to_cassandra():
+    """Create Cassandra connection"""
+    auth_provider = PlainTextAuthProvider(username='cassandra', password='cassandra')
+    cluster = Cluster(['cassandra-0.cassandra-headless.uc0.svc.cluster.local'],
+                      auth_provider=auth_provider)
+
+    try:
+        session = cluster.connect()
+    except Exception as ex:
+        logging.error(f'Problem while connecting to Casandra.')
+
+    try:
+        session.execute(f'DROP keyspace IF EXISTS iiot;')
+        logging.info("Creating keyspace...")
+        session.execute(
+            "create keyspace iiot with replication={'class': 'SimpleStrategy', 'replication_factor' : 1};")
+        logging.info(f'Created keyspace iiot.')
+    except Exception as ex:
+        logging.error(f'Problem while dropping or creating iiot keyspace.')
+
+    try:
+        session = cluster.connect('iiot')
+    except Exception as ex:
+        logging.error(f'Problem while connecting to Casandra.')
+
+    query_temperature_valid_table = '''
+    create table temperature (
+       readingTS timestamp,
+       processTS timestamp,
+       sensorID text,
+       readingValue float,
+       primary key(readingTS)
+    );'''
+    query_temperature_invalid_table = '''
+    create table temperature_invalid (
+       readingTS timestamp,
+       processTS timestamp,
+       sensorID text,
+       readingValue float,
+       primary key(readingTS)
+    );'''
+
+    try:
+        session.execute(query_temperature_valid_table)
+    except Exception as ex:
+        logging.info(f'Table already exists. Not creating.')
+
+    try:
+        session.execute(query_temperature_invalid_table)
+    except Exception as ex:
+        logging.info(f'Table already exists. Not creating.')
+
+    return session
+
+
 # Cast values to correct type
 if value_type == 'integer':
     min_threshold_value = int(os.environ['MIN_THRESHOLD_VALUE'])
@@ -31,7 +88,6 @@ elif value_type == 'float':
     min_threshold_value = float(os.environ['MIN_THRESHOLD_VALUE'])
     max_threshold_value = float(os.environ['MAX_THRESHOLD_VALUE'])
     invalid_value = float(os.environ['INVALID_VALUE'])
-
 
 # Remove old data file from persistent volume
 if os.path.exists(data_file_name):
@@ -45,6 +101,7 @@ try:
     temperature_file = open(data_file_name, "a")
 except Exception as ex:
     logging.error(f'Exception while opening file {temperature_file}.', exc_info=True)
+
 
 # Connect to MQTT broker
 def connect_to_mqtt():
@@ -101,6 +158,7 @@ else:
     logging.critical(f'Invalid value type {value_type} is provided. Exiting.')
     sys.exit()
 
+session = connect_to_cassandra()
 app = faust.App('temp-analyzer', broker=kafka_broker, )
 topic = app.topic(kafka_topic, value_type=Temperature)
 
@@ -113,11 +171,22 @@ async def check(temperatures):
         logging.info(f'Reading: {temperature.value} Timestamp: {temperature.reading_ts} Sensor: {temperature.sensor}')
 
         # Write data to a file
-        temperature_file.write(temperature.reading_ts + "," + temperature.sensor + "," + temperature.value + "\n")
+        #temperature_file.write(temperature.reading_ts + "," + temperature.sensor + "," + temperature.value + "\n")
+
+        # ts = int(temperature.reading_ts[:-3])
+        processts = int(time.time())
+        readingts = int(temperature.reading_ts[:-3])
+        # readingts = datetime.datetime.fromtimestamp(ts)
 
         # Create some checks on incoming data to create actuator actions
         if value_type == 'integer':
             if int(temperature.value) == invalid_value:
+                session.execute(
+                    """
+                    INSERT INTO temperature_invalid (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
+                    """,
+                    (readingts, processts, temperature.sensor, float(temperature.value))
+                )
                 logging.warning('Anomalous value found. Value is discarded.')
             else:
                 if int(temperature.value) < min_threshold_value:
@@ -126,8 +195,20 @@ async def check(temperatures):
                     parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[2])
                 else:
                     logging.info('No action required.')
+                session.execute(
+                    """
+                    INSERT INTO temperature (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
+                    """,
+                    (readingts, processts, temperature.sensor, int(temperature.value))
+                )
         elif value_type == 'float':
             if float(temperature.value) == invalid_value:
+                session.execute(
+                    """
+                    INSERT INTO temperature_invalid (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
+                    """,
+                    (readingts, processts, temperature.sensor, float(temperature.value))
+                )
                 logging.warning('Anomalous value found. Value is discarded.')
             else:
                 if float(temperature.value) < min_threshold_value:
@@ -136,6 +217,12 @@ async def check(temperatures):
                     parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[2])
                 else:
                     logging.info('No action required.')
+                session.execute(
+                    """
+                    INSERT INTO temperature (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
+                    """,
+                    (readingts, processts, temperature.sensor, float(temperature.value))
+                )
 
         end_time = time.perf_counter()
         time_ms = (end_time - start_time) * 1000
