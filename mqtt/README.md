@@ -36,37 +36,49 @@ kubectl create namespace uc0
 2. Add MQTT helm repo and deploy it:
 ```shell
 helm repo add t3n https://storage.googleapis.com/t3n-helm-charts
-helm -n uc0 upgrade --install mqtt -f mqtt-values.yaml t3n/mosquitto
+helm -n uc0 upgrade --install mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
 ```
 
 <!-- 
 Deploy mqtt-stresser:
 ```shell
-kubectl apply -f -n uc0 mqtt-stresser-pod.yaml
+kubectl apply -f -n uc0 mqtt-stresser/mqtt-stresser-pod.yaml
 ```
 -->
 
-3. Deploy synthetic data generator (Job):
+3. Add Kafka helm repo and deploy it:
+```shell
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm upgrade --install bitnami -n uc0 -f kafka-values.yaml bitnami/kafka
+```
+
+4. Add Cassandra helm repo and deploy it:
+```shell
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm upgrade --install cassandra -n=uc0 -f datastores/cassandra-values.yaml bitnami/cassandra
+```
+
+5. Deploy synthetic data generator (Job):
 ```shell
 kubectl apply -n uc0 -f generator/data-generator-job.yaml
 ```
 
-4. Deploy MQTT Publisher to send generated values to MQTT broker:
+6. Deploy MQTT Publisher to send generated values to MQTT broker:
 ```shell
 kubectl apply -n uc0 -f publisher/mqtt-publisher-pod.yaml
 ```
 
-5. Deploy MQTT Subscriber and Kafka Producer:
+7. Deploy MQTT Subscriber and Kafka Producer:
 ```shell
 kubectl apply -n uc0 -f subscriber/mqtt-subscriber-pod.yaml
 ```
 
-6. Deploy Kafka Consumer and Faust streaming analysis application:
+8. Deploy Kafka Consumer and Faust streaming analysis application:
 ```shell
 kubectl apply -n uc0 -f analyzer/temp-analyzer-pod.yaml
 ```
 
-7. Deploy actuator to read actions from MQTT:
+9. Deploy actuator to read actions from MQTT:
 ```shell
 kubectl apply -n uc0 -f actuator/temp-actuator-pod.yaml
 ```
