@@ -49,7 +49,7 @@ kubectl apply -f -n uc0 mqtt-stresser/mqtt-stresser-pod.yaml
 3. Add Kafka helm repo and deploy it:
 ```shell
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm upgrade --install bitnami -n uc0 -f kafka-values.yaml bitnami/kafka
+helm upgrade --install bitnami -n uc0 -f kafka-broker/kafka-values.yaml bitnami/kafka
 ```
 
 4. Add Cassandra helm repo and deploy it:
