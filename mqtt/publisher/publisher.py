@@ -14,6 +14,7 @@ mqtt_topic = os.environ['MQTT_TOPIC']
 value_type = os.environ['VALUE_TYPE']
 invalid_value_occurrence = int(os.environ['INVALID_VALUE_OCCURRENCE'])
 mqtt_port = int(os.environ['MQTT_BROKER_PORT'])
+pod_name = os.environ['POD_NAME']
 input_file = os.environ['INPUT_FILE']
 
 # topic = "mqtt/temperature"
@@ -140,7 +141,7 @@ def run():
         logging.info(f'Number of sensors to start {sensor_count} with delay {delay}.')
 
         for n in range(0, sensor_count):
-            t = Thread(target=mqtt_publish_message, args=(f"sensor-{n}", delay,))
+            t = Thread(target=mqtt_publish_message, args=(f"{pod_name}-{n}", delay,))
             threads.append(t)
             t.start()
 

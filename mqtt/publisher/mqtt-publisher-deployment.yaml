@@ -5,7 +5,7 @@ metadata:
   labels:
     app: mqtt-publisher
 spec:
-  replicas: 50
+  replicas: 2
   selector:
     matchLabels:
       app: mqtt-publisher
@@ -18,12 +18,16 @@ spec:
       - name: mqtt-publisher-container
         image: usman476/mqtt-kafka-faust:latest
         env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
         - name: MQTT_BROKER
           value: "mqtt-mosquitto.uc0.svc.cluster.local"
         - name: MQTT_BROKER_PORT
           value: "1883"
         - name: SENSORS
-          value: "1"
+          value: "2"
         - name: MESSAGE_DELAY
           value: "0.5"
         - name: MQTT_TOPIC
