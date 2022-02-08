@@ -495,7 +495,7 @@ affinity: {}
 ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
 ##
 nodeSelector:
-  kubernetes.io/hostname: observability-vm-1
+  kubernetes.io/hostname: worker-vm-2
 ## @param tolerations Tolerations for pod assignment
 ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
 ##
