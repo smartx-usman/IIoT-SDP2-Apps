@@ -19,7 +19,9 @@ kafka_broker = 'kafka://' + os.environ['KAFKA_BROKER']
 kafka_topic = os.environ['KAFKA_TOPIC']
 kafka_key = "server-room"
 value_type = os.environ['VALUE_TYPE']
-data_file_name = "/analyzer/temperature-data.csv"
+save_data = os.environ['SAVE_DATA']
+data_file_normal = "/analyzer/temperature-data-normal.csv"
+data_file_anomalous = "/analyzer/temperature-data-anomalous.csv"
 actuator_id = 'actuator-0'
 actuator_actions = ['power-on', 'pause', 'shutdown']
 
@@ -90,18 +92,29 @@ elif value_type == 'float':
     invalid_value = float(os.environ['INVALID_VALUE'])
 
 # Remove old data file from persistent volume
-if os.path.exists(data_file_name):
-    os.remove(data_file_name)
-    logging.info('Removed old file from the PV.')
-else:
-    logging.info('The file does not exist.')
+if save_data == 'file':
+    if os.path.exists(data_file_normal):
+        os.remove(data_file_normal)
+        logging.info('Removed old file from the PV.')
+    else:
+        logging.info('The file does not exist.')
 
-# Open data file for writing
-try:
-    temperature_file = open(data_file_name, "a")
-except Exception as ex:
-    logging.error(f'Exception while opening file {temperature_file}.', exc_info=True)
+    if os.path.exists(data_file_anomalous):
+        os.remove(data_file_anomalous)
+        logging.info('Removed old file from the PV.')
+    else:
+        logging.info('The file does not exist.')
 
+    # Open data file for writing
+    try:
+        temperature_file_normal = open(data_file_normal, "a")
+    except Exception as ex:
+        logging.error(f'Exception while opening file {temperature_file_normal}.', exc_info=True)
+
+    try:
+        temperature_file_anomalous = open(data_file_anomalous, "a")
+    except Exception as ex:
+        logging.error(f'Exception while opening file {temperature_file_anomalous}.', exc_info=True)
 
 # Connect to MQTT broker
 def connect_to_mqtt():
@@ -158,7 +171,9 @@ else:
     logging.critical(f'Invalid value type {value_type} is provided. Exiting.')
     sys.exit()
 
-session = connect_to_cassandra()
+if save_data == 'cassandra':
+    session = connect_to_cassandra()
+
 app = faust.App('temp-analyzer', broker=kafka_broker, )
 topic = app.topic(kafka_topic, value_type=Temperature)
 
@@ -181,13 +196,17 @@ async def check(temperatures):
         # Create some checks on incoming data to create actuator actions
         if value_type == 'integer':
             if int(temperature.value) == invalid_value:
-                session.execute(
-                    """
-                    INSERT INTO temperature_invalid (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
-                    """,
-                    (readingts, processts, temperature.sensor, float(temperature.value))
-                )
-                logging.warning('Anomalous value found. Value is discarded.')
+                if save_data == 'cassandra':
+                    session.execute(
+                        """
+                        INSERT INTO temperature_invalid (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
+                        """,
+                        (readingts, processts, temperature.sensor, float(temperature.value))
+                    )
+                elif save_data == 'file':
+                    temperature_file_anomalous.write(
+                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + temperature.value + "\n")
+                logging.warning('Anomalous value found. It is discarded from further analysis.')
             else:
                 if int(temperature.value) < min_threshold_value:
                     parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[0])
@@ -195,21 +214,31 @@ async def check(temperatures):
                     parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[2])
                 else:
                     logging.info('No action required.')
-                session.execute(
-                    """
-                    INSERT INTO temperature (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
-                    """,
-                    (readingts, processts, temperature.sensor, int(temperature.value))
-                )
+
+                if save_data == 'cassandra':
+                    session.execute(
+                        """
+                        INSERT INTO temperature (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
+                        """,
+                        (readingts, processts, temperature.sensor, int(temperature.value))
+                    )
+                elif save_data == 'file':
+                    temperature_file_normal.write(
+                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + temperature.value + "\n")
         elif value_type == 'float':
             if float(temperature.value) == invalid_value:
-                session.execute(
-                    """
-                    INSERT INTO temperature_invalid (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
-                    """,
-                    (readingts, processts, temperature.sensor, float(temperature.value))
-                )
-                logging.warning('Anomalous value found. Value is discarded.')
+                if save_data == 'cassandra':
+                    session.execute(
+                        """
+                        INSERT INTO temperature_invalid (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
+                        """,
+                        (readingts, processts, temperature.sensor, float(temperature.value))
+                    )
+                elif save_data == 'file':
+                    temperature_file_anomalous.write(
+                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + temperature.value + "\n")
+
+                logging.warning('Anomalous value found. It is discarded from further analysis.')
             else:
                 if float(temperature.value) < min_threshold_value:
                     parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[0])
@@ -217,12 +246,17 @@ async def check(temperatures):
                     parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[2])
                 else:
                     logging.info('No action required.')
-                session.execute(
-                    """
-                    INSERT INTO temperature (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
-                    """,
-                    (readingts, processts, temperature.sensor, float(temperature.value))
-                )
+
+                if save_data == 'cassandra':
+                    session.execute(
+                        """
+                        INSERT INTO temperature (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
+                        """,
+                        (readingts, processts, temperature.sensor, float(temperature.value))
+                    )
+                elif save_data == 'file':
+                    temperature_file_normal.write(
+                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + temperature.value + "\n")
 
         end_time = time.perf_counter()
         time_ms = (end_time - start_time) * 1000

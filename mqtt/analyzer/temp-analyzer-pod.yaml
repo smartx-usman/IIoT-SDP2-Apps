@@ -30,6 +30,8 @@ spec:
       value: "10.0"
     - name: MAX_THRESHOLD_VALUE
       value: "90.0"
+    - name: SAVE_DATA
+      value: "file"
     command: ["python3"]
     args: ["temp-analyzer.py", "worker", "-l", "info"]
     imagePullPolicy: "IfNotPresent"

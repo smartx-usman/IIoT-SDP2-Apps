@@ -117,6 +117,7 @@ kubectl apply -n uc0 -f actuator/temp-actuator-pod.yaml
 | `MQTT_ACTUATOR_TOPIC` | MQTT topic for sending actions from Analyzer. | mqtt/temperature/actions |
 | `MIN_THRESHOLD_VALUE` | Minimum threshold value for action creation.  | 10.0                     |
 | `MAX_THRESHOLD_VALUE` | Maximum threshold value for action creation.  | 90.0                     |
+| `SAVE_DATA`           | Save data to cassandra/file/none.             | file                     |
 
 #### Actuator service specific parameters
 | Name                       | Description                                                | Default value                                                     |

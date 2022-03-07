@@ -15,6 +15,7 @@ ENV INVALID_VALUE_OCCURRENCE="100"
 ENV INVALID_VALUE="200.0"
 ENV MIN_THRESHOLD_VALUE="10.0"
 ENV MAX_THRESHOLD_VALUE="90.0"
+ENV SAVE_DATA="file"
 
 ARG Pathdir="/mqtt"
 
@@ -30,7 +31,7 @@ COPY subscriber/subscriber.py $Pathdir
 COPY requirements.txt .
 
 #RUN apk update && apk add build-essential
-RUN /usr/local/bin/python3 -m pip install --upgrade pip
+#RUN /usr/local/bin/python3 -m pip install --upgrade pip
 RUN pip3 install -r requirements.txt
 
 WORKDIR $Pathdir
