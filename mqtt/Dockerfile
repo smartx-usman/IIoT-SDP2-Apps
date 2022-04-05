@@ -27,6 +27,7 @@ COPY actuator/temp-actuator.py $Pathdir
 COPY analyzer/temp-analyzer.py $Pathdir
 COPY publisher/publisher.py $Pathdir
 COPY subscriber/subscriber.py $Pathdir
+COPY load-testing/disk-load.sh $Pathdir
 
 COPY requirements.txt .
 
@@ -35,5 +36,7 @@ COPY requirements.txt .
 RUN pip3 install -r requirements.txt
 
 WORKDIR $Pathdir
+
+#RUN chmod +x load-testing/disk-load.sh
 
 #ENTRYPOINT ["python3", "actuate.py"]
