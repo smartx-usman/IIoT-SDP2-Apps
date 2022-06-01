@@ -262,7 +262,7 @@ affinity: {}
 ## ref: https://kubernetes.io/docs/user-guide/node-selection/
 ##
 nodeSelector:
-  kubernetes.io/hostname: worker-vm-2
+  kubernetes.io/hostname: worker1
 ## @param tolerations Tolerations for pod assignment
 ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
 ##

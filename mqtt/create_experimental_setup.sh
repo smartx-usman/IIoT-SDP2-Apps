@@ -10,7 +10,7 @@ fi
 
 if [[ $option = 'create' ]]; then
   echo 'Creating namespaces:'
-  for application in {1..5}; do
+  for application in {0..5}; do
     kubectl create namespace uc$application
   done
 
@@ -19,9 +19,10 @@ if [[ $option = 'create' ]]; then
   helm repo add bitnami https://charts.bitnami.com/bitnami
 
   echo 'Deploying tools via Helm:'
+  helm upgrade --install -n uc0 mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
+  helm upgrade --install -n uc0 bitnami -f kafka-broker/kafka-values.yaml bitnami/kafka
+
   for application in {1..5}; do
-    helm upgrade --install -n uc$application mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
-    helm upgrade --install -n uc$application bitnami -f kafka-broker/kafka-values.yaml bitnami/kafka
     helm upgrade --install -n uc$application cassandra -f datastores/cassandra-values.yaml bitnami/cassandra
   done
 
@@ -38,7 +39,7 @@ if [[ $option = 'create' ]]; then
 
 elif [[ $option = 'delete' ]]; then
   echo 'Remove all deployed applications:'
-  for application in {1..5}; do
+  for application in {0..5}; do
     kubectl delete namespace uc$application
   done
 

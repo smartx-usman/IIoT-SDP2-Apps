@@ -27,4 +27,4 @@ spec:
     imagePullPolicy: "IfNotPresent"
   restartPolicy: Always
   nodeSelector:
-    kubernetes.io/hostname: worker-vm-2
+    kubernetes.io/hostname: worker1

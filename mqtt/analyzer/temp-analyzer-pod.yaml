@@ -40,7 +40,7 @@ spec:
       name: temperature-analyzer-volume
   restartPolicy: Always
   nodeSelector:
-    kubernetes.io/hostname: worker-vm-2
+    kubernetes.io/hostname: worker1
   volumes:
   - name: temperature-analyzer-volume
     hostPath:
