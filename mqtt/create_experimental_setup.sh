@@ -27,7 +27,9 @@ if [[ $option = 'create' ]]; then
   done
 
   echo 'Deploying the tools via Kubectl:'
-  kubectl apply --namespace=uc1 -f generator/data-generator-job.yaml
+  kubectl apply --namespace=uc0 -f generator/data-generator-job.yaml
+
+  sleep 10
 
   for application in {1..5}; do
     kubectl apply --namespace=uc$application -f publisher/mqtt-publisher-deployment.yaml
