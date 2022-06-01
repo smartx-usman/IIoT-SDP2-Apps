@@ -21,6 +21,7 @@ if [[ $option = 'create' ]]; then
   echo 'Deploying tools via Helm:'
   helm upgrade --install -n uc0 mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
   helm upgrade --install -n uc0 bitnami -f kafka-broker/kafka-values.yaml bitnami/kafka
+  sleep 30
 
   for application in {1..5}; do
     helm upgrade --install -n uc$application cassandra -f datastores/cassandra-values.yaml bitnami/cassandra
