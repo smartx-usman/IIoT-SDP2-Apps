@@ -3,7 +3,6 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: mqtt-publisher-pod
-  namespace: uc0
   labels:
     environment: production
     app: mqtt-publisher-pod
