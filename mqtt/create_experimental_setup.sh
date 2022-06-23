@@ -19,24 +19,39 @@ if [[ $option = 'create' ]]; then
   helm repo add bitnami https://charts.bitnami.com/bitnami
 
   echo 'Deploying tools via Helm:'
-  helm upgrade --install -n uc0 mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
-  helm upgrade --install -n uc0 bitnami -f kafka-broker/kafka-values.yaml bitnami/kafka
+  for application in {1..5}; do
+    helm upgrade --install -n uc$application mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
+    helm upgrade --install -n uc$application bitnami -f kafka-broker/kafka-values.yaml bitnami/kafka
+  done
   sleep 30
 
-  for application in {1..5}; do
-    helm upgrade --install -n uc$application cassandra -f datastores/cassandra-values.yaml bitnami/cassandra
-  done
+  #for application in {1..5}; do
+  #  helm upgrade --install -n uc$application cassandra -f datastores/cassandra-values.yaml bitnami/cassandra
+  #done
 
   echo 'Deploying the tools via Kubectl:'
   kubectl apply --namespace=uc0 -f generator/data-generator-job.yaml
 
   sleep 10
 
+
+
   for application in {1..5}; do
+    sed -i "s/uc0/uc$application/" publisher/mqtt-publisher-deployment.yaml
+    sed -i "s/uc0/uc$application/" subscriber/mqtt-subscriber-pod.yaml
+    sed -i "s/uc0/uc$application/" analyzer/temp-analyzer-pod.yaml
+    sed -i "s/uc0/uc$application/" actuator/temp-actuator-pod.yaml
+
     kubectl apply --namespace=uc$application -f publisher/mqtt-publisher-deployment.yaml
     kubectl apply --namespace=uc$application -f subscriber/mqtt-subscriber-pod.yaml
     kubectl apply --namespace=uc$application -f analyzer/temp-analyzer-pod.yaml
     kubectl apply --namespace=uc$application -f actuator/temp-actuator-pod.yaml
+
+    sed -i "s/uc$application/uc0/" publisher/mqtt-publisher-deployment.yaml
+    sed -i "s/uc$application/uc0/" subscriber/mqtt-subscriber-pod.yaml
+    sed -i "s/uc$application/uc0/" analyzer/temp-analyzer-pod.yaml
+    sed -i "s/uc$application/uc0/" actuator/temp-actuator-pod.yaml
+
     sleep 10
   done
 
