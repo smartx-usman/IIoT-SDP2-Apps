@@ -1,0 +1,27 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-1-pod
+  labels:
+    environment: production
+    app: stress-abnormal-pod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-1-deploy
+  template:
+    metadata:
+      labels:
+        app: app-1-deploy
+    spec:
+      containers:
+      - name: stress-abnormal-container
+        image: usman476/stress-test:latest
+        command: [ "python3" ]
+        args: [ "stress-all.py", "-t", "abnormal" ]
+        imagePullPolicy: "IfNotPresent"
+      restartPolicy: Always
+      nodeSelector:
+        kubernetes.io/hostname: worker-vm-1
