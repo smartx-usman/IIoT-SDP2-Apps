@@ -22,6 +22,13 @@ spec:
         command: [ "python3" ]
         args: [ "stress-all.py", "-t", "abnormal" ]
         imagePullPolicy: "IfNotPresent"
+        resources:
+          limits:
+            memory: "900Mi"
+            cpu: "900m"
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: worker-vm-1
+        kubernetes.io/hostname: worker1
