@@ -27,7 +27,7 @@ spec:
         - name: MQTT_BROKER_PORT
           value: "1883"
         - name: SENSORS
-          value: "2"
+          value: "1"
         - name: MESSAGE_DELAY
           value: "0.5"
         - name: MQTT_TOPIC
@@ -52,7 +52,7 @@ spec:
           name: data-volume
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: worker-vm-1
+        kubernetes.io/hostname: worker2
       volumes:
       - name: data-volume
         hostPath:

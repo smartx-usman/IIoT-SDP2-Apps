@@ -3,7 +3,6 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: data-generator-job
-  namespace: uc0
   labels:
     environment: production
     app: data-generator-job
@@ -16,14 +15,14 @@ spec:
       - name: data-generator-container
         image: usman476/mqtt-kafka-faust:latest
         command: ["python3"]
-        args: ["generator.py", "--value_type", "float", "--start_value", "1.0", "--end_value", "99.99", "--total_values", "1000", "--output_file", "generated_values.csv"]
+        args: ["generator.py", "--value_type", "float", "--start_value", "1.0", "--end_value", "99.99", "--total_values", "5000", "--output_file", "generated_values.csv"]
         imagePullPolicy: "IfNotPresent"
         volumeMounts:
         - mountPath: /data
           name: data-volume
       restartPolicy: Never
       nodeSelector:
-        kubernetes.io/hostname: worker-vm-1
+        kubernetes.io/hostname: worker2
       volumes:
       - name: data-volume
         hostPath:

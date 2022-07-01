@@ -1,0 +1,34 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-2-pod
+  labels:
+    environment: production
+    app: stress-normal-pod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-2-deploy
+  template:
+    metadata:
+      labels:
+        app: app-2-deploy
+    spec:
+      containers:
+      - name: stress-normal-container
+        image: usman476/stress-test:latest
+        command: [ "python3" ]
+        args: [ "stress-all.py", "-t", "normal" ]
+        imagePullPolicy: "IfNotPresent"
+        resources:
+          limits:
+            memory: "900Mi"
+            cpu: "900m"
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+      restartPolicy: Always
+      nodeSelector:
+        kubernetes.io/hostname: worker1
