@@ -178,6 +178,6 @@ def cpu_usage_abnormal(input_file_name, fault_timestamp, recovery_timestamp, out
 # cpu_usage_normal(input_file_name='pod_cpu_cores_1.csv', fault_timestamp='2022-06-21 08:22:50',
 #                output_file_name='monitoring_pod_cpu_1.png')
 
-cpu_usage_abnormal(input_file_name='pod_cpu_cores_2.csv', fault_timestamp='2022-06-22 10:55:00',
-                   recovery_timestamp='2022-06-22 10:55:40', output_file_name='monitoring_pod_cpu_2.png',
+cpu_usage_abnormal(input_file_name='test-data/pod_cpu_cores_2.csv', fault_timestamp='2022-06-22 10:55:00',
+                   recovery_timestamp='2022-06-22 10:55:40', output_file_name='test-data/monitoring_pod_cpu_2.png',
                    filter_date=True)
