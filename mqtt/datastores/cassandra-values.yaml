@@ -72,7 +72,7 @@ diagnosticMode:
 image:
   registry: docker.io
   repository: bitnami/cassandra
-  tag: 4.0.4-debian-10-r3
+  tag: 4.0.4-debian-11-r10
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
   ## ref: https://kubernetes.io/docs/user-guide/images/#pre-pulling-images
@@ -103,7 +103,7 @@ image:
 dbUser:
   user: cassandra
   forcePassword: false
-  password: ""
+  password: "cassandrapass"
   ## Use an existing secrets which already stores your password data.
   ## for backwards compatibility, existingSecret can be a simple string,
   ## referencing the secret by name.
@@ -305,17 +305,16 @@ containerSecurityContext:
 ##
 resources:
   ## Example:
-  ## limits:
-  ##    cpu: 2
-  ##    memory: 4Gi
+  #limits:
+    #cpu: 2
+    #memory: 1Gi
   ##
   limits: {}
   ## Examples:
-  ## requests:
-  ##    cpu: 2
-  ##    memory: 4Gi
-  ##
-  requests: {}
+  #requests:
+    #cpu: 1
+    #memory: 512Mi
+
 ## Configure extra options for Cassandra containers' liveness and readiness probes
 ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#configure-probes
 ## @param livenessProbe.enabled Enable livenessProbe
@@ -516,8 +515,8 @@ networkPolicy:
   enabled: false
   ## @param networkPolicy.allowExternal Don't require client label for connections
   ## The Policy model to apply. When set to false, only pods with the correct
-  ## client label will have network access to the port Redis&trade; is listening
-  ## on. When true, Redis&trade; will accept connections from any source
+  ## client label will have network access to the port Redis&reg; is listening
+  ## on. When true, Redis&reg; will accept connections from any source
   ## (with the correct destination port).
   ##
   allowExternal: true
@@ -559,15 +558,16 @@ persistence:
   ## @param persistence.size PVC Storage Request for Cassandra data volume
   ##
   size: 8Gi
-  ## @skip persistence.commitLogsize PVC Storage Request for Cassandra commit log volume
+  ## @param persistence.commitLogsize PVC Storage Request for Cassandra commit log volume. Unset by default
   ##
-  # commitLogsize: 2Gi
+  commitLogsize: 2Gi
   ## @param persistence.mountPath The path the data volume will be mounted at
   ##
   mountPath: /bitnami/cassandra
-  ## @skip persistence.commitLogMountPath The path the commit log volume will be mounted at
+  ## @param persistence.commitLogMountPath The path the commit log volume will be mounted at. Unset by default. Set it to '/bitnami/cassandra/commitlog' to enable a separate commit log volume
   ##
   # commitLogMountPath: /bitnami/cassandra/commitlog
+  commitLogMountPath: ""
 
 ## @section Volume Permissions parameters
 ##
@@ -588,7 +588,7 @@ volumePermissions:
   image:
     registry: docker.io
     repository: bitnami/bitnami-shell
-    tag: 10-debian-10-r431
+    tag: 11-debian-11-r10
     pullPolicy: IfNotPresent
     ## Optionally specify an array of imagePullSecrets.
     ## Secrets must be manually created in the namespace.
@@ -655,7 +655,7 @@ metrics:
     registry: docker.io
     pullPolicy: IfNotPresent
     repository: bitnami/cassandra-exporter
-    tag: 2.3.8-debian-10-r54
+    tag: 2.3.8-debian-11-r10
     ## Optionally specify an array of imagePullSecrets.
     ## Secrets must be manually created in the namespace.
     ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
