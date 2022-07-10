@@ -2,7 +2,7 @@ FROM python:3.8-slim
 
 ENV SENSORS="1"
 ENV MESSAGE_DELAY="0.5"
-ENV MQTT_BROKER="mqtt-mosquitto.uc0.svc.cluster.local"
+ENV MQTT_BROKER="mqtt-mosquitto.uc2.svc.cluster.local"
 ENV MQTT_BROKER_PORT="1883"
 ENV MQTT_SENSOR_TOPIC="mqtt/temperature/readings"
 ENV MQTT_ACTUATOR_TOPIC="mqtt/temperature/actions"

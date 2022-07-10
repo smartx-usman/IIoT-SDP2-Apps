@@ -31,67 +31,67 @@ Here is the description of each step:
 ## Installation/Deployment Steps
 1. Create a namespace:
 ```shell
-kubectl create namespace uc0
+kubectl create namespace uc2
 ```
 
 2. Add MQTT helm repo and deploy it:
 ```shell
 helm repo add t3n https://storage.googleapis.com/t3n-helm-charts
-helm -n uc0 upgrade --install mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
+helm -n uc2 upgrade --install mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
 ```
 
 <!-- 
 Deploy mqtt-stresser:
 ```shell
-kubectl apply -f -n uc0 mqtt-stresser/mqtt-stresser-pod.yaml
+kubectl apply -f -n uc2 mqtt-stresser/mqtt-stresser-pod.yaml
 ```
 -->
 
 3. Add Kafka helm repo and deploy it:
 ```shell
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm upgrade --install bitnami -n uc0 -f kafka-broker/kafka-values.yaml bitnami/kafka
+helm upgrade --install bitnami -n uc2 -f kafka-broker/kafka-values.yaml bitnami/kafka
 ```
 
 4. Add Cassandra helm repo and deploy it:
 ```shell
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm upgrade --install cassandra -n=uc0 -f datastores/cassandra-values.yaml bitnami/cassandra
+helm upgrade --install cassandra -n=uc2 -f datastores/cassandra-values.yaml bitnami/cassandra
 ```
 
 5. Deploy synthetic data generator (Job):
 ```shell
-kubectl apply -n uc0 -f generator/data-generator-job.yaml
+kubectl apply -n uc2 -f generator/data-generator-job.yaml
 ```
 
 6. Deploy MQTT Publisher to send generated values to MQTT broker:
 ```shell
-kubectl apply -n uc0 -f publisher/mqtt-publisher-deployment.yaml
+kubectl apply -n uc2 -f publisher/mqtt-publisher-deployment.yaml
 ```
 
 7. Deploy MQTT Subscriber and Kafka Producer:
 ```shell
-kubectl apply -n uc0 -f subscriber/mqtt-subscriber-pod.yaml
+kubectl apply -n uc2 -f subscriber/mqtt-subscriber-pod.yaml
 ```
 
 8. Deploy Kafka Consumer and Faust streaming analysis application:
 ```shell
-kubectl apply -n uc0 -f analyzer/temp-analyzer-pod.yaml
+kubectl apply -n uc2 -f analyzer/temp-analyzer-pod.yaml
 ```
 
 9. Deploy actuator to read actions from MQTT:
 ```shell
-kubectl apply -n uc0 -f actuator/temp-actuator-pod.yaml
+kubectl apply -n uc2 -f actuator/temp-actuator-pod.yaml
 ```
 
 ## Parameters Description
 #### Common parameters for all services
 | Name                | Description                                                | Default value                                                     |
 |:--------------------|:-----------------------------------------------------------|:------------------------------------------------------------------|
-| `MQTT_BROKER`       | MQTT broker address.                                       | mqtt-mosquitto.uc0.svc.cluster.local                              |
+| `MQTT_BROKER`       | MQTT broker address.                                       | mqtt-mosquitto.uc2.svc.cluster.local                              |
 | `MQTT_BROKER_PORT`  | MQTT broker port.                                          | 1883                                                              |
 | `MQTT_SENSOR_TOPIC` | MQTT topic for sending generated data by Sensor.           | mqtt/temperature/readings                                         |
-| `KAFKA_BROKER`      | Kafka broker address.                                      | bitnami-kafka-0.bitnami-kafka-headless.uc0.svc.cluster.local:9092 |
+| `KAFKA_BROKER`      | Kafka broker address.                                      | bitnami-kafka-0.bitnami-kafka-headless.uc2.svc.cluster.local:9092 |
 | `KAFKA_TOPIC`       | Kafka topic for sending generated data by MQTT Subscriber. | temperature-readings                                              |
 | `VALUE_TYPE`        | Generated data value type.                                 | float                                                             |
 | `INVALID_VALUE`     | Invalid value to introduce into generated data.            | 200.0                                                             |

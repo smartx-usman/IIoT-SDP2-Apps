@@ -12,7 +12,7 @@ spec:
     image: usman476/mqtt-kafka-faust:latest
     env:
     - name: MQTT_BROKER
-      value: "mqtt-mosquitto.uc0.svc.cluster.local"
+      value: "mqtt-mosquitto.uc2.svc.cluster.local"
     - name: MQTT_BROKER_PORT
       value: "1883"
     - name: SENSORS

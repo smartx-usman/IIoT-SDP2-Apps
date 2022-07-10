@@ -29,7 +29,7 @@ actuator_actions = ['power-on', 'pause', 'shutdown']
 def connect_to_cassandra():
     """Create Cassandra connection"""
     auth_provider = PlainTextAuthProvider(username='cassandra', password='cassandra')
-    cluster = Cluster(['cassandra-0.cassandra-headless.uc0.svc.cluster.local'],
+    cluster = Cluster(['cassandra-0.cassandra-headless.uc2.svc.cluster.local'],
                       auth_provider=auth_provider)
 
     try:
