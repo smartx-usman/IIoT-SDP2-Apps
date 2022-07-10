@@ -23,7 +23,7 @@ spec:
       value: "temperature-readings"
     command: ["python3"]
     args: ["subscriber.py"]
-    imagePullPolicy: "IfNotPresent"
+    imagePullPolicy: "Always"
   restartPolicy: Always
   nodeSelector:
     kubernetes.io/hostname: worker1
