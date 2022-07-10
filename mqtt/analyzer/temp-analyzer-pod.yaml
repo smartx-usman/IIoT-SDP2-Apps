@@ -24,16 +24,16 @@ spec:
     - name: VALUE_TYPE
       value: "float"
     - name: INVALID_VALUE
-      value: "200.0"
+      value: "20.0"
     - name: MIN_THRESHOLD_VALUE
-      value: "10.0"
+      value: "2.0"
     - name: MAX_THRESHOLD_VALUE
-      value: "90.0"
+      value: "8.0"
     - name: SAVE_DATA
       value: "file"
     command: ["python3"]
     args: ["temp-analyzer.py", "worker", "-l", "info"]
-    imagePullPolicy: "IfNotPresent"
+    imagePullPolicy: "Always"
     volumeMounts:
     - mountPath: /analyzer
       name: temperature-analyzer-volume

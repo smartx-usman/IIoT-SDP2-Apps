@@ -116,6 +116,7 @@ if save_data == 'file':
     except Exception as ex:
         logging.error(f'Exception while opening file {temperature_file_anomalous}.', exc_info=True)
 
+
 # Connect to MQTT broker
 def connect_to_mqtt():
     def on_connect(client, userdata, flags, rc):
@@ -183,10 +184,11 @@ topic = app.topic(kafka_topic, value_type=Temperature)
 async def check(temperatures):
     async for temperature in temperatures:
         start_time = time.perf_counter()
-        logging.info(f'Reading: {temperature.value} Timestamp: {temperature.reading_ts} Sensor: {temperature.sensor}')
+        data_value = temperature.value.split(',')
+        logging.info(f'Reading: {data_value} Timestamp: {temperature.reading_ts} Sensor: {temperature.sensor}')
 
         # Write data to a file
-        #temperature_file.write(temperature.reading_ts + "," + temperature.sensor + "," + temperature.value + "\n")
+        # temperature_file.write(temperature.reading_ts + "," + temperature.sensor + "," + data_value[1] + "\n")
 
         # ts = int(temperature.reading_ts[:-3])
         processts = int(time.time())
@@ -195,22 +197,22 @@ async def check(temperatures):
 
         # Create some checks on incoming data to create actuator actions
         if value_type == 'integer':
-            if int(temperature.value) == invalid_value:
+            if int(data_value[0]) == invalid_value:
                 if save_data == 'cassandra':
                     session.execute(
                         """
                         INSERT INTO temperature_invalid (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
                         """,
-                        (readingts, processts, temperature.sensor, float(temperature.value))
+                        (readingts, processts, temperature.sensor, float(data_value[1]))
                     )
                 elif save_data == 'file':
                     temperature_file_anomalous.write(
-                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + temperature.value + "\n")
+                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + data_value[0] + "\n")
                 logging.warning('Anomalous value found. It is discarded from further analysis.')
             else:
-                if int(temperature.value) < min_threshold_value:
+                if int(data_value[0]) < min_threshold_value:
                     parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[0])
-                elif int(temperature.value) > max_threshold_value:
+                elif int(data_value[0]) > max_threshold_value:
                     parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[2])
                 else:
                     logging.info('No action required.')
@@ -220,29 +222,29 @@ async def check(temperatures):
                         """
                         INSERT INTO temperature (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
                         """,
-                        (readingts, processts, temperature.sensor, int(temperature.value))
+                        (readingts, processts, temperature.sensor, int(data_value[0]))
                     )
                 elif save_data == 'file':
                     temperature_file_normal.write(
-                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + temperature.value + "\n")
+                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + data_value[0] + "\n")
         elif value_type == 'float':
-            if float(temperature.value) == invalid_value:
+            if float(data_value[1]) == invalid_value:
                 if save_data == 'cassandra':
                     session.execute(
                         """
                         INSERT INTO temperature_invalid (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
                         """,
-                        (readingts, processts, temperature.sensor, float(temperature.value))
+                        (readingts, processts, temperature.sensor, float(data_value[1]))
                     )
                 elif save_data == 'file':
                     temperature_file_anomalous.write(
-                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + temperature.value + "\n")
+                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + data_value[1] + "\n")
 
                 logging.warning('Anomalous value found. It is discarded from further analysis.')
             else:
-                if float(temperature.value) < min_threshold_value:
+                if float(data_value[1]) < min_threshold_value:
                     parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[0])
-                elif float(temperature.value) > max_threshold_value:
+                elif float(data_value[1]) > max_threshold_value:
                     parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[2])
                 else:
                     logging.info('No action required.')
@@ -252,11 +254,11 @@ async def check(temperatures):
                         """
                         INSERT INTO temperature (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
                         """,
-                        (readingts, processts, temperature.sensor, float(temperature.value))
+                        (readingts, processts, temperature.sensor, float(data_value[1]))
                     )
                 elif save_data == 'file':
                     temperature_file_normal.write(
-                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + temperature.value + "\n")
+                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + data_value[1] + "\n")
 
         end_time = time.perf_counter()
         time_ms = (end_time - start_time) * 1000
