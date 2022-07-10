@@ -34,19 +34,15 @@ spec:
           value: "mqtt/temperature/readings"
         - name: VALUE_TYPE
           value: "float"
-        - name: START_VALUE
-          value: "1.0"
-        - name: END_VALUE
-          value: "99.99"
         - name: INVALID_VALUE_OCCURRENCE
           value: "5"
         - name: INVALID_VALUE
-          value: "200.0"
+          value: "20.0"
         - name: INPUT_FILE
           value: "generated_values.csv"
         command: ["python3"]
         args: ["publisher.py"]
-        imagePullPolicy: "IfNotPresent"
+        imagePullPolicy: "Always"
         volumeMounts:
         - mountPath: /data
           name: data-volume
