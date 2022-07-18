@@ -5,7 +5,7 @@ metadata:
   labels:
     app: mqtt-publisher
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: mqtt-publisher
@@ -22,26 +22,20 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        - name: MQTT_BROKER
-          value: "mqtt-mosquitto.uc2.svc.cluster.local"
-        - name: MQTT_BROKER_PORT
-          value: "1883"
-        - name: SENSORS
-          value: "1"
-        - name: MESSAGE_DELAY
-          value: "0.5"
-        - name: MQTT_TOPIC
-          value: "mqtt/temperature/readings"
-        - name: VALUE_TYPE
-          value: "float"
-        - name: INVALID_VALUE_OCCURRENCE
-          value: "5"
-        - name: INVALID_VALUE
-          value: "20.0"
-        - name: INPUT_FILE
-          value: "generated_values.csv"
         command: ["python3"]
-        args: ["publisher.py"]
+        args: ["publisher.py",
+               "--value_type", "abnormal",
+               "--data_type", "both",
+               "--mqtt_broker", "mqtt-mosquitto.uc2.svc.cluster.local",
+               "--mqtt_broker_port", "1883",
+               "--mqtt_topic", "mqtt/temperature/readings",
+               "--sensors", "1",
+               "--delay", "0.5",
+               "--invalid_value_occurrence", "5",
+               "--invalid_value", "19.99",
+               "--normal_input_file", "normal_data.csv",
+               "--abnormal_input_file", "abnormal_data.csv"
+        ]
         imagePullPolicy: "Always"
         volumeMounts:
         - mountPath: /data
