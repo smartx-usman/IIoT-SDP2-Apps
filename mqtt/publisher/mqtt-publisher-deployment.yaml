@@ -5,7 +5,7 @@ metadata:
   labels:
     app: mqtt-publisher
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: mqtt-publisher
@@ -24,14 +24,14 @@ spec:
               fieldPath: metadata.name
         command: ["python3"]
         args: ["publisher.py",
-               "--value_type", "abnormal",
+               "--value_type", "both",
                "--data_type", "both",
                "--mqtt_broker", "mqtt-mosquitto.uc2.svc.cluster.local",
                "--mqtt_broker_port", "1883",
                "--mqtt_topic", "mqtt/temperature/readings",
                "--sensors", "1",
                "--delay", "0.5",
-               "--invalid_value_occurrence", "5",
+               "--invalid_value_occurrence", "10",
                "--invalid_value", "19.99",
                "--normal_input_file", "normal_data.csv",
                "--abnormal_input_file", "abnormal_data.csv"
