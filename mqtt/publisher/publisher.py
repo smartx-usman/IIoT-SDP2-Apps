@@ -101,11 +101,20 @@ def mqtt_publish_message(client_id, delay):
                     msg_count += 1
                     time.sleep(delay)
         else:
-            with open(f'/data/{arguments.normal_input_file[0]}') as fp:
-                values = fp.readlines()
+            with open(f'/data/{arguments.normal_input_file[0]}') as fp_normal:
+                values = fp_normal.readlines()
+                with open(f'/data/{arguments.abnormal_input_file[0]}') as fp_abnormal:
+                    abnormal_values = fp_abnormal.readlines()
+
+                current_value_index = 0
+                count = 1
+
                 for value in values:
-                    if count == arguments.invalid_value_occurrence[0]:
-                        value = arguments.invalid_value[0]
+                    if count == int(arguments.invalid_value_occurrence[0]):
+                        # for abnormal_value in abnormal_values:
+                        value = abnormal_values[current_value_index]
+                        # value = arguments.invalid_value[0]
+                        current_value_index = current_value_index + 1
                         count = 1
 
                     time_ms = round(time.time() * 1000)
