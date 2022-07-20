@@ -12,28 +12,28 @@ spec:
     image: usman476/mqtt-kafka-faust:latest
     env:
     - name: MQTT_BROKER
-      value: "mqtt-mosquitto.uc0.svc.cluster.local"
+      value: "mqtt-mosquitto.uc2.svc.cluster.local"
     - name: MQTT_BROKER_PORT
       value: "1883"
     - name: MQTT_ACTUATOR_TOPIC
       value: "mqtt/temperature/actions"
     - name: KAFKA_BROKER
-      value: "bitnami-kafka-0.bitnami-kafka-headless.uc0.svc.cluster.local:9092"
+      value: "bitnami-kafka-0.bitnami-kafka-headless.uc2.svc.cluster.local:9092"
     - name: KAFKA_TOPIC
       value: "temperature-readings"
     - name: VALUE_TYPE
       value: "float"
     - name: INVALID_VALUE
-      value: "200.0"
+      value: "20.0"
     - name: MIN_THRESHOLD_VALUE
-      value: "10.0"
+      value: "2.0"
     - name: MAX_THRESHOLD_VALUE
-      value: "90.0"
+      value: "8.0"
     - name: SAVE_DATA
       value: "file"
     command: ["python3"]
     args: ["temp-analyzer.py", "worker", "-l", "info"]
-    imagePullPolicy: "IfNotPresent"
+    imagePullPolicy: "Always"
     volumeMounts:
     - mountPath: /analyzer
       name: temperature-analyzer-volume

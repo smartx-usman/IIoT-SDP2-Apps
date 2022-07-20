@@ -1,7 +1,14 @@
-# python 3.6
+#!/usr/bin/env python3
+"""
+For publishing synthetic data to MQTT.
+Author: Muhammad Usman
+Version: 0.2.0
+"""
+
+import argparse as ap
 import logging
 import os
-import random
+import sys
 import time
 from threading import Thread
 
@@ -9,29 +16,33 @@ from paho.mqtt import client as mqtt_client
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-mqtt_broker = os.environ['MQTT_BROKER']
-mqtt_topic = os.environ['MQTT_TOPIC']
-value_type = os.environ['VALUE_TYPE']
-invalid_value_occurrence = int(os.environ['INVALID_VALUE_OCCURRENCE'])
-mqtt_port = int(os.environ['MQTT_BROKER_PORT'])
-pod_name = os.environ['POD_NAME']
-input_file = os.environ['INPUT_FILE']
+
+def parse_arguments():
+    """Read and parse commandline arguments"""
+    parser = ap.ArgumentParser(prog='data_generator', usage='%(prog)s [options]', add_help=True)
+    parser.add_argument('-t', '--value_type', nargs=1, help='Value type normal|abnormal|both', required=True)
+    parser.add_argument('-d', '--data_type', nargs=1, help='Data type integer|float|both', required=True)
+
+    parser.add_argument('-m', '--mqtt_broker', nargs=1, help='MQTT broker ip or service name', required=True)
+    parser.add_argument('-p', '--mqtt_broker_port', nargs=1, help='MQTT broker port', required=True)
+    parser.add_argument('-to', '--mqtt_topic', nargs=1, help='MQTT broker topic', required=True)
+
+    parser.add_argument('-s', '--sensors', nargs=1, help='The number of sensors to start', required=True)
+    parser.add_argument('-de', '--delay', nargs=1, help='Message delay', required=True)
+
+    parser.add_argument('-io', '--invalid_value_occurrence', nargs=1, help='Invalid value occurrence position',
+                        required=False)
+    parser.add_argument('-iv', '--invalid_value', nargs=1, help='Invalid value', required=False)
+
+    parser.add_argument('-ni', '--normal_input_file', nargs=1, help='Normal data input file name', required=True)
+    parser.add_argument('-ai', '--abnormal_input_file', nargs=1, help='Abnormal data input file name', required=False)
+
+    return parser.parse_args(sys.argv[1:])
+
 
 # topic = "mqtt/temperature"
 # username = 'emqx'
 # password = 'public'
-
-# Cast values from string to integer
-if value_type == 'integer':
-    start_value = int(os.environ['START_VALUE'])
-    end_value = int(os.environ['END_VALUE'])
-    invalid_value = int(os.environ['INVALID_VALUE'])
-
-# Cast values from string to flaot
-if value_type == 'float':
-    start_value = float(os.environ['START_VALUE'])
-    end_value = float(os.environ['END_VALUE'])
-    invalid_value = float(os.environ['INVALID_VALUE'])
 
 
 # Connect to MQTT broker
@@ -45,28 +56,8 @@ def connect_mqtt(clientID):
     client = mqtt_client.Client(clientID)
     # client.username_pw_set(username, password)
     client.on_connect = on_connect
-    client.connect(mqtt_broker, mqtt_port)
+    client.connect(arguments.mqtt_broker[0], int(arguments.mqtt_broker_port[0]))
     return client
-
-
-# Generate integer values based on given range of values
-def generate_integer_values(msg_count):
-    generated_value = random(start_value, end_value)
-
-    if msg_count == invalid_value_occurrence:
-        generated_value = invalid_value
-
-    return generated_value
-
-
-# Generate float values based on given range of values
-def generate_float_values(msg_count):
-    generated_value = round(random.uniform(start_value, end_value), 4)
-
-    if msg_count == invalid_value_occurrence:
-        generated_value = invalid_value
-
-    return generated_value
 
 
 # Publish message to MQTT topic
@@ -76,68 +67,79 @@ def mqtt_publish_message(client_id, delay):
     client.loop_start()
 
     while True:
-
         start_time = time.perf_counter()
+        if arguments.value_type[0] == 'normal':
+            with open(f'/data/{arguments.normal_input_file[0]}') as fp:
+                values = fp.readlines()
+                for value in values:
+                    time_ms = round(time.time() * 1000)
+                    msg = f"measurement_ts: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {str(value).strip()}"
+                    result = client.publish(arguments.mqtt_topic[0], msg)
+                    status = result[0]
 
-        # if value_type == 'integer':
-        #    value = generate_integer_values(msg_count)
-        # elif value_type == 'float':
-        #    value = generate_float_values(msg_count)
-        # else:
-        #    logging.critical(
-        #        f"Failed to create value of type {value_type}. No function is defined for {value_type} value type.")
+                    if status == 0:
+                        logging.info(f"Send `{msg}` to topic `{arguments.mqtt_topic[0]}`")
+                    else:
+                        logging.error(f"Failed to send message to topic {arguments.mqtt_topic[0]}")
 
-        count = 1
+                    msg_count += 1
+                    time.sleep(delay)
+        elif arguments.value_type[0] == 'abnormal':
+            with open(f'/data/{arguments.abnormal_input_file[0]}') as fp:
+                values = fp.readlines()
+                for value in values:
+                    time_ms = round(time.time() * 1000)
+                    msg = f"measurement_ts: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {str(value).strip()}"
+                    result = client.publish(arguments.mqtt_topic[0], msg)
+                    status = result[0]
 
-        with open(f'/data/{input_file}') as fp:
-            values = fp.readlines()
-            for value in values:
+                    if status == 0:
+                        logging.info(f"Send `{msg}` to topic `{arguments.mqtt_topic[0]}`")
+                    else:
+                        logging.error(f"Failed to send message to topic {arguments.mqtt_topic[0]}")
 
-                if count == invalid_value_occurrence:
-                    value = invalid_value
-                    count = 1
+                    msg_count += 1
+                    time.sleep(delay)
+        else:
+            with open(f'/data/{arguments.normal_input_file[0]}') as fp_normal:
+                values = fp_normal.readlines()
+                with open(f'/data/{arguments.abnormal_input_file[0]}') as fp_abnormal:
+                    abnormal_values = fp_abnormal.readlines()
 
-                time_ms = round(time.time() * 1000)
-                msg = f"measurement_timestamp: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {str(value).strip()}"
-                result = client.publish(mqtt_topic, msg)
-                status = result[0]
+                current_value_index = 0
+                count = 1
 
-                if status == 0:
-                    logging.info(f"Send `{msg}` to topic `{mqtt_topic}`")
-                else:
-                    logging.error(f"Failed to send message to topic {mqtt_topic}")
+                for value in values:
+                    if count == int(arguments.invalid_value_occurrence[0]):
+                        # for abnormal_value in abnormal_values:
+                        value = abnormal_values[current_value_index]
+                        # value = arguments.invalid_value[0]
+                        current_value_index = current_value_index + 1
+                        count = 1
 
-                count += 1
-                msg_count += 1
-                time.sleep(delay)
+                    time_ms = round(time.time() * 1000)
+                    msg = f"measurement_ts: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {str(value).strip()}"
+                    result = client.publish(arguments.mqtt_topic[0], msg)
+                    status = result[0]
+
+                    if status == 0:
+                        logging.info(f"Send `{msg}` to topic `{arguments.mqtt_topic[0]}`")
+                    else:
+                        logging.error(f"Failed to send message to topic {arguments.mqtt_topic[0]}")
+
+                    count += 1
+                    msg_count += 1
+                    time.sleep(delay)
 
         end_time = time.perf_counter()
-
         logging.info(f'It took {end_time - start_time: 0.4f} second(s) to complete.')
-
-
-# using readlines()
-def get_generated_data():
-    count = 0
-    print("Using readlines()")
-
-    with open(f'data/{input_file}') as fp:
-        Lines = fp.readlines()
-        for line in Lines:
-            count += 1
-            print("Line{}: {}".format(count, line.strip()))
-            time.sleep(1)
-
-
-# while(True):
-#     get_generated_data()
 
 
 def run():
     try:
         threads = []
-        sensor_count = int(os.environ['SENSORS'])
-        delay = float(os.environ['MESSAGE_DELAY'])
+        sensor_count = int(arguments.sensors[0])
+        delay = float(arguments.delay[0])
         logging.info(f'Number of sensors to start {sensor_count} with delay {delay}.')
 
         for n in range(0, sensor_count):
@@ -152,5 +154,17 @@ def run():
         logging.error("Unable to start thread", exc_info=True)
 
 
-if __name__ == '__main__':
-    run()
+arguments = parse_arguments()
+pod_name = os.environ['POD_NAME']
+
+# Cast values from string to integer
+if arguments.data_type[0] == 'integer':
+    invalid_value = int(os.environ['INVALID_VALUE'])
+    invalid_value = str(invalid_value) + ',' + str(float(invalid_value))
+
+# Cast values from string to float
+if arguments.data_type[0] == 'float':
+    invalid_value = float(os.environ['INVALID_VALUE'])
+    invalid_value = str(int(invalid_value)) + ',' + str(invalid_value)
+
+run()
