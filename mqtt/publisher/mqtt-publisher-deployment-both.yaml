@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: publisher-deployment-both
+  labels:
+    app: mqtt-publisher-both
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mqtt-publisher-both
+  template:
+    metadata:
+      labels:
+        app: mqtt-publisher-both
+    spec:
+      containers:
+      - name: publisher-container-both
+        image: usman476/mqtt-kafka-faust:latest
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        command: ["python3"]
+        args: ["publisher.py",
+               "--value_type", "both",
+               "--data_type", "both",
+               "--mqtt_broker", "mqtt-mosquitto.uc2.svc.cluster.local",
+               "--mqtt_broker_port", "1883",
+               "--mqtt_topic", "mqtt/temperature/readings",
+               "--sensors", "1",
+               "--delay_type", "random",
+               "--delay_start_range", "0",
+               "--delay_end_range", "10.0",
+               "--delay", "0.5",
+               "--invalid_value_occurrence", "10",
+               "--invalid_value", "19.99",
+               "--normal_input_file", "normal_data.csv",
+               "--abnormal_input_file", "abnormal_data.csv"
+        ]
+        imagePullPolicy: "Always"
+        volumeMounts:
+        - mountPath: /data
+          name: data-volume
+      restartPolicy: Always
+      nodeSelector:
+        kubernetes.io/hostname: worker2
+      volumes:
+      - name: data-volume
+        hostPath:
+          # directory location on host
+          path: /opt/data
+          # this field is optional
+          type: Directory

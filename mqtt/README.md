@@ -64,9 +64,11 @@ helm upgrade --install cassandra -n=uc2 -f datastores/cassandra-values.yaml bitn
 kubectl apply -n uc2 -f generator/data-generator-job.yaml
 ```
 
-6. Deploy MQTT Publisher to send generated values to MQTT broker:
+6. Deploy MQTT Publisher to send generated values to MQTT broker (anyone or more options can be selected):
 ```shell
-kubectl apply -n uc2 -f publisher/mqtt-publisher-deployment.yaml
+kubectl apply -n uc2 -f publisher/mqtt-publisher-deployment-normal.yaml #Deploy 10 normal sensors with fixed message delay as pods
+kubectl apply -n uc2 -f publisher/mqtt-publisher-deployment-abnormal.yaml #Deploy 1 abnormal sensor with fixed message delay as a pod
+kubectl apply -n uc2 -f publisher/mqtt-publisher-deployment-both.yaml #Deploy 1 sensor with mixed data at random message delay as a pod
 ```
 
 7. Deploy MQTT Subscriber and Kafka Producer:
