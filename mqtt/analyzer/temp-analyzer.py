@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+"""
+For generating synthetic data.
+Author: Muhammad Usman
+Version: 0.2.0
+"""
+
 import logging
 import os
 import sys
@@ -187,82 +193,67 @@ async def check(temperatures):
         data_value = temperature.value.split(',')
         logging.info(f'Reading: {data_value} Timestamp: {temperature.reading_ts} Sensor: {temperature.sensor}')
 
-        # Write data to a file
-        # temperature_file.write(temperature.reading_ts + "," + temperature.sensor + "," + data_value[1] + "\n")
-
-        # ts = int(temperature.reading_ts[:-3])
-        processts = int(time.time())
-        readingts = int(temperature.reading_ts[:-3])
-        # readingts = datetime.datetime.fromtimestamp(ts)
+        process_ts = int(time.time())
+        reading_ts = int(temperature.reading_ts[:-3])
 
         # Create some checks on incoming data to create actuator actions
         if value_type == 'integer':
             if int(data_value[0]) == invalid_value:
                 if save_data == 'cassandra':
-                    session.execute(
-                        """
-                        INSERT INTO temperature_invalid (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
-                        """,
-                        (readingts, processts, temperature.sensor, float(data_value[1]))
-                    )
+                    store_cassandra('temperature_invalid', reading_ts, process_ts, temperature.sensor,
+                                    int(data_value[1]))
                 elif save_data == 'file':
                     temperature_file_anomalous.write(
-                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + data_value[0] + "\n")
+                        str(reading_ts) + "," + str(process_ts) + "," + temperature.sensor + "," + data_value[0] + "\n")
                 logging.warning('Anomalous value found. It is discarded from further analysis.')
             else:
-                if int(data_value[0]) < min_threshold_value:
-                    parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[0])
-                elif int(data_value[0]) > max_threshold_value:
-                    parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[2])
-                else:
-                    logging.info('No action required.')
+                get_actuator_action(int(data_value[0]), temperature.reading_ts)
 
                 if save_data == 'cassandra':
-                    session.execute(
-                        """
-                        INSERT INTO temperature (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
-                        """,
-                        (readingts, processts, temperature.sensor, int(data_value[0]))
-                    )
+                    store_cassandra('temperature', reading_ts, process_ts, temperature.sensor, int(data_value[1]))
                 elif save_data == 'file':
                     temperature_file_normal.write(
-                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + data_value[0] + "\n")
+                        str(reading_ts) + "," + str(process_ts) + "," + temperature.sensor + "," + data_value[0] + "\n")
         elif value_type == 'float':
             if float(data_value[1]) == invalid_value:
                 if save_data == 'cassandra':
-                    session.execute(
-                        """
-                        INSERT INTO temperature_invalid (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
-                        """,
-                        (readingts, processts, temperature.sensor, float(data_value[1]))
-                    )
+                    store_cassandra('temperature_invalid', reading_ts, process_ts, temperature.sensor,
+                                    float(data_value[1]))
                 elif save_data == 'file':
                     temperature_file_anomalous.write(
-                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + data_value[1] + "\n")
+                        str(reading_ts) + "," + str(process_ts) + "," + temperature.sensor + "," + data_value[1] + "\n")
 
                 logging.warning('Anomalous value found. It is discarded from further analysis.')
             else:
-                if float(data_value[1]) < min_threshold_value:
-                    parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[0])
-                elif float(data_value[1]) > max_threshold_value:
-                    parse_message_for_actuator(temperature.reading_ts, actuator_id, actuator_actions[2])
-                else:
-                    logging.info('No action required.')
+                get_actuator_action(float(data_value[0]), temperature.reading_ts)
 
                 if save_data == 'cassandra':
-                    session.execute(
-                        """
-                        INSERT INTO temperature (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
-                        """,
-                        (readingts, processts, temperature.sensor, float(data_value[1]))
-                    )
+                    store_cassandra('temperature', reading_ts, process_ts, temperature.sensor, int(data_value[1]))
                 elif save_data == 'file':
                     temperature_file_normal.write(
-                        str(readingts) + "," + str(processts) + "," + temperature.sensor + "," + data_value[1] + "\n")
+                        str(reading_ts) + "," + str(process_ts) + "," + temperature.sensor + "," + data_value[1] + "\n")
 
         end_time = time.perf_counter()
         time_ms = (end_time - start_time) * 1000
         logging.info(f'Message processing took {time_ms} ms.')
+
+
+def get_actuator_action(value, reading_ts):
+    if value < min_threshold_value:
+        parse_message_for_actuator(reading_ts, actuator_id, actuator_actions[0])
+    elif value > max_threshold_value:
+        parse_message_for_actuator(reading_ts, actuator_id, actuator_actions[2])
+    else:
+        logging.info('No action required.')
+
+
+def store_cassandra(table, reading_ts, process_ts, sensor, value):
+    session.execute(
+        f"""
+        INSERT INTO {table} (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
+        """,
+        (reading_ts, process_ts, sensor, value)
+    )
 
 
 if __name__ == '__main__':
