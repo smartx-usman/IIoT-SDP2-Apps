@@ -30,7 +30,9 @@ spec:
     - name: MAX_THRESHOLD_VALUE
       value: "8.0"
     - name: SAVE_DATA
-      value: "file"
+      value: "cassandra"
+    - name: DATABASE_URL
+      value: "cassandra-0.cassandra-headless.uc1.svc.cluster.local"
     command: ["python3"]
     args: ["temp-analyzer.py", "worker", "-l", "info"]
     imagePullPolicy: "Always"

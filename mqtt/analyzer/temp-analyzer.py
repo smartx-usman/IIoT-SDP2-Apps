@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 For generating synthetic data.
 Author: Muhammad Usman
@@ -26,6 +25,7 @@ kafka_topic = os.environ['KAFKA_TOPIC']
 kafka_key = "server-room"
 value_type = os.environ['VALUE_TYPE']
 save_data = os.environ['SAVE_DATA']
+database_url = os.environ['DATABASE_URL']
 data_file_normal = "/analyzer/temperature-data-normal.csv"
 data_file_anomalous = "/analyzer/temperature-data-anomalous.csv"
 actuator_id = 'actuator-0'
@@ -34,9 +34,10 @@ actuator_actions = ['power-on', 'pause', 'shutdown']
 
 def connect_to_cassandra():
     """Create Cassandra connection"""
-    auth_provider = PlainTextAuthProvider(username='cassandra', password='cassandra')
-    cluster = Cluster(['cassandra-0.cassandra-headless.uc2.svc.cluster.local'],
-                      auth_provider=auth_provider)
+    auth_provider = PlainTextAuthProvider(username='cassandra', password='cassandrapass')
+    cluster = Cluster([database_url],
+                      auth_provider=auth_provider,
+                      protocol_version=5)
 
     try:
         session = cluster.connect()
@@ -45,10 +46,8 @@ def connect_to_cassandra():
 
     try:
         session.execute(f'DROP keyspace IF EXISTS iiot;')
-        logging.info("Creating keyspace...")
         session.execute(
             "create keyspace iiot with replication={'class': 'SimpleStrategy', 'replication_factor' : 1};")
-        logging.info(f'Created keyspace iiot.')
     except Exception as ex:
         logging.error(f'Problem while dropping or creating iiot keyspace.')
 
@@ -228,7 +227,7 @@ async def check(temperatures):
                 get_actuator_action(float(data_value[0]), temperature.reading_ts)
 
                 if save_data == 'cassandra':
-                    store_cassandra('temperature', reading_ts, process_ts, temperature.sensor, int(data_value[1]))
+                    store_cassandra('temperature', reading_ts, process_ts, temperature.sensor, float(data_value[1]))
                 elif save_data == 'file':
                     temperature_file_normal.write(
                         str(reading_ts) + "," + str(process_ts) + "," + temperature.sensor + "," + data_value[1] + "\n")
