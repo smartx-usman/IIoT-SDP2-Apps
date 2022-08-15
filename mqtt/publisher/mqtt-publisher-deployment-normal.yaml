@@ -5,7 +5,7 @@ metadata:
   labels:
     app: mqtt-publisher-normal
 spec:
-  replicas: 50
+  replicas: 8
   selector:
     matchLabels:
       app: mqtt-publisher-normal
