@@ -4,3 +4,7 @@ faust
 typing-extensions
 numpy
 cassandra-driver
+opentelemetry-distro
+opentelemetry-instrumentation
+opentelemetry-exporter-jaeger
+opentelemetry-exporter-jaeger-proto-grpc
