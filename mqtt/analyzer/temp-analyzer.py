@@ -86,6 +86,63 @@ def connect_to_cassandra():
     return session
 
 
+def connect_to_mqtt():
+    """Connect to MQTT broker"""
+    def on_connect(client, userdata, flags, rc):
+        if rc == 0:
+            logging.info('Connected to MQTT Broker!')
+        else:
+            logging.critical(f'Failed to connect, return code {rc}.')
+
+    try:
+        client = mqtt_client.Client(mqtt_client_id)
+        client.on_connect = on_connect
+        client.connect(mqtt_broker, mqtt_port)
+    except Exception as ex:
+        logging.critical('Exception while connecting MQTT.', exc_info=True)
+    return client
+
+
+def mqtt_publish_message(mqtt_publisher, message):
+    """Publish message to MQTT topic"""
+    time_ms = round(time.time() * 1000)
+    message = f'processed_ts:{time_ms} {message}'
+    result = mqtt_publisher.publish(mqtt_topic, message)
+    status = result[0]
+
+    if status == 0:
+        logging.info(f"Send {message} to topic `{mqtt_topic}`")
+    else:
+        logging.error(f"Failed to send message to topic {mqtt_topic}")
+
+
+def parse_message_for_actuator(reading_ts, actuator, action):
+    """Parse message for MQTT"""
+    logging.info(f'{action} heating system action is generated.')
+    message = f"reading_ts:{reading_ts} actuator_id:{actuator} action:{action}"
+    mqtt_publish_message(client, message)
+
+
+def get_actuator_action(value, reading_ts):
+    """Find action for the actuator"""
+    if value < min_threshold_value:
+        parse_message_for_actuator(reading_ts, actuator_id, actuator_actions[0])
+    elif value > max_threshold_value:
+        parse_message_for_actuator(reading_ts, actuator_id, actuator_actions[2])
+    else:
+        logging.info('No action required.')
+
+
+def store_cassandra(table, reading_ts, process_ts, sensor, value):
+    """Save data to cassandra database"""
+    session.execute(
+        f"""
+        INSERT INTO {table} (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
+        """,
+        (reading_ts, process_ts, sensor, value)
+    )
+
+
 # Cast values to correct type
 if value_type == 'integer':
     min_threshold_value = int(os.environ['MIN_THRESHOLD_VALUE'])
@@ -121,46 +178,9 @@ if save_data == 'file':
     except Exception as ex:
         logging.error(f'Exception while opening file {temperature_file_anomalous}.', exc_info=True)
 
-
-# Connect to MQTT broker
-def connect_to_mqtt():
-    def on_connect(client, userdata, flags, rc):
-        if rc == 0:
-            logging.info('Connected to MQTT Broker!')
-        else:
-            logging.critical(f'Failed to connect, return code {rc}.')
-
-    try:
-        client = mqtt_client.Client(mqtt_client_id)
-        client.on_connect = on_connect
-        client.connect(mqtt_broker, mqtt_port)
-    except Exception as ex:
-        logging.critical('Exception while connecting MQTT.', exc_info=True)
-    return client
-
-
-# Publish message to MQTT topic
-def mqtt_publish_message(mqtt_publisher, message):
-    time_ms = round(time.time() * 1000)
-    message = f'processed_ts:{time_ms} {message}'
-    result = mqtt_publisher.publish(mqtt_topic, message)
-    status = result[0]
-
-    if status == 0:
-        logging.info(f"Send {message} to topic `{mqtt_topic}`")
-    else:
-        logging.error(f"Failed to send message to topic {mqtt_topic}")
-
-
-client = connect_to_mqtt()
-
-
-# Parse message for MQTT
-def parse_message_for_actuator(reading_ts, actuator, action):
-    logging.info(f'{action} heating system action is generated.')
-    message = f"reading_ts:{reading_ts} actuator_id:{actuator} action:{action}"
-    mqtt_publish_message(client, message)
-
+# Cassandra connection setup
+if save_data == 'cassandra':
+    session = connect_to_cassandra()
 
 # Create a class to parse message from Kafka
 if value_type == 'integer':
@@ -177,9 +197,7 @@ else:
     logging.critical(f'Invalid value type {value_type} is provided. Exiting.')
     sys.exit()
 
-if save_data == 'cassandra':
-    session = connect_to_cassandra()
-
+client = connect_to_mqtt()
 app = faust.App('temp-analyzer', broker=kafka_broker, )
 topic = app.topic(kafka_topic, value_type=Temperature)
 
@@ -235,24 +253,6 @@ async def check(temperatures):
         end_time = time.perf_counter()
         time_ms = (end_time - start_time) * 1000
         logging.info(f'Message processing took {time_ms} ms.')
-
-
-def get_actuator_action(value, reading_ts):
-    if value < min_threshold_value:
-        parse_message_for_actuator(reading_ts, actuator_id, actuator_actions[0])
-    elif value > max_threshold_value:
-        parse_message_for_actuator(reading_ts, actuator_id, actuator_actions[2])
-    else:
-        logging.info('No action required.')
-
-
-def store_cassandra(table, reading_ts, process_ts, sensor, value):
-    session.execute(
-        f"""
-        INSERT INTO {table} (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
-        """,
-        (reading_ts, process_ts, sensor, value)
-    )
 
 
 if __name__ == '__main__':
