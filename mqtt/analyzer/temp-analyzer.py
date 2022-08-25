@@ -48,6 +48,7 @@ def connect_to_mqtt():
         client.connect(mqtt_broker, mqtt_port)
     except Exception as ex:
         logging.critical('Exception while connecting MQTT.', exc_info=True)
+        sys.exit(1)
     return client
 
 
@@ -59,7 +60,7 @@ def mqtt_publish_message(mqtt_publisher, message):
     status = result[0]
 
     if status == 0:
-        logging.info(f"Send {message} to topic `{mqtt_topic}`")
+        pass
     else:
         logging.error(f"Failed to send message to topic {mqtt_topic}")
 
@@ -78,7 +79,7 @@ def get_actuator_action(value, reading_ts):
     elif value > max_threshold_value:
         parse_message_for_actuator(reading_ts, actuator_id, actuator_actions[2])
     else:
-        logging.info('No action required.')
+        logging.info('No actuator action is required.')
 
 
 # Cast values to correct type
@@ -122,7 +123,7 @@ elif value_type == 'float':
         value: float
 else:
     logging.critical(f'Invalid value type {value_type} is provided. Exiting.')
-    sys.exit()
+    sys.exit(1)
 
 client = connect_to_mqtt()
 app = faust.App('temp-analyzer', broker=kafka_broker, )
@@ -135,8 +136,6 @@ async def check(temperatures):
     async for temperature in temperatures:
         start_time = time.perf_counter()
         data_value = temperature.value.split(',')
-        logging.info(f'Reading: {data_value} Timestamp: {temperature.reading_ts} Sensor: {temperature.sensor}')
-
         process_ts = int(time.time())
         reading_ts = int(temperature.reading_ts[:-3])
 
@@ -146,7 +145,7 @@ async def check(temperatures):
                 store.store_data(table=table_invalid, reading_ts=reading_ts, process_ts=process_ts,
                                  sensor=temperature.sensor,
                                  value=int(data_value[1]))
-                logging.warning('Anomalous value found. It is discarded from further analysis.')
+                logging.warning('Anomalous value found. Discarded from further analysis.')
             else:
                 get_actuator_action(int(data_value[0]), temperature.reading_ts)
 
@@ -158,7 +157,7 @@ async def check(temperatures):
                 store.store_data(table=table_invalid, reading_ts=reading_ts, process_ts=process_ts,
                                  sensor=temperature.sensor,
                                  value=float(data_value[1]))
-                logging.warning('Anomalous value found. It is discarded from further analysis.')
+                logging.warning('Anomalous value found. Discarded from further analysis.')
             else:
                 get_actuator_action(float(data_value[0]), temperature.reading_ts)
 
