@@ -1,7 +1,7 @@
 """
 For generating synthetic data.
 Author: Muhammad Usman
-Version: 0.2.0
+Version: 0.3.0
 """
 
 import logging
@@ -10,9 +10,11 @@ import sys
 import time
 
 import faust
-from cassandra.auth import PlainTextAuthProvider
-from cassandra.cluster import Cluster
 from paho.mqtt import client as mqtt_client
+
+from cassandra_store import CassandraStore
+from file_store import FileStore
+from mysql_store import MySQLStore
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.WARN)
 
@@ -30,60 +32,6 @@ data_file_normal = "/analyzer/temperature-data-normal.csv"
 data_file_anomalous = "/analyzer/temperature-data-anomalous.csv"
 actuator_id = 'actuator-0'
 actuator_actions = ['power-on', 'pause', 'shutdown']
-
-
-def connect_to_cassandra():
-    """Create Cassandra connection"""
-    auth_provider = PlainTextAuthProvider(username='cassandra', password='cassandrapass')
-    cluster = Cluster([database_url],
-                      auth_provider=auth_provider,
-                      protocol_version=5)
-
-    try:
-        session = cluster.connect()
-    except Exception as ex:
-        logging.error(f'Problem while connecting to Casandra.')
-
-    try:
-        session.execute(f'DROP keyspace IF EXISTS iiot;')
-        session.execute(
-            "create keyspace iiot with replication={'class': 'SimpleStrategy', 'replication_factor' : 1};")
-    except Exception as ex:
-        logging.error(f'Problem while dropping or creating iiot keyspace.')
-
-    try:
-        session = cluster.connect('iiot')
-    except Exception as ex:
-        logging.error(f'Problem while connecting to Casandra.')
-
-    query_temperature_valid_table = '''
-    create table temperature (
-       readingTS timestamp,
-       processTS timestamp,
-       sensorID text,
-       readingValue float,
-       primary key(readingTS)
-    );'''
-    query_temperature_invalid_table = '''
-    create table temperature_invalid (
-       readingTS timestamp,
-       processTS timestamp,
-       sensorID text,
-       readingValue float,
-       primary key(readingTS)
-    );'''
-
-    try:
-        session.execute(query_temperature_valid_table)
-    except Exception as ex:
-        logging.info(f'Table already exists. Not creating.')
-
-    try:
-        session.execute(query_temperature_invalid_table)
-    except Exception as ex:
-        logging.info(f'Table already exists. Not creating.')
-
-    return session
 
 
 def connect_to_mqtt():
@@ -133,16 +81,6 @@ def get_actuator_action(value, reading_ts):
         logging.info('No action required.')
 
 
-def store_cassandra(table, reading_ts, process_ts, sensor, value):
-    """Save data to cassandra database"""
-    session.execute(
-        f"""
-        INSERT INTO {table} (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
-        """,
-        (reading_ts, process_ts, sensor, value)
-    )
-
-
 # Cast values to correct type
 if value_type == 'integer':
     min_threshold_value = int(os.environ['MIN_THRESHOLD_VALUE'])
@@ -153,34 +91,23 @@ elif value_type == 'float':
     max_threshold_value = float(os.environ['MAX_THRESHOLD_VALUE'])
     invalid_value = float(os.environ['INVALID_VALUE'])
 
-# Remove old data file from persistent volume
-if save_data == 'file':
-    if os.path.exists(data_file_normal):
-        os.remove(data_file_normal)
-        logging.info('Removed old file from the PV.')
-    else:
-        logging.info('The file does not exist.')
-
-    if os.path.exists(data_file_anomalous):
-        os.remove(data_file_anomalous)
-        logging.info('Removed old file from the PV.')
-    else:
-        logging.info('The file does not exist.')
-
-    # Open data file for writing
-    try:
-        temperature_file_normal = open(data_file_normal, "a")
-    except Exception as ex:
-        logging.error(f'Exception while opening file {temperature_file_normal}.', exc_info=True)
-
-    try:
-        temperature_file_anomalous = open(data_file_anomalous, "a")
-    except Exception as ex:
-        logging.error(f'Exception while opening file {temperature_file_anomalous}.', exc_info=True)
-
-# Cassandra connection setup
+# Data storage connection setup
 if save_data == 'cassandra':
-    session = connect_to_cassandra()
+    table_valid = 'temperature'
+    table_invalid = 'temperature_invalid'
+    store = CassandraStore(database_url=database_url)
+elif save_data == 'mysql':
+    table_valid = 'temperature'
+    table_invalid = 'temperature_invalid'
+    store = MySQLStore(database_url=database_url)
+elif save_data == 'file':
+    store = FileStore()
+    file_valid, file_invalid = store.open_file(data_file_normal=data_file_normal,
+                                               data_file_anomalous=data_file_anomalous)
+    table_valid = file_valid
+    table_invalid = file_invalid
+else:
+    logging.info('Data is not going to be saved.')
 
 # Create a class to parse message from Kafka
 if value_type == 'integer':
@@ -216,39 +143,28 @@ async def check(temperatures):
         # Create some checks on incoming data to create actuator actions
         if value_type == 'integer':
             if int(data_value[0]) == invalid_value:
-                if save_data == 'cassandra':
-                    store_cassandra('temperature_invalid', reading_ts, process_ts, temperature.sensor,
-                                    int(data_value[1]))
-                elif save_data == 'file':
-                    temperature_file_anomalous.write(
-                        str(reading_ts) + "," + str(process_ts) + "," + temperature.sensor + "," + data_value[0] + "\n")
+                store.store_data(table=table_invalid, reading_ts=reading_ts, process_ts=process_ts,
+                                 sensor=temperature.sensor,
+                                 value=int(data_value[1]))
                 logging.warning('Anomalous value found. It is discarded from further analysis.')
             else:
                 get_actuator_action(int(data_value[0]), temperature.reading_ts)
 
-                if save_data == 'cassandra':
-                    store_cassandra('temperature', reading_ts, process_ts, temperature.sensor, int(data_value[1]))
-                elif save_data == 'file':
-                    temperature_file_normal.write(
-                        str(reading_ts) + "," + str(process_ts) + "," + temperature.sensor + "," + data_value[0] + "\n")
+                store.store_data(table=table_valid, reading_ts=reading_ts, process_ts=process_ts,
+                                 sensor=temperature.sensor,
+                                 value=int(data_value[1]))
         elif value_type == 'float':
             if float(data_value[1]) == invalid_value:
-                if save_data == 'cassandra':
-                    store_cassandra('temperature_invalid', reading_ts, process_ts, temperature.sensor,
-                                    float(data_value[1]))
-                elif save_data == 'file':
-                    temperature_file_anomalous.write(
-                        str(reading_ts) + "," + str(process_ts) + "," + temperature.sensor + "," + data_value[1] + "\n")
-
+                store.store_data(table=table_invalid, reading_ts=reading_ts, process_ts=process_ts,
+                                 sensor=temperature.sensor,
+                                 value=float(data_value[1]))
                 logging.warning('Anomalous value found. It is discarded from further analysis.')
             else:
                 get_actuator_action(float(data_value[0]), temperature.reading_ts)
 
-                if save_data == 'cassandra':
-                    store_cassandra('temperature', reading_ts, process_ts, temperature.sensor, float(data_value[1]))
-                elif save_data == 'file':
-                    temperature_file_normal.write(
-                        str(reading_ts) + "," + str(process_ts) + "," + temperature.sensor + "," + data_value[1] + "\n")
+                store.store_data(table=table_valid, reading_ts=reading_ts, process_ts=process_ts,
+                                 sensor=temperature.sensor,
+                                 value=float(data_value[1]))
 
         end_time = time.perf_counter()
         time_ms = (end_time - start_time) * 1000

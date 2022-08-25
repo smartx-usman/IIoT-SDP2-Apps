@@ -8,7 +8,7 @@ metadata:
     app: temp-analyzer-pod
 spec:
   containers:
-  - name: t-a-container
+  - name: temp-analyzer-container
     image: usman476/mqtt-kafka-faust:latest
     env:
     - name: MQTT_BROKER
@@ -30,11 +30,13 @@ spec:
     - name: MAX_THRESHOLD_VALUE
       value: "8.0"
     - name: SAVE_DATA
-      value: "cassandra"
+      value: "mysql"
     - name: DATABASE_URL
-      value: "cassandra-0.cassandra-headless.uc1.svc.cluster.local"
+      value: "mysql.uc1.svc.cluster.local"
+    #- name: DATABASE_URL
+    #  value: "cassandra-0.cassandra-headless.uc1.svc.cluster.local"
     command: ["python3"]
-    args: ["temp-analyzer.py", "worker", "-l", "info"]
+    args: ["analyzer/temp-analyzer.py", "worker", "-l", "info"]
     imagePullPolicy: "Always"
     volumeMounts:
     - mountPath: /analyzer
