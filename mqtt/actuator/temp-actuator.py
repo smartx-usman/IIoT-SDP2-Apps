@@ -4,8 +4,29 @@ import os
 import time
 
 from paho.mqtt import client as mqtt_client
+from opentelemetry import trace
+from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+resource = Resource(attributes={
+    SERVICE_NAME: "mqtt-microservice"
+})
+
+jaeger_exporter = JaegerExporter(
+    agent_host_name="jaeger-agent.observability.svc.cluster.local",
+    agent_port=6831,
+)
+
+provider = TracerProvider(resource=resource)
+processor = BatchSpanProcessor(jaeger_exporter)
+provider.add_span_processor(processor)
+trace.set_tracer_provider(provider)
+
+tracer = trace.get_tracer(__name__)
 
 mqtt_broker = os.environ['MQTT_BROKER']
 mqtt_port = int(os.environ['MQTT_BROKER_PORT'])
@@ -33,6 +54,7 @@ def connect_mqtt() -> mqtt_client:
 # Subscribe messages from MQTT topic
 def mqtt_subscribe_message(client: mqtt_client):
     def on_message(client, userdata, msg):
+        #with tracer.start_as_current_span("actuator") as parent_span:
         time_ms = round(time.time() * 1000)
         logging.debug(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
         message = msg.payload.decode()
@@ -42,6 +64,7 @@ def mqtt_subscribe_message(client: mqtt_client):
 
         logging.info(f'{split_message[3]} is going to be processed by {split_message[2]}')
         logging.info(f'Total delay (reading_ts - current_time): {total_delay}ms')
+        #    parent_span.set_attribute('e2e_latency', total_delay)
 
     client.subscribe(mqtt_topic)
     client.on_message = on_message

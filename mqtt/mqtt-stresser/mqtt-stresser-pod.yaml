@@ -11,9 +11,10 @@ spec:
   containers:
   - name: mqtt-stresser-container
     image: flaviostutz/mqtt-stresser:latest
-    #command: []
-    args: ["-broker", "tcp://mqtt-mosquitto.uc0.svc.cluster.local:1883", "-num-clients", "100", "-num-messages", "10", "-rampup-delay", "1s", "-rampup-size", "10", "-global-timeout", "180s", "-timeout", "20s"]
+    command: ["mqtt-stresser"]
+    #args: ["10000"]
+    args: ["-broker", "tcp://mqtt-mosquitto.uc2.svc.cluster.local:1883", "-num-clients", "50", "-num-messages", "100000", "-rampup-delay", "1s", "-rampup-size", "100", "-global-timeout", "360s", "-timeout", "20s"]
     imagePullPolicy: "IfNotPresent"
   restartPolicy: OnFailure
   nodeSelector:
-    kubernetes.io/hostname: worker-vm-1
+    kubernetes.io/hostname: worker2
