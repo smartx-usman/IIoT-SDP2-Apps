@@ -21,6 +21,10 @@ class MySQLStore(DataStore):
         logging.info(mysql_db)
         session = mysql_db.cursor()
         try:
+            session.execute("DROP DATABASE iiot")
+        except Exception as ex:
+            pass
+        try:
             session.execute("CREATE DATABASE iiot")
         except Exception as ex:
             pass
@@ -36,6 +40,8 @@ class MySQLStore(DataStore):
         session = mysql_db.cursor()
         session.execute(
             "CREATE TABLE temperature (id INT AUTO_INCREMENT PRIMARY KEY, readingTS VARCHAR(255), processTS VARCHAR(255), sensorID VARCHAR(255), readingValue  FLOAT)")
+        session.execute(
+            "CREATE TABLE temperature_invalid (id INT AUTO_INCREMENT PRIMARY KEY, readingTS VARCHAR(255), processTS VARCHAR(255), sensorID VARCHAR(255), readingValue  FLOAT)")
         return session, mysql_db
 
     def store_data(self, table, reading_ts, process_ts, sensor, value):
