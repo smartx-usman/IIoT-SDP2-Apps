@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temp-analyzer-deployment
+  labels:
+    app: temp-analyzer-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: temp-analyzer-deployment
+  template:
+    metadata:
+      labels:
+        app: temp-analyzer-deployment
+    spec:
+      containers:
+      - name: temp-analyzer-container
+        image: usman476/mqtt-kafka-faust:latest
+        env:
+        - name: MQTT_BROKER
+          value: "mqtt-mosquitto.uc2.svc.cluster.local"
+        - name: MQTT_BROKER_PORT
+          value: "1883"
+        - name: MQTT_ACTUATOR_TOPIC
+          value: "mqtt/temperature/actions"
+        - name: KAFKA_BROKER
+          value: "bitnami-kafka-0.bitnami-kafka-headless.uc2.svc.cluster.local:9092"
+        - name: KAFKA_TOPIC
+          value: "temperature-readings"
+        - name: VALUE_TYPE
+          value: "float"
+        - name: VALID_VALUE_RANGE_START
+          value: "0.0"
+        - name: VALID_VALUE_RANGE_END
+          value: "9.99"
+        - name: MIN_THRESHOLD_VALUE
+          value: "2.0"
+        - name: MAX_THRESHOLD_VALUE
+          value: "8.0"
+        - name: SAVE_DATA
+          value: "mysql"
+        - name: DATABASE_URL
+          value: "mysql.uc1.svc.cluster.local"
+        #- name: DATABASE_URL
+        #  value: "cassandra-0.cassandra-headless.uc1.svc.cluster.local"
+        command: ["python3"]
+        args: ["analyzer/temp-analyzer.py", "worker", "-l", "info"]
+        imagePullPolicy: "Always"
+        volumeMounts:
+        - mountPath: /analyzer
+          name: temperature-analyzer-volume
+      restartPolicy: Always
+      nodeSelector:
+        kubernetes.io/hostname: worker1
+      volumes:
+      - name: temperature-analyzer-volume
+        hostPath:
+          # directory location on host
+          path: /opt/data
+          # this field is optional
+          type: Directory

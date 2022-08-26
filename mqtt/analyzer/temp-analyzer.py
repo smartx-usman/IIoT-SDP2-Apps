@@ -90,7 +90,8 @@ if value_type == 'integer':
 elif value_type == 'float':
     min_threshold_value = float(os.environ['MIN_THRESHOLD_VALUE'])
     max_threshold_value = float(os.environ['MAX_THRESHOLD_VALUE'])
-    invalid_value = float(os.environ['INVALID_VALUE'])
+    valid_value_range_start = float(os.environ['VALID_VALUE_RANGE_START'])
+    valid_value_range_end = float(os.environ['VALID_VALUE_RANGE_END'])
 
 # Data storage connection setup
 if save_data == 'cassandra':
@@ -141,7 +142,7 @@ async def check(temperatures):
 
         # Create some checks on incoming data to create actuator actions
         if value_type == 'integer':
-            if int(data_value[0]) == invalid_value:
+            if valid_value_range_start <= int(data_value[0]) >= valid_value_range_end:
                 store.store_data(table=table_invalid, reading_ts=reading_ts, process_ts=process_ts,
                                  sensor=temperature.sensor,
                                  value=int(data_value[1]))
@@ -153,7 +154,7 @@ async def check(temperatures):
                                  sensor=temperature.sensor,
                                  value=int(data_value[1]))
         elif value_type == 'float':
-            if float(data_value[1]) == invalid_value:
+            if valid_value_range_start <= float(data_value[0]) >= valid_value_range_end:
                 store.store_data(table=table_invalid, reading_ts=reading_ts, process_ts=process_ts,
                                  sensor=temperature.sensor,
                                  value=float(data_value[1]))
