@@ -7,13 +7,13 @@ This is an example of a use case for creating load in a Kubernetes cluster. For 
  ---------------             ----------------------------------------------------------- 
 |      OT       |           |                             IT                            |          
  ---------------            |-----------------------------------------------------------|          
-|   --------    |     2     |  -------------      3      ---------------------------    |       
-|  | Sensors |1 |  ------>  | |             |  ------>  | Event Processing Platform |   |  
+|   --------   |     2     |  -------------      3      ---------------------------    |       
+|  | Source |1 |  ------>  | |             |  ------>  | Event Processing Platform |   |  
 |   --------    |  Publish  | | Lightweight | Subscribe  ---------------------------    |       
 |               |           | |   Message   |              4  | Consume     ----------  |
-|  -----------  |     7     | |    Queue    |    6        ----------       | Flexible | |
-| | Actuators | |  <------  | |             |  <-----   | Analysis | ----> | Storage  | | 
-|  -----------  | Subscribe |  -------------   Publish   ----------    5    ----------  |
+|  ------------ |     7     | |    Queue    |    6        ----------       | Flexible | |
+|| Destination ||  <------  | |             |  <-----   | Analysis | ----> | Storage  | | 
+|  ------------ | Subscribe |  -------------   Publish   ----------    5    ----------  |
  ---------------             ----------------------------------------------------------- 
 ```
 ### Framework Implementation
@@ -96,12 +96,12 @@ kubectl apply -n uc2 -f publisher/mqtt-publisher-deployment-both.yaml #Deploy 1 
 
 7. Deploy MQTT Subscriber and Kafka Producer:
 ```shell
-kubectl apply -n uc2 -f subscriber/mqtt-subscriber-pod.yaml
+kubectl apply -n uc2 -f subscriber/mqtt-subscriber-deployment.yaml
 ```
 
 8. Deploy Kafka Consumer and Faust streaming analysis application:
 ```shell
-kubectl apply -n uc2 -f analyzer/temp-analyzer-pod.yaml
+kubectl apply -n uc2 -f analyzer/temp-analyzer-deployment.yaml
 ```
 
 9. Deploy actuator to read actions from MQTT:
