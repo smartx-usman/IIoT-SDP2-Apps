@@ -13,7 +13,7 @@ This is an example of a use case for creating load in a Kubernetes cluster. For 
 |  1 Generate   |           | |  Realtime   |                 |    4                    |
 |  8 Utilize    |           | |  Messaging  |                 v Consume     ----------  |
 |  ------------ |     7     | |   Queues    |    6       ----------    5   | Flexible | |
-|| Destination ||  <------  | |             |<----------| Analysis |------>|  Storage | | 
+|| Destination ||<----------|-|             |<----------| Analysis |------>|  Storage | | 
 |  ------------ | Subscribe |  -------------   Publish   ----------  Store  ----------  |
  ---------------             ----------------------------------------------------------- 
 ```
