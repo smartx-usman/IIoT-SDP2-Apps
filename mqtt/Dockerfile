@@ -19,6 +19,8 @@ ENV SAVE_DATA="file"
 
 ARG Pathdir="/mqtt"
 
+RUN apt -y update && apt -y install --no-install-recommends build-essential stress
+
 RUN mkdir $Pathdir
 RUN mkdir /data
 
@@ -30,13 +32,11 @@ RUN pip3 install -r requirements.txt
 
 COPY generator/generator.py $Pathdir
 COPY actuator/temp-actuator.py $Pathdir
-#COPY analyzer/temp-analyzer.py $Pathdir
-COPY publisher/publisher.py $Pathdir
 COPY subscriber/subscriber.py $Pathdir
+ADD publisher $Pathdir/publisher
 ADD analyzer $Pathdir/analyzer
 
 WORKDIR $Pathdir
 
 #RUN chmod +x load-testing/disk-load.sh
-
 #ENTRYPOINT ["python3", "actuate.py"]
