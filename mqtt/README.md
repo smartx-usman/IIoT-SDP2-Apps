@@ -3,20 +3,8 @@ This is an example of a use case for creating load in a Kubernetes cluster. For 
 
 ## Synthetic Data Production and Processing (SDP2) Pipeline
 ### Framework Design
-```shell
- ---------------             ----------------------------------------------------------- 
-|      OT       |           |                             IT                            |          
- ---------------            |-----------------------------------------------------------|          
-|   --------    |     2     |  -------------      3      ---------------------------    |       
-|  | Source |---|---------->| |             |---------->| Event Processing Platform |   |  
-|   --------    |  Publish  | | Lightweight | Subscribe  ---------------------------    |       
-|  1 Generate   |           | |  Realtime   |                 |    4                    |
-|  8 Utilize    |           | |  Messaging  |                 v Consume     ----------  |
-|  ------------ |     7     | |   Queues    |    6       ----------    5   | Flexible | |
-|| Destination ||<----------|-|             |<----------| Analysis |------>|  Storage | | 
-|  ------------ | Subscribe |  -------------   Publish   ----------  Store  ----------  |
- ---------------             ----------------------------------------------------------- 
-```
+<img src="./images/design.svg">
+
 ### Framework Implementation
 ```shell
  ----------------------------------------------------------------------------------
@@ -150,7 +138,7 @@ kubectl apply -n uc2 -f actuator/temp-actuator-pod.yaml
 |:---------------------------|:-----------------------------------------------------------|:------------------------------------------------------------------|
 | `MQTT_ACTUATOR_TOPIC`      | MQTT topic for sending actions from Analyzer.              | mqtt/temperature/actions                                          |
 
-### Reading resources about MQTT and MQTT Stresser (not used here)
+### Reading resources about MQTT and MQTT Stresser
 
 [MQTT-Stresser](https://github.com/flaviostutz/mqtt-stresser)
 

@@ -1,0 +1,14 @@
+flowchart BT
+    OA(Source)-->|1. Generate|OA(Source)
+    OA(Source)-->|2. Publish|IA[[Realtime Messaging Queue]]
+    OB[Destination]-->|8. Apply Action|OB[Destination]
+    subgraph OT
+    OB[Destination]-->|9. Any Action|OA(Source)
+    end
+    subgraph IT
+    IA[[Realtime Messaging Queue]]-->|3. Subscribe|IB(Event Processing Platform)
+    IB[[Event Processing Platform]]-->|4. Consume|IC(Realtime Analysis)
+    IC[Realtime Analysis]-->|5. Store|ID[(Flexible Storage)]
+    IC[Realtime Analysis]-->|6. Publish|IA[[Realtime Messaging Queue]]
+    IA[[Realtime Messaging Queue]]-->|7. Subscribe|OB(Destination)
+    end
