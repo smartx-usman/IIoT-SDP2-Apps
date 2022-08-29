@@ -1,30 +1,48 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: publisher-deployment-normal
+  name: publisher-deployment-both
   labels:
-    app: mqtt-publisher-normal
+    app: mqtt-publisher-both
 spec:
-  replicas: 8
+  replicas: 1
   selector:
     matchLabels:
-      app: mqtt-publisher-normal
+      app: mqtt-publisher-both
   template:
     metadata:
       labels:
-        app: mqtt-publisher-normal
+        app: mqtt-publisher-both
     spec:
       containers:
-      - name: publisher-normal-container
+      - name: publisher-container-both
         image: usman476/mqtt-kafka-faust:latest
         env:
         - name: POD_NAME
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        - name: STRESS_APP
+          value: "False"
+        - name: STRESS_CPU
+          value: "0"
+        - name: STRESS_VM
+          value: "1"
+        - name: STRESS_VM_BYTES
+          value: "50M"
+        - name: STRESS_HDD
+          value: "0"
+        - name: STRESS_IO
+          value: "0"
+        - name: STRESS_TIMEOUT
+          value: "120s"
+        - name: IDLE_TIMEOUT
+          value: "30"
+        - name: STRESS_INIT_DELAY
+          value: "30"
         command: ["python3"]
-        args: ["publisher.py",
-               "--value_type", "normal",
+        args: ["publisher/publisher.py",
+               "--value_type", "both",
                "--data_type", "both",
                "--mqtt_broker", "mqtt-mosquitto.uc2.svc.cluster.local",
                "--mqtt_broker_port", "1883",
@@ -33,7 +51,7 @@ spec:
                "--delay_type", "fixed",
                "--delay_start_range", "0",
                "--delay_end_range", "10.0",
-               "--delay", "0.5",
+               "--delay", "0.1",
                "--invalid_value_occurrence", "10",
                "--invalid_value", "19.99",
                "--normal_input_file", "normal_data.csv",
