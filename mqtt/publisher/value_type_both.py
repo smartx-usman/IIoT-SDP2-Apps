@@ -39,14 +39,11 @@ class ValueTypeBoth(ValueType):
                             count = 0
 
                         time_ms = round(time.time() * 1000)
-                        msg = f"measurement_ts: {time_ms} client_id: {self.client_id} msg_count: {msg_count} value: {str(value).strip()}"
+                        msg = f"measurement_ts: {time_ms} sensor: {self.client_id} value: {str(value).strip()}"
                         result = self.client.publish(self.mqtt_topic, msg)
                         status = result[0]
 
-                        if status == 0:
-                            logging.info(f"Send `{msg}` to topic `{self.mqtt_topic}`")
-                        else:
-                            logging.error(f"Failed to send message to topic {self.mqtt_topic}")
+                        logging.info(f"{msg} topic: {self.mqtt_topic}") if status == 0 else logging.error(f"Failed to send message to topic {self.mqtt_topic}")
 
                         count += 1
                         msg_count += 1
@@ -75,14 +72,11 @@ class ValueTypeBoth(ValueType):
                             count = 0
 
                         time_ms = round(time.time() * 1000)
-                        msg = f"measurement_ts: {time_ms} client_id: {self.client_id} msg_count: {msg_count} value: {str(value).strip()}"
+                        msg = f"measurement_ts: {time_ms} sensor: {self.client_id} value: {str(value).strip()}"
                         result = self.client.publish(self.mqtt_topic, msg)
                         status = result[0]
 
-                        if status == 0:
-                            logging.info(f"Send `{msg}` to topic `{self.mqtt_topic[0]}`")
-                        else:
-                            logging.error(f"Failed to send message to topic {self.mqtt_topic[0]}")
+                        logging.info(f"{msg} topic: {self.mqtt_topic}") if status == 0 else logging.error(f"Failed to send message to topic {self.mqtt_topic}")
 
                         time.sleep(self.delay[delay_index])
                         count += 1
