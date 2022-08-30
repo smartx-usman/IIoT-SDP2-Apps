@@ -30,11 +30,11 @@ COPY requirements.txt .
 #RUN /usr/local/bin/python3 -m pip install --upgrade pip
 RUN pip3 install -r requirements.txt
 
-COPY generator/generator.py $Pathdir
-COPY actuator/temp-actuator.py $Pathdir
-COPY subscriber/subscriber.py $Pathdir
+ADD generator $Pathdir/generator
 ADD publisher $Pathdir/publisher
+ADD subscriber $Pathdir/subscriber
 ADD analyzer $Pathdir/analyzer
+ADD actuator $Pathdir/actuator
 
 WORKDIR $Pathdir
 
