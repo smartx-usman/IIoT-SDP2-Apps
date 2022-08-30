@@ -1,7 +1,7 @@
 """
 For generating synthetic data.
 Author: Muhammad Usman
-Version: 0.3.0
+Version: 0.3.1
 """
 
 import logging
@@ -16,7 +16,7 @@ from cassandra_store import CassandraStore
 from file_store import FileStore
 from mysql_store import MySQLStore
 
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.WARN)
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 mqtt_broker = os.environ['MQTT_BROKER']
 mqtt_port = int(os.environ['MQTT_BROKER_PORT'])
@@ -65,21 +65,20 @@ def mqtt_publish_message(mqtt_publisher, message):
         logging.error(f"Failed to send message to topic {mqtt_topic}")
 
 
-def parse_message_for_actuator(reading_ts, actuator, action):
+def parse_message_for_actuator(sensor, reading_ts, actuator, action):
     """Parse message for MQTT"""
-    logging.info(f'{action} heating system action is generated.')
-    message = f"reading_ts:{reading_ts} actuator_id:{actuator} action:{action}"
+    message = f"reading_ts:{reading_ts} actuator_id:{actuator} sensor:{sensor} action:{action}"
     mqtt_publish_message(client, message)
 
 
-def get_actuator_action(value, reading_ts):
+def get_actuator_action(sensor, value, reading_ts):
     """Find action for the actuator"""
     if value < min_threshold_value:
-        parse_message_for_actuator(reading_ts, actuator_id, actuator_actions[0])
+        parse_message_for_actuator(sensor, reading_ts, actuator_id, actuator_actions[0])
     elif value > max_threshold_value:
-        parse_message_for_actuator(reading_ts, actuator_id, actuator_actions[2])
+        parse_message_for_actuator(sensor, reading_ts, actuator_id, actuator_actions[2])
     else:
-        logging.info('No actuator action is required.')
+        pass
 
 
 # Cast values to correct type
@@ -146,9 +145,10 @@ async def check(temperatures):
                 store.store_data(table=table_invalid, reading_ts=reading_ts, process_ts=process_ts,
                                  sensor=temperature.sensor,
                                  value=int(data_value[1]))
-                logging.warning('Anomalous value found. Discarded from further analysis.')
+                logging.warning(f'[Anomaly] Invalid value from sensor {temperature.sensor}')
             else:
-                get_actuator_action(int(data_value[0]), temperature.reading_ts)
+                get_actuator_action(sensor=temperature.sensor, value=int(data_value[0]),
+                                    reading_ts=temperature.reading_ts)
 
                 store.store_data(table=table_valid, reading_ts=reading_ts, process_ts=process_ts,
                                  sensor=temperature.sensor,
@@ -158,17 +158,18 @@ async def check(temperatures):
                 store.store_data(table=table_invalid, reading_ts=reading_ts, process_ts=process_ts,
                                  sensor=temperature.sensor,
                                  value=float(data_value[1]))
-                logging.warning('Anomalous value found. Discarded from further analysis.')
+                logging.warning(f'[Anomaly] Invalid value from sensor {temperature.sensor}')
             else:
-                get_actuator_action(float(data_value[0]), temperature.reading_ts)
+                get_actuator_action(sensor=temperature.sensor, value=float(data_value[0]),
+                                    reading_ts=temperature.reading_ts)
 
                 store.store_data(table=table_valid, reading_ts=reading_ts, process_ts=process_ts,
                                  sensor=temperature.sensor,
                                  value=float(data_value[1]))
 
         end_time = time.perf_counter()
-        time_ms = (end_time - start_time) * 1000
-        logging.info(f'Message processing took {time_ms} ms.')
+        time_ms = round((end_time - start_time) * 1000, 4)
+        logging.info(f'[Time] sensor: {temperature.sensor} processing_time {time_ms}ms')
 
 
 if __name__ == '__main__':
