@@ -3,12 +3,12 @@ kind: Deployment
 metadata:
   name: publisher-deployment-abnormal
   labels:
+    environment: production
     app: mqtt-publisher-abnormal
 spec:
   replicas: 1
   selector:
     matchLabels:
-      environment: production
       app: mqtt-publisher-abnormal
   template:
     metadata:
@@ -52,7 +52,7 @@ spec:
                "--delay_type", "fixed",
                "--delay_start_range", "0",
                "--delay_end_range", "10.0",
-               "--delay", "0.5",
+               "--delay", "0.9",
                "--invalid_value_occurrence", "10",
                "--invalid_value", "19.99",
                "--normal_input_file", "normal_data.csv",
