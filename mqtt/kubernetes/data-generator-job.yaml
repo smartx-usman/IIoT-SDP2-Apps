@@ -15,7 +15,7 @@ spec:
       - name: data-generator-container
         image: usman476/mqtt-kafka-faust:latest
         command: ["python3"]
-        args: ["generator.py",
+        args: ["generator/generator.py",
                "--data_type", "both",
                "--value_type", "both",
                "--normal_start_value", "0.0", "--normal_end_value", "9.99", "--normal_total_values", "1000",

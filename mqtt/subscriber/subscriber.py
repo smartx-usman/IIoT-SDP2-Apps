@@ -1,4 +1,3 @@
-# python3.6
 import json
 import logging
 import os
@@ -40,7 +39,7 @@ def connect_mqtt() -> mqtt_client:
 def connect_kafka_producer(kafka_broker):
     _producer = None
     try:
-        _producer = KafkaProducer(bootstrap_servers=kafka_broker)
+        _producer = KafkaProducer(bootstrap_servers=kafka_broker, api_version=(1, 0, 0))
     except Exception as ex:
         logging.critical('Exception while connecting Kafka.', exc_info=True)
     return _producer
@@ -54,7 +53,7 @@ def kafka_publish_message(producer_instance, message):
         json_message = {
             'reading_ts': split_message[1],
             'sensor': split_message[3],
-            'value': split_message[7]
+            'value': split_message[5]
         }
 
         message_dump = json.dumps(json_message)

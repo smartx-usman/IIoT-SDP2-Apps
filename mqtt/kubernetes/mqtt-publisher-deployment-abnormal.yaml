@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: publisher-deployment-abnormal
   labels:
+    environment: production
     app: mqtt-publisher-abnormal
 spec:
   replicas: 1
@@ -22,8 +23,26 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
+        - name: STRESS_APP
+          value: "True"
+        - name: STRESS_CPU
+          value: "0"
+        - name: STRESS_VM
+          value: "1"
+        - name: STRESS_VM_BYTES
+          value: "50M"
+        - name: STRESS_HDD
+          value: "0"
+        - name: STRESS_IO
+          value: "0"
+        - name: STRESS_TIMEOUT
+          value: "120s"
+        - name: IDLE_TIMEOUT
+          value: "30"
+        - name: STRESS_INIT_DELAY
+          value: "30"
         command: ["python3"]
-        args: ["publisher.py",
+        args: ["publisher/publisher.py",
                "--value_type", "abnormal",
                "--data_type", "both",
                "--mqtt_broker", "mqtt-mosquitto.uc2.svc.cluster.local",
@@ -33,7 +52,7 @@ spec:
                "--delay_type", "fixed",
                "--delay_start_range", "0",
                "--delay_end_range", "10.0",
-               "--delay", "0.5",
+               "--delay", "0.9",
                "--invalid_value_occurrence", "10",
                "--invalid_value", "19.99",
                "--normal_input_file", "normal_data.csv",

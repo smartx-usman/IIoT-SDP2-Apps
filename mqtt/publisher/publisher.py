@@ -2,18 +2,21 @@
 """
 For publishing synthetic data to MQTT.
 Author: Muhammad Usman
-Version: 0.3.0
+Version: 0.3.1
 """
 
 import argparse as ap
 import logging
 import os
 import sys
-import time
 from threading import Thread
 
 import numpy as np
 from paho.mqtt import client as mqtt_client
+from value_type_normal import ValueTypeNormal
+from value_type_abnormal import ValueTypeAbnormal
+from value_type_both import ValueTypeBoth
+from stress import Stress
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -48,7 +51,6 @@ def parse_arguments():
 # username = 'emqx'
 # password = 'public'
 
-
 # Connect to MQTT broker
 def connect_mqtt(client_id):
     def on_connect(client, userdata, flags, rc):
@@ -64,201 +66,28 @@ def connect_mqtt(client_id):
     return client
 
 
-def value_type_normal(client, client_id, delay):
-    # Check delay type
-    if len(delay) == 1:
-        msg_count = 1
-        while True:
-            start_time = time.perf_counter()
-            with open(f'/data/{arguments.normal_input_file[0]}') as fp:
-                values = fp.readlines()
-                for value in values:
-                    time_ms = round(time.time() * 1000)
-                    msg = f"measurement_ts: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {str(value).strip()}"
-                    result = client.publish(arguments.mqtt_topic[0], msg)
-                    status = result[0]
-
-                    if status == 0:
-                        logging.info(f"Send `{msg}` to topic `{arguments.mqtt_topic[0]}`")
-                    else:
-                        logging.error(f"Failed to send message to topic {arguments.mqtt_topic[0]}")
-
-                    msg_count += 1
-                    time.sleep(delay[0])
-
-            end_time = time.perf_counter()
-            logging.info(f'It took {end_time - start_time: 0.4f} second(s) to complete one iteration.')
-    else:
-        msg_count = 1
-        while True:
-            start_time = time.perf_counter()
-            delay_index = 0
-            with open(f'/data/{arguments.normal_input_file[0]}') as fp:
-                values = fp.readlines()
-                for value in values:
-                    time_ms = round(time.time() * 1000)
-                    msg = f"measurement_ts: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {str(value).strip()}"
-                    result = client.publish(arguments.mqtt_topic[0], msg)
-                    status = result[0]
-
-                    if status == 0:
-                        logging.info(f"Send `{msg}` to topic `{arguments.mqtt_topic[0]}`")
-                    else:
-                        logging.error(f"Failed to send message to topic {arguments.mqtt_topic[0]}")
-
-                    msg_count += 1
-                    time.sleep(delay[delay_index])
-
-                    delay_index = delay_index + 1
-                    if delay_index == len(delay):
-                        delay_index = 0
-
-            end_time = time.perf_counter()
-            logging.info(f'It took {end_time - start_time: 0.4f} second(s) to complete one iteration.')
-
-
-def value_type_abnormal(client, client_id, delay):
-    # Check delay type
-    if len(delay) == 1:
-        msg_count = 1
-        while True:
-            start_time = time.perf_counter()
-
-            with open(f'/data/{arguments.abnormal_input_file[0]}') as fp:
-                values = fp.readlines()
-                for value in values:
-                    time_ms = round(time.time() * 1000)
-                    msg = f"measurement_ts: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {str(value).strip()}"
-                    result = client.publish(arguments.mqtt_topic[0], msg)
-                    status = result[0]
-
-                    if status == 0:
-                        logging.info(f"Send `{msg}` to topic `{arguments.mqtt_topic[0]}`")
-                    else:
-                        logging.error(f"Failed to send message to topic {arguments.mqtt_topic[0]}")
-
-                    msg_count += 1
-                    time.sleep(delay[0])
-
-            end_time = time.perf_counter()
-            logging.info(f'It took {end_time - start_time: 0.4f} second(s) to complete one iteration.')
-    else:
-        msg_count = 1
-        while True:
-            start_time = time.perf_counter()
-            delay_index = 0
-            with open(f'/data/{arguments.abnormal_input_file[0]}') as fp:
-                values = fp.readlines()
-                for value in values:
-                    time_ms = round(time.time() * 1000)
-                    msg = f"measurement_ts: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {str(value).strip()}"
-                    result = client.publish(arguments.mqtt_topic[0], msg)
-                    status = result[0]
-
-                    if status == 0:
-                        logging.info(f"Send `{msg}` to topic `{arguments.mqtt_topic[0]}`")
-                    else:
-                        logging.error(f"Failed to send message to topic {arguments.mqtt_topic[0]}")
-
-                    msg_count += 1
-                    time.sleep(delay[delay_index])
-
-                    delay_index = delay_index + 1
-                    if delay_index == len(delay):
-                        delay_index = 0
-
-            end_time = time.perf_counter()
-            logging.info(f'It took {end_time - start_time: 0.4f} second(s) to complete one iteration.')
-
-
-def value_type_both(client, client_id, delay):
-    # Check delay type
-    if len(delay) == 1:
-        msg_count = 1
-        while True:
-            start_time = time.perf_counter()
-            with open(f'/data/{arguments.normal_input_file[0]}') as fp_normal:
-                values = fp_normal.readlines()
-                with open(f'/data/{arguments.abnormal_input_file[0]}') as fp_abnormal:
-                    abnormal_values = fp_abnormal.readlines()
-
-                current_value_index = 0
-                count = 1
-
-                for value in values:
-                    if count == int(arguments.invalid_value_occurrence[0]):
-                        # for abnormal_value in abnormal_values:
-                        value = abnormal_values[current_value_index]
-                        # value = arguments.invalid_value[0]
-                        current_value_index = current_value_index + 1
-                        count = 0
-
-                    time_ms = round(time.time() * 1000)
-                    msg = f"measurement_ts: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {str(value).strip()}"
-                    result = client.publish(arguments.mqtt_topic[0], msg)
-                    status = result[0]
-
-                    if status == 0:
-                        logging.info(f"Send `{msg}` to topic `{arguments.mqtt_topic[0]}`")
-                    else:
-                        logging.error(f"Failed to send message to topic {arguments.mqtt_topic[0]}")
-
-                    count += 1
-                    msg_count += 1
-                    time.sleep(delay[0])
-            end_time = time.perf_counter()
-            logging.info(f'It took {end_time - start_time: 0.4f} second(s) to complete one iteration.')
-    else:
-        msg_count = 1
-        while True:
-            start_time = time.perf_counter()
-            delay_index = 0
-            with open(f'/data/{arguments.normal_input_file[0]}') as fp_normal:
-                values = fp_normal.readlines()
-                with open(f'/data/{arguments.abnormal_input_file[0]}') as fp_abnormal:
-                    abnormal_values = fp_abnormal.readlines()
-
-                current_value_index = 0
-                count = 1
-
-                for value in values:
-                    if count == int(arguments.invalid_value_occurrence[0]):
-                        # for abnormal_value in abnormal_values:
-                        value = abnormal_values[current_value_index]
-                        # value = arguments.invalid_value[0]
-                        current_value_index = current_value_index + 1
-                        count = 0
-
-                    time_ms = round(time.time() * 1000)
-                    msg = f"measurement_ts: {time_ms} client_id: {client_id} msg_count: {msg_count} value: {str(value).strip()}"
-                    result = client.publish(arguments.mqtt_topic[0], msg)
-                    status = result[0]
-
-                    if status == 0:
-                        logging.info(f"Send `{msg}` to topic `{arguments.mqtt_topic[0]}`")
-                    else:
-                        logging.error(f"Failed to send message to topic {arguments.mqtt_topic[0]}")
-
-                    time.sleep(delay[delay_index])
-                    count += 1
-                    msg_count += 1
-                    delay_index += 1
-                    if delay_index == len(delay):
-                        delay_index = 0
-            end_time = time.perf_counter()
-            logging.info(f'It took {end_time - start_time: 0.4f} second(s) to complete one iteration.')
-
-
 def fixed_delay(client, client_id):
     delay = [float(arguments.delay[0])]
 
     # Check value type
     if arguments.value_type[0] == 'normal':
-        value_type_normal(client, client_id, delay)
+        value_type = ValueTypeNormal(client=client, client_id=client_id, delay=delay,
+                                     mqtt_topic=arguments.mqtt_topic[0],
+                                     normal_input=arguments.normal_input_file[0])
+        value_type.process_data()
     elif arguments.value_type[0] == 'abnormal':
-        value_type_abnormal(client, client_id, delay)
+        value_type = ValueTypeAbnormal(client=client, client_id=client_id, delay=delay,
+                                       mqtt_topic=arguments.mqtt_topic[0],
+                                       normal_input=arguments.normal_input_file[0],
+                                       abnormal_input=arguments.abnormal_input_file[0])
+        value_type.process_data()
     elif arguments.value_type[0] == 'both':
-        value_type_both(client, client_id, delay)
+        value_type = ValueTypeBoth(client=client, client_id=client_id, delay=delay,
+                                   mqtt_topic=arguments.mqtt_topic[0],
+                                   invalid_value_occurrence=arguments.invalid_value_occurrence[0],
+                                   normal_input=arguments.normal_input_file[0],
+                                   abnormal_input=arguments.abnormal_input_file[0])
+        value_type.process_data()
     else:
         logging.error(f'Invalid data value_type is provided: {arguments.value_type[0]}')
         sys.exit(1)
@@ -271,11 +100,23 @@ def random_delay(client, client_id):
 
     # Check value type
     if arguments.value_type[0] == 'normal':
-        value_type_normal(client, client_id, delay)
+        value_type = ValueTypeNormal(client=client, client_id=client_id, delay=delay,
+                                     mqtt_topic=arguments.mqtt_topic[0],
+                                     normal_input=arguments.normal_input_file[0])
+        value_type.process_data()
     elif arguments.value_type[0] == 'abnormal':
-        value_type_abnormal(client, client_id, delay)
+        value_type = ValueTypeAbnormal(client=client, client_id=client_id, delay=delay,
+                                       mqtt_topic=arguments.mqtt_topic[0],
+                                       normal_input=arguments.normal_input_file[0],
+                                       abnormal_input=arguments.abnormal_input_file[0])
+        value_type.process_data()
     elif arguments.value_type[0] == 'both':
-        value_type_both(client, client_id, delay)
+        value_type = ValueTypeBoth(client=client, client_id=client_id, delay=delay,
+                                   mqtt_topic=arguments.mqtt_topic[0],
+                                   invalid_value_occurrence=arguments.invalid_value_occurrence[0],
+                                   normal_input=arguments.normal_input_file[0],
+                                   abnormal_input=arguments.abnormal_input_file[0])
+        value_type.process_data()
     else:
         logging.error(f'Invalid data value_type is provided: {arguments.value_type[0]}')
         sys.exit(1)
@@ -302,6 +143,17 @@ def run():
         sensor_count = int(arguments.sensors[0])
 
         logging.info(f'Number of sensors to start {sensor_count}.')
+        stress = os.environ['STRESS_APP'].capitalize()
+
+        if (stress == "True"):
+            stress = Stress(os.environ['STRESS_CPU'], os.environ['STRESS_VM'], os.environ['STRESS_VM_BYTES'],
+                            os.environ['STRESS_IO'], os.environ['STRESS_HDD'], os.environ['STRESS_TIMEOUT'],
+                            int(os.environ['IDLE_TIMEOUT']), int(os.environ['STRESS_INIT_DELAY'])
+                            )
+            stress_thread = Thread(target=stress.stress_task)
+            # stress_thread.daemon = True
+            threads.append(stress_thread)
+            stress_thread.start()
 
         for n in range(0, sensor_count):
             t = Thread(target=mqtt_publish_message, args=(f"{pod_name}-{n}",))

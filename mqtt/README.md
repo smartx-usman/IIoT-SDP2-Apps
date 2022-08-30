@@ -3,19 +3,8 @@ This is an example of a use case for creating load in a Kubernetes cluster. For 
 
 ## Synthetic Data Production and Processing (SDP2) Pipeline
 ### Framework Design
-```shell
- ---------------             ----------------------------------------------------------- 
-|      OT       |           |                             IT                            |          
- ---------------            |-----------------------------------------------------------|          
-|   --------    |     2     |  -------------      3      ---------------------------    |       
-|  | Sensors |1 |  ------>  | |             |  ------>  | Event Processing Platform |   |  
-|   --------    |  Publish  | | Lightweight | Subscribe  ---------------------------    |       
-|               |           | |   Message   |              4  | Consume     ----------  |
-|  -----------  |     7     | |    Queue    |    6        ----------       | Flexible | |
-| | Actuators | |  <------  | |             |  <-----   | Analysis | ----> | Storage  | | 
-|  -----------  | Subscribe |  -------------   Publish   ----------    5    ----------  |
- ---------------             ----------------------------------------------------------- 
-```
+<img src="./images/design.svg">
+
 ### Framework Implementation
 ```shell
  ----------------------------------------------------------------------------------
@@ -30,9 +19,9 @@ This is an example of a use case for creating load in a Kubernetes cluster. For 
 ||   --------   |    2    |  -----------    3     -------                        | |      
 ||  | Sensor |1 | ------> | | (topic-s) |  --->  | Kafka |                       | | 
 ||   --------   |         | |           |         -------         -------------  | |      
-||              |         | |    MQTT   |         4  |           |  Cassandra  | | |
-||  ----------  |    7    | |           |   6   ----------   5   |    File     | | |
-|| | Actuator | | <------ | | (topic-a) | <--- | Analysis | ---> |    None     | | |
+||       8      |         | |    MQTT   |         4  |           |  Cassandra/ | | |
+||  ----------  |    7    | |           |   6   ----------   5   | MySQL/File/ | | |
+|| | Actuator | | <------ | | (topic-a) | <--- | Faust App| ---> |    None     | | |
 ||  ----------  |         |  -----------        ----------        -------------  | |
 | --------------           ------------------------------------------------------  |
  ----------------------------------------------------------------------------------
@@ -84,29 +73,29 @@ helm upgrade --install cassandra -n=uc2 -f datastores/cassandra-values.yaml bitn
 
 5. Deploy synthetic data generator (Job):
 ```shell
-kubectl apply -n uc2 -f generator/data-generator-job.yaml
+kubectl apply -n uc2 -f kubernetes/data-generator-job.yaml
 ```
 
 6. Deploy MQTT Publisher to send generated values to MQTT broker (anyone or more options can be selected):
 ```shell
-kubectl apply -n uc2 -f publisher/mqtt-publisher-deployment-normal.yaml #Deploy 10 normal sensors with fixed message delay as pods
-kubectl apply -n uc2 -f publisher/mqtt-publisher-deployment-abnormal.yaml #Deploy 1 abnormal sensor with fixed message delay as a pod
-kubectl apply -n uc2 -f publisher/mqtt-publisher-deployment-both.yaml #Deploy 1 sensor with mixed data at random message delay as a pod
+kubectl apply -n uc2 -f kubernetes/mqtt-publisher-deployment-normal.yaml #Deploy 10 normal sensors with fixed message delay as pods
+kubectl apply -n uc2 -f kubernetes/mqtt-publisher-deployment-abnormal.yaml #Deploy 1 abnormal sensor with fixed message delay as a pod
+kubectl apply -n uc2 -f kubernetes/mqtt-publisher-deployment-both.yaml #Deploy 1 sensor with mixed data at random message delay as a pod
 ```
 
 7. Deploy MQTT Subscriber and Kafka Producer:
 ```shell
-kubectl apply -n uc2 -f subscriber/mqtt-subscriber-pod.yaml
+kubectl apply -n uc2 -f kubernetes/mqtt-subscriber-deployment.yaml
 ```
 
 8. Deploy Kafka Consumer and Faust streaming analysis application:
 ```shell
-kubectl apply -n uc2 -f analyzer/temp-analyzer-pod.yaml
+kubectl apply -n uc2 -f kubernetes/temp-analyzer-deployment.yaml
 ```
 
 9. Deploy actuator to read actions from MQTT:
 ```shell
-kubectl apply -n uc2 -f actuator/temp-actuator-pod.yaml
+kubectl apply -n uc2 -f kubernetes/temp-actuator-pod.yaml
 ```
 
 ## Parameters Description (Need to be updated)
@@ -149,7 +138,7 @@ kubectl apply -n uc2 -f actuator/temp-actuator-pod.yaml
 |:---------------------------|:-----------------------------------------------------------|:------------------------------------------------------------------|
 | `MQTT_ACTUATOR_TOPIC`      | MQTT topic for sending actions from Analyzer.              | mqtt/temperature/actions                                          |
 
-### Reading resources about MQTT and MQTT Stresser (not used here)
+### Reading resources about MQTT and MQTT Stresser
 
 [MQTT-Stresser](https://github.com/flaviostutz/mqtt-stresser)
 

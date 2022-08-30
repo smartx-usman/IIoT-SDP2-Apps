@@ -15,7 +15,7 @@ python3 server.py
 
 2. Start client to produce messages
 ```shell
-python3 server.py
+python3 client.py
 ```
 
 ### Reading material

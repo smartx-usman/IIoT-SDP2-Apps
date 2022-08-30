@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temp-actuator-deployment
+  labels:
+    environment: production
+    app: temp-actuator-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: temp-actuator-deployment
+  template:
+    metadata:
+      labels:
+        app: temp-actuator-deployment
+    spec:
+      containers:
+      - name: temp-actuator-container
+        image: usman476/mqtt-kafka-faust:latest
+        env:
+        - name: MQTT_BROKER
+          value: "mqtt-mosquitto.uc2.svc.cluster.local"
+        - name: MQTT_BROKER_PORT
+          value: "1883"
+        - name: MQTT_ACTUATOR_TOPIC
+          value: "mqtt/temperature/actions"
+        imagePullPolicy: "IfNotPresent"
+        command: ["python3"]
+        args: ["actuator/temp-actuator.py"]
+      restartPolicy: Always
+      nodeSelector:
+        kubernetes.io/hostname: worker2
