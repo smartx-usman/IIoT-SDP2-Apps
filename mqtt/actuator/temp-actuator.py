@@ -56,14 +56,15 @@ def mqtt_subscribe_message(client: mqtt_client):
     def on_message(client, userdata, msg):
         #with tracer.start_as_current_span("actuator") as parent_span:
         time_ms = round(time.time() * 1000)
-        logging.debug(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
+        #logging.debug(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
         message = msg.payload.decode()
-        logging.info(f'Current_ts:{time_ms} {message}')
+        logging.info(f'[Message] Current_ts:{time_ms} {message}')
         split_message = message.split()
-        total_delay = (time_ms - int((split_message[1].split(':'))[1]))
+        reading_ts = int((split_message[1].split(':'))[1])
+        total_delay = (time_ms - reading_ts)
 
-        logging.info(f'{split_message[3]} is going to be processed by {split_message[2]}')
-        logging.info(f'Total delay (reading_ts - current_time): {total_delay}ms')
+        #logging.info(f'[Processor] {split_message[3]} is going to be processed by {split_message[3]}')
+        logging.info(f'[Delay] End-to-end delay (reading_ts - current_ts): {total_delay}ms')
         #    parent_span.set_attribute('e2e_latency', total_delay)
 
     client.subscribe(mqtt_topic)
