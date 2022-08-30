@@ -30,7 +30,7 @@ spec:
         - name: KAFKA_TOPIC
           value: "temperature-readings"
         command: ["python3"]
-        args: ["subscriber.py"]
+        args: ["subscriber/subscriber.py"]
         imagePullPolicy: "Always"
       restartPolicy: Always
       nodeSelector:

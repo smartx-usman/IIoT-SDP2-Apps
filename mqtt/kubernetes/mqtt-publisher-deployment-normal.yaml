@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: publisher-deployment-normal
   labels:
+    environment: production
     app: mqtt-publisher-normal
 spec:
   replicas: 8

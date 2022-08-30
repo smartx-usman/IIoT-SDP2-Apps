@@ -3,6 +3,7 @@ kind: Deployment
 metadata:
   name: temp-analyzer-deployment
   labels:
+    environment: production
     app: temp-analyzer-deployment
 spec:
   replicas: 1
