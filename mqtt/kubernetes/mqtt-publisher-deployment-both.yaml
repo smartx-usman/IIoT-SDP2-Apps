@@ -48,7 +48,7 @@ spec:
                "--mqtt_broker", "mqtt-mosquitto.uc2.svc.cluster.local",
                "--mqtt_broker_port", "1883",
                "--mqtt_topic", "mqtt/temperature/readings",
-               "--sensors", "1",
+               "--sensors", "25",
                "--delay_type", "fixed",
                "--delay_start_range", "0",
                "--delay_end_range", "10.0",
@@ -59,6 +59,13 @@ spec:
                "--abnormal_input_file", "abnormal_data.csv"
         ]
         imagePullPolicy: "Always"
+        resources:
+          limits:
+            cpu: 40m
+            memory: 40Mi
+          requests:
+            cpu: 10m
+            memory: 20Mi
         volumeMounts:
         - mountPath: /data
           name: data-volume

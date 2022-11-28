@@ -60,7 +60,7 @@ def kafka_publish_message(producer_instance, message):
         value_bytes = bytes(message_dump, encoding='utf-8')
         producer_instance.send(kafka_topic, key=key_bytes, value=value_bytes)
         producer_instance.flush()
-        logging.info('Message published successfully.')
+        #logging.info('Message published successfully.')
     except Exception as ex:
         logging.error('Exception in publishing message.', exc_info=True)
 
