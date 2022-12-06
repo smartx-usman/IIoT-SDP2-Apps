@@ -19,7 +19,7 @@ ENV SAVE_DATA="file"
 
 ARG Pathdir="/mqtt"
 
-RUN apt -y update && apt -y install --no-install-recommends build-essential stress
+RUN apt -y update && apt -y install --no-install-recommends build-essential stress mosquitto-clients
 
 RUN mkdir $Pathdir
 RUN mkdir /data
