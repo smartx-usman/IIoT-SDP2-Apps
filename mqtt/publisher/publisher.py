@@ -2,7 +2,7 @@
 """
 For publishing synthetic data to MQTT.
 Author: Muhammad Usman
-Version: 0.3.1
+Version: 0.4.0
 """
 
 import argparse as ap
@@ -12,11 +12,13 @@ import sys
 from threading import Thread
 
 import numpy as np
+from tb_device_mqtt import TBDeviceMqttClient
 from paho.mqtt import client as mqtt_client
-from value_type_normal import ValueTypeNormal
+
+from stress import Stress
 from value_type_abnormal import ValueTypeAbnormal
 from value_type_both import ValueTypeBoth
-from stress import Stress
+from value_type_normal import ValueTypeNormal
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -29,9 +31,11 @@ def parse_arguments():
 
     parser.add_argument('-m', '--mqtt_broker', nargs=1, help='MQTT broker ip or service name', required=True)
     parser.add_argument('-p', '--mqtt_broker_port', nargs=1, help='MQTT broker port', required=True)
+    parser.add_argument('-at', '--thingsboard_token', nargs=1, help='Thingsboard device access token', required=False)
     parser.add_argument('-to', '--mqtt_topic', nargs=1, help='MQTT broker topic', required=True)
 
     parser.add_argument('-s', '--sensors', nargs=1, help='The number of sensors to start', required=True)
+
     parser.add_argument('-dt', '--delay_type', nargs=1, help='Message delay type fixed|random', required=True)
     parser.add_argument('-dsar', '--delay_start_range', nargs=1, help='Message delay start range', required=False)
     parser.add_argument('-dstr', '--delay_end_range', nargs=1, help='Message delay stop range', required=False)
@@ -47,10 +51,6 @@ def parse_arguments():
     return parser.parse_args(sys.argv[1:])
 
 
-# topic = "mqtt/temperature"
-# username = 'emqx'
-# password = 'public'
-
 # Connect to MQTT broker
 def connect_mqtt(client_id):
     def on_connect(client, userdata, flags, rc):
@@ -59,10 +59,14 @@ def connect_mqtt(client_id):
         else:
             logging.critical("Failed to connect, return code %d\n", rc)
 
-    client = mqtt_client.Client(client_id)
-    # client.username_pw_set(username, password)
-    client.on_connect = on_connect
-    client.connect(arguments.mqtt_broker[0], int(arguments.mqtt_broker_port[0]))
+    # client = TBDeviceMqttClient(arguments.mqtt_broker[0], port=1883, username=arguments.thingsboard_token[0],
+    #                            client_id=client_id)
+    # client.connect()
+    client = mqtt_client.Client(client_id=client_id, clean_session=True, transport="tcp")
+    client.username_pw_set(arguments.thingsboard_token[0])
+    client.connect_async(arguments.mqtt_broker[0], int(arguments.mqtt_broker_port[0]))
+    client.loop_start()
+
     return client
 
 
@@ -122,10 +126,9 @@ def random_delay(client, client_id):
         sys.exit(1)
 
 
-# Publish message to MQTT topic
 def mqtt_publish_message(client_id):
+    """Publish message to MQTT topic"""
     client = connect_mqtt(client_id)
-    client.loop_start()
 
     # Check delay type
     if arguments.delay_type[0] == 'fixed':
@@ -172,12 +175,12 @@ pod_name = os.environ['POD_NAME']
 
 # Cast values from string to integer
 if arguments.data_type[0] == 'integer':
-    invalid_value = int(os.environ['INVALID_VALUE'])
+    invalid_value = int(arguments.invalid_value[0])
     invalid_value = str(invalid_value) + ',' + str(float(invalid_value))
 
 # Cast values from string to float
 if arguments.data_type[0] == 'float':
-    invalid_value = float(os.environ['INVALID_VALUE'])
+    invalid_value = float(arguments.invalid_value[0])
     invalid_value = str(int(invalid_value)) + ',' + str(invalid_value)
 
 run()
