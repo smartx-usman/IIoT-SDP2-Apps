@@ -1,5 +1,5 @@
 kafka-python
-paho-mqtt
+tb-mqtt-client
 faust
 typing-extensions
 numpy
