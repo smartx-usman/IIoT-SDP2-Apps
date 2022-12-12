@@ -35,7 +35,7 @@ spec:
           name: data-volume
       restartPolicy: Never
       nodeSelector:
-        kubernetes.io/hostname: worker2
+        kubernetes.io/hostname: worker1
       volumes:
       - name: data-volume
         hostPath:
