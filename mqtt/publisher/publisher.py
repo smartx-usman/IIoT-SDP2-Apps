@@ -51,8 +51,8 @@ def parse_arguments():
     return parser.parse_args(sys.argv[1:])
 
 
-# Connect to MQTT broker
 def connect_mqtt(client_id):
+    """Connect to MQTT broker"""
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
             logging.info("Connected to MQTT Broker!")
@@ -71,6 +71,7 @@ def connect_mqtt(client_id):
 
 
 def fixed_delay(client, client_id):
+    """Process Fixed delay"""
     delay = [float(arguments.delay[0])]
 
     # Check value type
@@ -98,6 +99,7 @@ def fixed_delay(client, client_id):
 
 
 def random_delay(client, client_id):
+    """Process Random delay"""
     delay = list(np.random.uniform(low=float(arguments.delay_start_range[0]),
                                    high=float(arguments.delay_end_range[0]),
                                    size=int(10)))
@@ -141,6 +143,7 @@ def mqtt_publish_message(client_id):
 
 
 def run():
+    """Run the script and create threads"""
     try:
         threads = []
         sensor_count = int(arguments.sensors[0])
