@@ -78,14 +78,14 @@ kubectl apply -n uc2 -f kubernetes/data-generator-job.yaml
 
 6. Deploy MQTT Publisher to send generated values to MQTT broker (anyone or more options can be selected):
 ```shell
-kubectl apply -n uc2 -f kubernetes/mqtt-publisher-deployment-normal.yaml #Deploy 10 normal sensors with fixed message delay as pods
-kubectl apply -n uc2 -f kubernetes/mqtt-publisher-deployment-abnormal.yaml #Deploy 1 abnormal sensor with fixed message delay as a pod
-kubectl apply -n uc2 -f kubernetes/mqtt-publisher-deployment-both.yaml #Deploy 1 sensor with mixed data at random message delay as a pod
+kubectl apply -n uc2 -f kubernetes/publisher-deployment-normal.yaml #Deploy 10 normal sensors with fixed message delay as pods
+kubectl apply -n uc2 -f kubernetes/publisher-deployment-abnormal.yaml #Deploy 1 abnormal sensor with fixed message delay as a pod
+kubectl apply -n uc2 -f kubernetes/publisher-deployment-both.yaml #Deploy 1 sensor with mixed data at random message delay as a pod
 ```
 
 7. Deploy MQTT Subscriber and Kafka Producer:
 ```shell
-kubectl apply -n uc2 -f kubernetes/mqtt-subscriber-deployment.yaml
+kubectl apply -n uc2 -f kubernetes/subscriber-deployment.yaml
 ```
 
 8. Deploy Kafka Consumer and Faust streaming analysis application:
