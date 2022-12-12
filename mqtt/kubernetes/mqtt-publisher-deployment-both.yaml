@@ -45,10 +45,11 @@ spec:
         args: ["publisher/publisher.py",
                "--value_type", "both",
                "--data_type", "both",
-               "--mqtt_broker", "mqtt-mosquitto.uc2.svc.cluster.local",
+               "--mqtt_broker", "thingsboard-mqtt.thingsboard.svc.cluster.local",
                "--mqtt_broker_port", "1883",
-               "--mqtt_topic", "mqtt/temperature/readings",
-               "--sensors", "25",
+               "--thingsboard_token", "M1yexEAWSLlBspbrSqPl",
+               "--mqtt_topic", "v1/devices/me/telemetry",
+               "--sensors", "50",
                "--delay_type", "fixed",
                "--delay_start_range", "0",
                "--delay_end_range", "10.0",
@@ -59,13 +60,14 @@ spec:
                "--abnormal_input_file", "abnormal_data.csv"
         ]
         imagePullPolicy: "Always"
+
         resources:
           limits:
-            cpu: 40m
-            memory: 40Mi
+            cpu: 100m
+            memory: 100Mi
           requests:
-            cpu: 10m
-            memory: 20Mi
+            cpu: 50m
+            memory: 50Mi
         volumeMounts:
         - mountPath: /data
           name: data-volume
