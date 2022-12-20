@@ -42,7 +42,8 @@ class CassandraStore(DataStore):
            readingTS timestamp,
            processTS timestamp,
            sensorID text,
-           readingValue float,
+           temperature int,
+           humidity float,
            primary key(readingTS)
         );'''
         query_temperature_invalid_table = '''
@@ -50,7 +51,8 @@ class CassandraStore(DataStore):
            readingTS timestamp,
            processTS timestamp,
            sensorID text,
-           readingValue float,
+           temperature int,
+           humidity float,
            primary key(readingTS)
         );'''
 
@@ -66,11 +68,11 @@ class CassandraStore(DataStore):
 
         return session
 
-    def store_data(self, table, reading_ts, process_ts, sensor, value):
+    def store_data(self, table, reading_ts, process_ts, sensor, temperature, humidity):
         """Save data to cassandra database"""
         self.session.execute(
             f"""
-                INSERT INTO {table} (readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)
+                INSERT INTO {table} (readingTS, ProcessTS, sensorID, temperature, humidity) VALUES(%s, %s, %s, %s, %s)
                 """,
-            (reading_ts, process_ts, sensor, value)
+            (reading_ts, process_ts, sensor, temperature, humidity)
         )

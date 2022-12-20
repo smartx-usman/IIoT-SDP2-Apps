@@ -39,14 +39,14 @@ class MySQLStore(DataStore):
         )
         session = mysql_db.cursor()
         session.execute(
-            "CREATE TABLE temperature (id INT AUTO_INCREMENT PRIMARY KEY, readingTS VARCHAR(255), processTS VARCHAR(255), sensorID VARCHAR(255), readingValue  FLOAT)")
+            "CREATE TABLE temperature (id INT AUTO_INCREMENT PRIMARY KEY, readingTS VARCHAR(255), processTS VARCHAR(255), sensorID VARCHAR(255), temperature INT, humidity  FLOAT)")
         session.execute(
-            "CREATE TABLE temperature_invalid (id INT AUTO_INCREMENT PRIMARY KEY, readingTS VARCHAR(255), processTS VARCHAR(255), sensorID VARCHAR(255), readingValue  FLOAT)")
+            "CREATE TABLE temperature_invalid (id INT AUTO_INCREMENT PRIMARY KEY, readingTS VARCHAR(255), processTS VARCHAR(255), sensorID VARCHAR(255), temperature INT, humidity  FLOAT)")
         return session, mysql_db
 
-    def store_data(self, table, reading_ts, process_ts, sensor, value):
-        sql = "INSERT INTO " + table + "(readingTS, ProcessTS, sensorID, readingValue) VALUES(%s, %s, %s, %s)"
-        val = (reading_ts, process_ts, sensor, value)
+    def store_data(self, table, reading_ts, process_ts, sensor, temperature, humidity):
+        sql = "INSERT INTO " + table + "(readingTS, ProcessTS, sensorID, temperature, humidity) VALUES(%s, %s, %s, %s, %s)"
+        val = (reading_ts, process_ts, sensor, temperature, humidity)
         self.session.execute(sql, val)
 
         self.mysql_db.commit()

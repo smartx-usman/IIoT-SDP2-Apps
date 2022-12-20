@@ -10,8 +10,9 @@ class FileStore(DataStore):
     def connect_db(self):
         pass
 
-    def open_file(self, data_file_normal, data_file_anomalous):
-        # Remove old data file from persistent volume
+    @staticmethod
+    def open_file(data_file_normal, data_file_anomalous):
+        """Remove old data file from persistent volume"""
         if os.path.exists(data_file_normal):
             os.remove(data_file_normal)
             logging.info('Removed old file from the PV.')
@@ -36,5 +37,6 @@ class FileStore(DataStore):
             logging.error(f'Exception while opening file {temperature_file_anomalous}.', exc_info=True)
         return temperature_file_normal, temperature_file_anomalous
 
-    def store_data(self, session, file_handler, reading_ts, process_ts, sensor, value):
-        file_handler.write(str(reading_ts) + "," + str(process_ts) + "," + sensor + "," + value + "\n")
+    def store_data(self, session, file_handler, reading_ts, process_ts, sensor, temperature, humidity):
+        file_handler.write(
+            str(reading_ts) + "," + str(process_ts) + "," + sensor + "," + str(temperature) + "," + str(humidity) + "\n")
