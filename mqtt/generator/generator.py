@@ -18,7 +18,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=lo
 def parse_arguments():
     """Read and parse commandline arguments"""
     parser = ap.ArgumentParser(prog='data_generator', usage='%(prog)s [options]', add_help=True)
-    parser.add_argument('-d', '--data_type', nargs=1, help='Data type integer|float|both', required=True)
+
     parser.add_argument('-t', '--value_type', nargs=1, help='Value type normal|abnormal|both', required=True)
 
     parser.add_argument('-ns', '--normal_start_value', nargs=1, help='Normal data range start value', required=False)
@@ -164,16 +164,7 @@ logging.info(f'Starting data generation.')
 arguments = parse_arguments()
 
 # Generate integer data
-if arguments.data_type[0] == "integer":
-    generated_values = generate_integer_values()
-
-# Generate float data
-if arguments.data_type[0] == "float":
-    generated_values = generate_float_values()
-
-# Generate both int and float data
-if arguments.data_type[0] == "both":
-    generated_normal_values, generated_abnormal_values = generate_both_values()
+generated_normal_values, generated_abnormal_values = generate_both_values()
 
 # Save data to file
 save_data_to_file(generated_normal_values, generated_abnormal_values)

@@ -16,7 +16,6 @@ spec:
         image: usman476/mqtt-kafka-faust:latest
         command: ["python3"]
         args: ["generator/generator.py",
-               "--data_type", "both",
                "--value_type", "both",
                "--normal_start_value", "0.0", "--normal_end_value", "9.99", "--normal_total_values", "1000",
                "--abnormal_start_value", "11.0", "--abnormal_end_value", "44.99", "--abnormal_total_values", "500",
