@@ -80,7 +80,7 @@ kubectl apply -n uc2 -f kubernetes/data-generator-job.yaml
 ```shell
 kubectl apply -n uc2 -f kubernetes/publisher-deployment-normal.yaml #Deploy 10 normal sensors with fixed message delay as pods
 kubectl apply -n uc2 -f kubernetes/publisher-deployment-abnormal.yaml #Deploy 1 abnormal sensor with fixed message delay as a pod
-kubectl apply -n uc2 -f kubernetes/publisher-deployment-both.yaml #Deploy 1 sensor with mixed data at random message delay as a pod
+kubectl apply -n uc2 -f kubernetes/publisher-deployment-mixed.yaml #Deploy 1 sensor with mixed data at random message delay as a pod
 ```
 
 7. Deploy MQTT Subscriber and Kafka Producer:
