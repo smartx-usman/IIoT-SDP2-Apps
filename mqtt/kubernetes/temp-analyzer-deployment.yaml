@@ -43,6 +43,12 @@ spec:
           value: "mysql"
         - name: DATABASE_URL
           value: "mysql.uc1.svc.cluster.local"
+        - name: JAEGER_AGENT_HOST
+          value: "jaeger-agent.observability.svc.cluster.local"
+        - name: JAEGER_AGENT_PORT
+          value: "6831"
+        - name: TRACE_SAMPLING_RATE
+          value: "1000"
         #- name: DATABASE_URL
         #  value: "cassandra-0.cassandra-headless.uc1.svc.cluster.local"
         command: ["python3"]

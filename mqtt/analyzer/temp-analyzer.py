@@ -34,22 +34,33 @@ kafka_topic = os.environ['KAFKA_TOPIC']
 kafka_key = "server-room"
 save_data = os.environ['SAVE_DATA']
 database_url = os.environ['DATABASE_URL']
+jaeger_agent_host = os.environ['JAEGER_AGENT_HOST']
+jaeger_agent_port = int(os.environ['JAEGER_AGENT_PORT'])
+trace_sampling_rate = int(os.environ['TRACE_SAMPLING_RATE'])
 data_file_normal = "/analyzer/temperature-data-normal.csv"
 data_file_anomalous = "/analyzer/temperature-data-anomalous.csv"
 actuator_id = 'actuator-0'
 actuator_actions = ['power-on', 'pause', 'shutdown']
+
+logging.info('MQTT Broker: %s', mqtt_broker)
+logging.info('MQTT Port: %s', mqtt_port)
+logging.info('MQTT Topic: %s', mqtt_topic)
+logging.info('Kafka Broker: %s', kafka_broker)
+logging.info('Kafka Topic: %s', kafka_topic)
+logging.info('Database URL: %s', database_url)
+logging.info('Trace sampling rate: %s', trace_sampling_rate)
 
 resource = Resource(attributes={
     SERVICE_NAME: "temp-analyzer-processor"
 })
 
 jaeger_exporter = JaegerExporter(
-    agent_host_name="jaeger-agent.observability.svc.cluster.local",
-    agent_port=6831,
+    agent_host_name=jaeger_agent_host,
+    agent_port=jaeger_agent_port,
 )
 
-"""sample 1 in every 3000 traces"""
-sampler = TraceIdRatioBased(1 / 3000)
+"""sample 1 in every n traces"""
+sampler = TraceIdRatioBased(1 / trace_sampling_rate)
 
 provider = TracerProvider(resource=resource, sampler=sampler)
 processor = BatchSpanProcessor(jaeger_exporter)
