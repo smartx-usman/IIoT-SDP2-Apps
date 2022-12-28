@@ -72,6 +72,8 @@ node:
   service:
     type: NodePort
     port: 8080
+    targetPort: 8080
+    nodePort: 30085
   resources: {}
     # We usually recommend not to specify default resources and to leave this as a conscious
     # choice for the user. This also increases chances charts run on environments with little
@@ -167,7 +169,7 @@ http:
     #server: docker.io
     #pullPolicy: Always
     #tag: "X.Y.Z"
-  replicaCount: 1
+  replicaCount: 0
   port:
     number: 8082
     protocol: TCP
@@ -201,7 +203,7 @@ coap:
     #server: docker.io
     #pullPolicy: Always
     #tag: "X.Y.Z"
-  replicaCount: 1
+  replicaCount: 0
   port:
     number: 8083
     protocol: UDP
@@ -289,12 +291,27 @@ postgresql-ha:
     repmgrPassword: setplease
     nodeSelector:
       kubernetes.io/hostname: worker2
+    pgHbaTrustAll: true
+    livenessProbe:
+      enabled: true
+      initialDelaySeconds=600:
+    readinessProbe:
+      enabled: true
+      initialDelaySeconds=600:
   postgresqlImage:
     tag: 12
   pgpool:
     adminPassword: setplease
     replicaCount: 1
     useLoadBalancing: false
+    livenessProbe:
+      enabled: true
+      initialDelaySeconds: 600
+    readinessProbe:
+      enabled: true
+      initialDelaySeconds: 600
+    nodeSelector:
+      kubernetes.io/hostname: worker2
   pgpoolImage:
     tag: 4
   persistence:
@@ -326,3 +343,5 @@ kafka:
   zookeeper:
     persistence:
       enabled: false
+    nodeSelector:
+      kubernetes.io/hostname: worker2
