@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: publisher-deployment-both
+  name: publisher-deployment-mixed
   labels:
     environment: production
-    app: mqtt-publisher-both
+    app: mqtt-publisher-mixed
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mqtt-publisher-both
+      app: mqtt-publisher-mixed
   template:
     metadata:
       labels:
-        app: mqtt-publisher-both
+        app: mqtt-publisher-mixed
     spec:
       containers:
-      - name: publisher-container-both
+      - name: publisher-container-mixed
         image: usman476/mqtt-kafka-faust:latest
         env:
         - name: POD_NAME
@@ -47,7 +47,7 @@ spec:
                "--data_type", "both",
                "--mqtt_broker", "thingsboard-mqtt.thingsboard.svc.cluster.local",
                "--mqtt_broker_port", "1883",
-               "--thingsboard_token", "M1yexEAWSLlBspbrSqPl",
+               "--thingsboard_token", "0KF4XAoZDBGLy8vgimmD",
                "--mqtt_topic", "v1/devices/me/telemetry",
                "--sensors", "50",
                "--delay_type", "fixed",
