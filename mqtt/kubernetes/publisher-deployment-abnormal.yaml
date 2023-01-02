@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: publisher-deployment-normal
+  name: publisher-deployment-abnormal
   labels:
     environment: production
-    app: mqtt-publisher-normal
+    app: mqtt-publisher-abnormal
 spec:
-  replicas: 38
+  replicas: 1
   selector:
     matchLabels:
-      app: mqtt-publisher-normal
+      app: mqtt-publisher-abnormal
   template:
     metadata:
       labels:
-        app: mqtt-publisher-normal
+        app: mqtt-publisher-abnormal
     spec:
       containers:
-      - name: publisher-normal-container
+      - name: publisher-container-abnormal
         image: usman476/mqtt-kafka-faust:latest
         env:
         - name: POD_NAME
@@ -43,16 +43,17 @@ spec:
           value: "30"
         command: ["python3"]
         args: ["publisher/publisher.py",
-               "--value_type", "normal",
+               "--value_type", "abnormal",
                "--data_type", "both",
-               "--mqtt_broker", "mqtt-mosquitto.uc2.svc.cluster.local",
+               "--mqtt_broker", "tb-mqtt-transport.thingsboard.svc.cluster.local",
                "--mqtt_broker_port", "1883",
-               "--mqtt_topic", "mqtt/temperature/readings",
-               "--sensors", "25",
+               "--thingsboard_token", "sensor-abnormal-token",
+               "--mqtt_topic", "v1/devices/me/telemetry",
+               "--sensors", "50",
                "--delay_type", "fixed",
                "--delay_start_range", "0",
                "--delay_end_range", "10.0",
-               "--delay", "1.0",
+               "--delay", "5.0",
                "--invalid_value_occurrence", "10",
                "--invalid_value", "19.99",
                "--normal_input_file", "normal_data.csv",
@@ -61,17 +62,17 @@ spec:
         imagePullPolicy: "Always"
         resources:
           limits:
-            cpu: 40m
-            memory: 40Mi
+            cpu: 50m
+            memory: 60Mi
           requests:
-            cpu: 10m
-            memory: 20Mi
+            cpu: 20m
+            memory: 30Mi
         volumeMounts:
         - mountPath: /data
           name: data-volume
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: worker2
+        kubernetes.io/hostname: worker1
       volumes:
       - name: data-volume
         hostPath:

@@ -25,24 +25,30 @@ spec:
           value: "1883"
         - name: MQTT_ACTUATOR_TOPIC
           value: "mqtt/temperature/actions"
+        - name: THINGSBOARD_DEVICE_TOKEN
+          value: "3CvCfOphVy9DnnpqVTzT"
         - name: KAFKA_BROKER
-          value: "bitnami-kafka-0.bitnami-kafka-headless.uc2.svc.cluster.local:9092"
+          value: "bitnami-kafka-headless.uc2.svc.cluster.local:9092"
         - name: KAFKA_TOPIC
           value: "temperature-readings"
-        - name: VALUE_TYPE
-          value: "float"
         - name: VALID_VALUE_RANGE_START
-          value: "0.0"
+          value: "0"
         - name: VALID_VALUE_RANGE_END
-          value: "9.99"
+          value: "9"
         - name: MIN_THRESHOLD_VALUE
-          value: "2.0"
+          value: "2"
         - name: MAX_THRESHOLD_VALUE
-          value: "8.0"
+          value: "8"
         - name: SAVE_DATA
           value: "mysql"
         - name: DATABASE_URL
           value: "mysql.uc1.svc.cluster.local"
+        - name: JAEGER_AGENT_HOST
+          value: "jaeger-agent.observability.svc.cluster.local"
+        - name: JAEGER_AGENT_PORT
+          value: "6831"
+        - name: TRACE_SAMPLING_RATE
+          value: "1000"
         #- name: DATABASE_URL
         #  value: "cassandra-0.cassandra-headless.uc1.svc.cluster.local"
         command: ["python3"]
