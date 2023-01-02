@@ -11,6 +11,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=lo
 mqtt_broker = os.environ['MQTT_BROKER']
 mqtt_port = int(os.environ['MQTT_BROKER_PORT'])
 mqtt_topic = os.environ['MQTT_TOPIC']
+thingsboard_device_token = os.environ['THINGSBOARD_DEVICE_TOKEN']
 kafka_broker = os.environ['KAFKA_BROKER']
 kafka_topic = os.environ['KAFKA_TOPIC']
 kafka_key = "server-room"
@@ -18,8 +19,8 @@ kafka_key = "server-room"
 client_id = f'python-mqtt-{random.randint(0, 100)}'
 
 
-# Connect to MQTT broker
 def connect_mqtt() -> mqtt_client:
+    """Connect to MQTT broker"""
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
             logging.info('Connected to MQTT Broker!')
@@ -28,6 +29,7 @@ def connect_mqtt() -> mqtt_client:
 
     try:
         client = mqtt_client.Client(client_id)
+        client.username_pw_set(thingsboard_device_token)
         client.on_connect = on_connect
         client.connect(mqtt_broker, mqtt_port)
     except Exception as ex:
@@ -35,8 +37,8 @@ def connect_mqtt() -> mqtt_client:
     return client
 
 
-# Connect to Kafka broker
 def connect_kafka_producer(kafka_broker):
+    """Creates a Kafka producer"""
     _producer = None
     try:
         _producer = KafkaProducer(bootstrap_servers=kafka_broker, api_version=(1, 0, 0))
@@ -45,11 +47,11 @@ def connect_kafka_producer(kafka_broker):
     return _producer
 
 
-# Publish message to Kafka topic
 def kafka_publish_message(producer_instance, message):
+    """Publish message to Kafka topic"""
     try:
         key_bytes = bytes(kafka_key, encoding='utf-8')
-        split_message = message.split();
+        split_message = message.split()
         json_message = {
             'reading_ts': split_message[1],
             'sensor': split_message[3],
@@ -65,8 +67,8 @@ def kafka_publish_message(producer_instance, message):
         logging.error('Exception in publishing message.', exc_info=True)
 
 
-# Subscribe messages from MQTT topic
 def mqtt_subscribe_message(client: mqtt_client, producer):
+    """Subscribe to MQTT topic"""
     def on_message(client, userdata, msg):
         logging.debug(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
         message = msg.payload.decode()
@@ -77,6 +79,7 @@ def mqtt_subscribe_message(client: mqtt_client, producer):
 
 
 def run():
+    """Run the subscriber"""
     mqtt_subscriber = connect_mqtt()
     kafka_producer = connect_kafka_producer(kafka_broker)
     mqtt_subscribe_message(mqtt_subscriber, kafka_producer)

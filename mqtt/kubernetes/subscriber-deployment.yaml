@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mqtt-subscriber-deployment
+  name: mqtt-to-kafka
   labels:
     environment: production
-    app: mqtt-subscriber-deployment
+    app: mqtt-to-kafka-deployment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mqtt-subscriber-deployment
+      app: mqtt-to-kafka-deployment
   template:
     metadata:
       labels:
-        app: mqtt-subscriber-deployment
+        app: mqtt-to-kafka-deployment
     spec:
       containers:
-      - name: mqtt-subscriber-container
+      - name: mqtt-to-kafka-container
         image: usman476/mqtt-kafka-faust:latest
         env:
         - name: MQTT_BROKER
@@ -25,6 +25,8 @@ spec:
           value: "1883"
         - name: MQTT_TOPIC
           value: "mqtt/temperature/readings"
+        - name: THINGSBOARD_DEVICE_TOKEN
+          value: "3CvCfOphVy9DnnpqVTzT"
         - name: KAFKA_BROKER
           value: "bitnami-kafka-0.bitnami-kafka-headless.uc2.svc.cluster.local:9092"
         - name: KAFKA_TOPIC
@@ -34,4 +36,4 @@ spec:
         imagePullPolicy: "Always"
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: worker1
+        kubernetes.io/hostname: worker2
