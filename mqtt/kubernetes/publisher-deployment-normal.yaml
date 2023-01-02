@@ -6,7 +6,7 @@ metadata:
     environment: production
     app: mqtt-publisher-normal
 spec:
-  replicas: 37
+  replicas: 1
   selector:
     matchLabels:
       app: mqtt-publisher-normal
@@ -45,9 +45,9 @@ spec:
         args: ["publisher/publisher.py",
                "--value_type", "normal",
                "--data_type", "both",
-               "--mqtt_broker", "thingsboard-mqtt.thingsboard.svc.cluster.local",
+               "--mqtt_broker", "tb-mqtt-transport.thingsboard.svc.cluster.local",
                "--mqtt_broker_port", "1883",
-               "--thingsboard_token", "aG8UK94OUNwSWhXT9k1R",
+               "--thingsboard_token", "sensor-normal-token",
                "--mqtt_topic", "v1/devices/me/telemetry",
                "--sensors", "50",
                "--delay_type", "fixed",
@@ -55,7 +55,7 @@ spec:
                "--delay_end_range", "10.0",
                "--delay", "1.0",
                "--invalid_value_occurrence", "10",
-               "--invalid_value", "19.99",
+               "--invalid_value", "19",
                "--normal_input_file", "normal_data.csv",
                "--abnormal_input_file", "abnormal_data.csv"
         ]

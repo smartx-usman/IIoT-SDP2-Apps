@@ -45,9 +45,9 @@ spec:
         args: ["publisher/publisher.py",
                "--value_type", "abnormal",
                "--data_type", "both",
-               "--mqtt_broker", "thingsboard-mqtt.thingsboard.svc.cluster.local",
+               "--mqtt_broker", "tb-mqtt-transport.thingsboard.svc.cluster.local",
                "--mqtt_broker_port", "1883",
-               "--thingsboard_token", "7bREAlNqGbHVyuhI6xTw",
+               "--thingsboard_token", "sensor-abnormal-token",
                "--mqtt_topic", "v1/devices/me/telemetry",
                "--sensors", "50",
                "--delay_type", "fixed",
@@ -72,7 +72,7 @@ spec:
           name: data-volume
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: worker2
+        kubernetes.io/hostname: worker1
       volumes:
       - name: data-volume
         hostPath:
