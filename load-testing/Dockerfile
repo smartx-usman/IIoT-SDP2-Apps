@@ -7,7 +7,7 @@ ARG Pathdir="/load"
 RUN mkdir $Pathdir
 RUN mkdir /data
 
-RUN apt -y update && apt -y install stress
+RUN apt -y update && apt -y install --no-install-recommends stress
 
 COPY system-load/stress-all.py $Pathdir
 
