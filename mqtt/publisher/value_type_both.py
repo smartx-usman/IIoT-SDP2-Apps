@@ -54,7 +54,7 @@ class ValueTypeBoth(ValueType):
                         status = result[0]
 
                         logging.info(f"Message - {telemetry} Status - {status}") if status == 0 else logging.error(
-                            f"Failed to send message to topic {self.mqtt_topic}")
+                            f"Failed to send message from sensor {str(self.client_id)} to topic {self.mqtt_topic}")
 
                         count += 1
                         # msg_count += 1
@@ -96,7 +96,7 @@ class ValueTypeBoth(ValueType):
                         status = result[0]
 
                         logging.info(f"Message - {telemetry} Status - {status}") if status == 0 else logging.error(
-                            f"Failed to send message to topic {self.mqtt_topic}")
+                            f"Failed to send message from sensor {str(self.client_id)} to topic {self.mqtt_topic}")
 
                         time.sleep(self.delay[delay_index])
                         count += 1
