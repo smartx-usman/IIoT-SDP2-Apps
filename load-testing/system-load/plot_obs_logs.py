@@ -4,11 +4,13 @@ from matplotlib import pyplot as plt
 pd.set_option('display.max_columns', None)
 pd.set_option('display.max_rows', None)
 
-plt.rcParams["figure.figsize"] = [7.0, 4.0]
+plt.rcParams["figure.figsize"] = [7.0, 6.0]
 plt.rcParams["figure.autolayout"] = True
 
+fig, ((ax1y1, ax1y2, ax1y3), (ax2y1, ax2y2, ax2y3)) = plt.subplots(2, 3, sharex='col', sharey='row')
 
-def memory_usage_normal(input_file_name, fault_timestamp, output_file_name):
+
+def memory_usage(input_file_name, subgraph):
     """Plot Memory Usage"""
     df = pd.read_csv(input_file_name)
     df = df[df['container_name'] == 'promtail']
@@ -19,30 +21,38 @@ def memory_usage_normal(input_file_name, fault_timestamp, output_file_name):
 
     print(df.head(2))
     print(len(df))
-    print(df.dtypes)
+    # print(df.dtypes)
 
     # plot lines
-    plt.xlabel('Timestamp')
-    plt.ylabel('Pod Memory Usage (MiB)')
-    plt.ylim(0, 100)  # scale between these values
-
-    # for node in ('worker1', 'worker2', 'observability1', 'master'):
     for node in ('worker1', 'worker2', 'observability1'):
         df_app = df[df['host'] == node]
         df_final = df_app[["time_stamp", "host", "value"]]
 
-        plt.plot_date(df_final["time_stamp"], df_final["value"], label=str(node), linestyle='-', markersize=3)
+        if subgraph == 'ax1y1':
+            ax1y1.set_title('50 Pods')
+            ax1y1.set_xlabel('Timestamp')
+            ax1y1.set_ylabel('Memory Usage (MiB)')
+            ax1y1.set_ylim(0, 80)  # scale between these values
+            ax1y1.plot_date(df_final["time_stamp"], df_final["value"], label=str(node), linestyle='-', markersize=1)
+            ax1y1.yaxis.grid()
+        elif subgraph == 'ax1y2':
+            ax1y2.set_title('100 Pods')
+            ax1y2.set_xlabel('Timestamp')
+            ax1y2.set_ylabel('Memory Usage (MiB)')
+            ax1y2.set_ylim(0, 80)  # scale between these values
+            ax1y2.plot_date(df_final["time_stamp"], df_final["value"], label=str(node), linestyle='-', markersize=1)
+            ax1y2.yaxis.grid()
+        else:
+            ax1y3.set_title('200 Pods')
+            ax1y3.set_xlabel('Timestamp')
+            ax1y3.set_ylabel('Memory Usage (MiB)')
+            ax1y3.set_ylim(0, 80)  # scale between these values
+            ax1y3.plot_date(df_final["time_stamp"], df_final["value"], label=str(node), linestyle='-', markersize=1)
+            ax1y3.yaxis.grid()
+            ax1y3.legend(loc='lower right')
 
-    axes = plt.gca()
-    axes.yaxis.grid()
-    plt.gcf().autofmt_xdate()
-    plt.legend(loc='lower left', bbox_to_anchor=(0, 1.02, 1, 0.2), mode="expand", borderaxespad=0, ncol=3)
 
-    # plt.show()
-    plt.savefig(output_file_name, dpi=800)
-
-
-def cpu_usage_normal(input_file_name, fault_timestamp, output_file_name):
+def cpu_usage(input_file_name, subgraph):
     """Plot CPU Usage"""
     df = pd.read_csv(input_file_name)
     df = df[df['container_name'] == 'promtail']
@@ -51,27 +61,34 @@ def cpu_usage_normal(input_file_name, fault_timestamp, output_file_name):
 
     print(len(df))
 
-    # plot lines
-    plt.xlabel('Timestamp')
-    plt.ylabel('Pod CPU Usage (ms)')
-    plt.ylim(0, 100)  # scale between these values
-
     for node in ('worker1', 'worker2', 'observability1'):
         df_app = df[df['host'] == node]
         df_final = df_app[["time_stamp", "host", "value"]]
 
-        plt.plot_date(df_final["time_stamp"], df_final["value"], label=str(node), linestyle='-', markersize=3,
-                      marker='o')
+        if subgraph == 'ax2y1':
+            ax2y1.set_title('50 Pods')
+            ax2y1.set_xlabel('Timestamp')
+            ax2y1.set_ylabel('CPU Usage (ms)')
+            ax2y1.set_ylim(0, 100)  # scale between these values
+            ax2y1.plot_date(df_final["time_stamp"], df_final["value"], label=str(node), linestyle='-', markersize=1)
+            ax2y1.yaxis.grid()
+        elif subgraph == 'ax2y2':
+            ax2y2.set_title('100 Pods')
+            ax2y2.set_xlabel('Timestamp')
+            ax2y2.set_ylabel('CPU Usage (ms)')
+            ax2y2.set_ylim(0, 100)  # scale between these values
+            ax2y2.plot_date(df_final["time_stamp"], df_final["value"], label=str(node), linestyle='-', markersize=1)
+            ax2y2.yaxis.grid()
+        else:
+            ax2y3.set_title('200 Pods')
+            ax2y3.set_xlabel('Timestamp')
+            ax2y3.set_ylabel('CPU Usage (ms)')
+            ax2y3.set_ylim(0, 100)  # scale between these values
+            ax2y3.plot_date(df_final["time_stamp"], df_final["value"], label=str(node), linestyle='-', markersize=1)
+            ax2y3.yaxis.grid()
 
-    axes = plt.gca()
-    axes.yaxis.grid()
-    plt.gcf().autofmt_xdate()
-    plt.legend(loc='lower left', bbox_to_anchor=(0, 1.02, 1, 0.2), mode="expand", borderaxespad=0, ncol=3)
-    # plt.show()
-    plt.savefig(output_file_name, dpi=800)
 
-
-def network_usage_normal(input_file_name, fault_timestamp, output_file_name):
+def network_usage(input_file_name, output_file_name):
     """Plot Network Usage"""
     df = pd.read_csv(input_file_name)
     df['time_stamp'] = pd.to_datetime(df['timestamp'], unit='s', origin='unix')
@@ -89,22 +106,33 @@ def network_usage_normal(input_file_name, fault_timestamp, output_file_name):
         df_app = df[df['host'] == node]
         df_final = df_app[["time_stamp", "host", "value"]]
 
-        plt.plot_date(df_final["time_stamp"], df_final["value"], label=str(node), linestyle='-', markersize=3,
-                      marker='o')
-
-    axes = plt.gca()
-    axes.yaxis.grid()
-    plt.gcf().autofmt_xdate()
-    plt.legend(loc='lower left', bbox_to_anchor=(0, 1.02, 1, 0.2), mode="expand", borderaxespad=0, ncol=3)
-    # plt.show()
-    plt.savefig(output_file_name, dpi=800)
+        plt.plot_date(df_final["time_stamp"], df_final["value"], label=str(node), linestyle='-', markersize=2)
 
 
-memory_usage_normal(input_file_name='loki_memory_result_50-pods.csv', fault_timestamp='2022-06-21 08:22:40',
-                    output_file_name='loki_memory_result_50-pods.png')
+output_file = ['loki_resource_usage.png']
+input_file = ['loki_memory_result_50-pods.csv', 'loki_memory_result_100-pods.csv', 'loki_memory_result_200-pods.csv',
+              'loki_cpu_result_50-pods.csv', 'loki_cpu_result_100-pods.csv', 'loki_cpu_result_200-pods.csv']
 
-#cpu_usage_normal(input_file_name='loki_cpu_result_50-pods.csv', fault_timestamp='2022-06-21 08:22:50',
-#                 output_file_name='loki_cpu_result_50-pods.png')
+memory_usage(input_file_name=input_file[0], subgraph='ax1y1')
+memory_usage(input_file_name=input_file[1], subgraph='ax1y2')
+memory_usage(input_file_name=input_file[2], subgraph='ax1y3')
+
+cpu_usage(input_file_name=input_file[3], subgraph='ax2y1')
+cpu_usage(input_file_name=input_file[4], subgraph='ax2y2')
+cpu_usage(input_file_name=input_file[5], subgraph='ax2y3')
+
+# cpu_usage_normal(input_file_name='loki_cpu_result_200-pods.csv', fault_timestamp='2022-06-21 08:22:50',
+#                 output_file_name='loki_cpu_result_200-pods.png')
 
 # network_usage_normal(input_file_name='telegraf_cpu_result_10s-master.csv', fault_timestamp='2022-06-21 08:22:50',
 #                    output_file_name='telegraf_pod_cpu_10s-master.png')
+
+
+fig.autofmt_xdate(rotation=50)
+fig.tight_layout()
+# plt.gcf().autofmt_xdate()
+# plt.legend(loc='lower left', bbox_to_anchor=(0, 1.02, 1, 0.2), mode="expand", borderaxespad=0, ncol=3)
+
+
+# plt.show()
+plt.savefig(output_file[0], dpi=800)
