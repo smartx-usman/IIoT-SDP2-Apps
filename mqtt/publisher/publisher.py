@@ -30,8 +30,10 @@ def parse_arguments():
 
     parser.add_argument('-m', '--mqtt_broker', nargs=1, help='MQTT broker ip or service name', required=True)
     parser.add_argument('-p', '--mqtt_broker_port', nargs=1, help='MQTT broker port', required=True)
-    parser.add_argument('-at', '--thingsboard_token', nargs=1, help='Thingsboard device access token', required=False)
     parser.add_argument('-to', '--mqtt_topic', nargs=1, help='MQTT broker topic', required=True)
+
+    parser.add_argument('-tp', '--thingsboard_publisher', nargs=1, help='ThingsBoard publisher true|false', required=True)
+    parser.add_argument('-tt', '--thingsboard_token', nargs=1, help='Thingsboard device access token', required=False)
 
     parser.add_argument('-s', '--sensors', nargs=1, help='The number of sensors to start', required=True)
 
@@ -62,7 +64,10 @@ def connect_mqtt(client_id):
     #                            client_id=client_id)
     # client.connect()
     client = mqtt_client.Client(client_id=client_id, clean_session=True, transport="tcp")
-    client.username_pw_set(arguments.thingsboard_token[0])
+
+    if arguments.thingsboard_publisher[0]:
+        client.username_pw_set(arguments.thingsboard_token[0])
+
     client.connect_async(arguments.mqtt_broker[0], int(arguments.mqtt_broker_port[0]))
     client.loop_start()
 
