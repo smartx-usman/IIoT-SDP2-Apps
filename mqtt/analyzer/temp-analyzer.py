@@ -1,7 +1,6 @@
 """
 For generating synthetic data.
-Author: Muhammad Usman
-Version: 0.5.0
+Version: 0.5.1
 """
 
 import logging
@@ -100,7 +99,7 @@ def mqtt_publish_message(mqtt_publisher, message):
         if status == 0:
             pass
         else:
-            logging.error(f"Failed to send message to topic {mqtt_topic}")
+            logging.error(f"Message: Failed to send message, Status: {status}")
 
 
 def parse_message_for_actuator(sensor, reading_ts, actuator, action):
@@ -151,7 +150,7 @@ with tracer.start_as_current_span("analyzer-setup") as parent_span_1:
             table_valid = file_valid
             table_invalid = file_invalid
         else:
-            logging.info('Data is not going to be saved.')
+            logging.info('Message: Data is not going to be saved.')
 
     with tracer.start_as_current_span("type-setter") as child_level1_span5:
         """Create a class to parse messages from Kafka"""
@@ -188,7 +187,7 @@ async def check(messages):
                     child_level1_span2.set_attribute('store_name', save_data)
                     store.store_data(table=table_invalid, reading_ts=reading_ts, process_ts=process_ts,
                                      sensor=message.sensor, temperature=temperature_value, humidity=humidity_value)
-                logging.warning(f'[Anomaly] Invalid value from sensor {message.sensor}')
+                logging.warning(f'[Anomaly] Message: Invalid value, Sensor: {message.sensor}, Value: {str(temperature_value)}')
             else:
                 get_actuator_action(sensor=message.sensor, value=temperature_value,
                                     reading_ts=reading_ts)
@@ -200,7 +199,7 @@ async def check(messages):
 
             end_time = time.perf_counter()
             time_ms = round((end_time - start_time) * 1000, 4)
-            logging.info(f'[Time] sensor: {message.sensor} processing_time {time_ms}ms')
+            logging.info(f'[Time] Message: Valid value, Sensor: {message.sensor}, Processing_time: {time_ms}ms')
             parent_span.set_attribute('sensor', message.sensor)
             parent_span.set_attribute('processing_time', time_ms)
 
