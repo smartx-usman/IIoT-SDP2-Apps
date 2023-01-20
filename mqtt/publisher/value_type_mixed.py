@@ -6,7 +6,7 @@ from value_type import ValueType
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 
-class ValueTypeBoth(ValueType):
+class ValueTypeMixed(ValueType):
     def __init__(self, client, client_id, delay, mqtt_topic, invalid_value_occurrence, normal_input, abnormal_input):
         self.client = client
         self.client_id = client_id
@@ -53,8 +53,9 @@ class ValueTypeBoth(ValueType):
                         result = self.client.publish(self.mqtt_topic, telemetry, 0, False)
                         status = result[0]
 
-                        logging.info(f"Message - {telemetry} Status - {status}") if status == 0 else logging.error(
-                            f"Failed to send message from sensor {str(self.client_id)} to topic {self.mqtt_topic}")
+                        logging.info(
+                            f"Message: Successful to send message, Sensor: {str(self.client_id)}, Status: {status}") if status == 0 else logging.error(
+                            f"Message: Failed to send message, Sensor: {str(self.client_id)}, Status: {status}")
 
                         count += 1
                         # msg_count += 1
@@ -95,8 +96,9 @@ class ValueTypeBoth(ValueType):
                         result = self.client.publish(self.mqtt_topic, telemetry, 0, False)
                         status = result[0]
 
-                        logging.info(f"Message - {telemetry} Status - {status}") if status == 0 else logging.error(
-                            f"Failed to send message from sensor {str(self.client_id)} to topic {self.mqtt_topic}")
+                        logging.info(
+                            f"Message: Successful to send message, Sensor: {str(self.client_id)}, Status: {status}") if status == 0 else logging.error(
+                            f"Message: Failed to send message, Sensor: {str(self.client_id)}, Status: {status}")
 
                         time.sleep(self.delay[delay_index])
                         count += 1

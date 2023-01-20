@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 For publishing synthetic data to MQTT.
-Author: Muhammad Usman
-Version: 0.4.0
+Version: 0.4.1
 """
 
 import argparse as ap
@@ -17,7 +16,7 @@ from paho.mqtt import client as mqtt_client
 
 from stress import Stress
 from value_type_abnormal import ValueTypeAbnormal
-from value_type_both import ValueTypeBoth
+from value_type_mixed import ValueTypeMixed
 from value_type_normal import ValueTypeNormal
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -26,7 +25,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=lo
 def parse_arguments():
     """Read and parse commandline arguments"""
     parser = ap.ArgumentParser(prog='data_generator', usage='%(prog)s [options]', add_help=True)
-    parser.add_argument('-t', '--value_type', nargs=1, help='Value type normal|abnormal|both', required=True)
+    parser.add_argument('-t', '--value_type', nargs=1, help='Value type normal|abnormal|mixed', required=True)
     parser.add_argument('-d', '--data_type', nargs=1, help='Data type integer|float|both', required=True)
 
     parser.add_argument('-m', '--mqtt_broker', nargs=1, help='MQTT broker ip or service name', required=True)
@@ -86,8 +85,8 @@ def fixed_delay(client, client_id):
                                        normal_input=arguments.normal_input_file[0],
                                        abnormal_input=arguments.abnormal_input_file[0])
         value_type.process_data()
-    elif arguments.value_type[0] == 'both':
-        value_type = ValueTypeBoth(client=client, client_id=client_id, delay=delay,
+    elif arguments.value_type[0] == 'mixed':
+        value_type = ValueTypeMixed(client=client, client_id=client_id, delay=delay,
                                    mqtt_topic=arguments.mqtt_topic[0],
                                    invalid_value_occurrence=arguments.invalid_value_occurrence[0],
                                    normal_input=arguments.normal_input_file[0],
@@ -116,8 +115,8 @@ def random_delay(client, client_id):
                                        normal_input=arguments.normal_input_file[0],
                                        abnormal_input=arguments.abnormal_input_file[0])
         value_type.process_data()
-    elif arguments.value_type[0] == 'both':
-        value_type = ValueTypeBoth(client=client, client_id=client_id, delay=delay,
+    elif arguments.value_type[0] == 'mixed':
+        value_type = ValueTypeMixed(client=client, client_id=client_id, delay=delay,
                                    mqtt_topic=arguments.mqtt_topic[0],
                                    invalid_value_occurrence=arguments.invalid_value_occurrence[0],
                                    normal_input=arguments.normal_input_file[0],

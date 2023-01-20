@@ -35,8 +35,9 @@ class ValueTypeNormal(ValueType):
                         result = self.client.publish(self.mqtt_topic, telemetry, 0, False)
                         status = result[0]
 
-                        logging.info(f"Message - {telemetry} Status - {status}") if status == 0 else logging.error(
-                            f"Failed to send message from sensor {str(self.client_id)} to topic {self.mqtt_topic}")
+                        logging.info(
+                            f"Message: Successful to send message, Sensor: {str(self.client_id)}, Status: {status}") if status == 0 else logging.error(
+                            f"Message: Failed to send message, Sensor: {str(self.client_id)}, Status: {status}")
 
                         time.sleep(self.delay[0])
 
@@ -60,8 +61,9 @@ class ValueTypeNormal(ValueType):
                         result = self.client.publish(self.mqtt_topic, telemetry, 0, False)
                         status = result[0]
 
-                        logging.info(f"Message - {telemetry} Status - {status}") if status == 0 else logging.error(
-                            f"Failed to send message from sensor {str(self.client_id)} to topic {self.mqtt_topic}")
+                        logging.info(
+                            f"Message: Successful to send message, Sensor: {str(self.client_id)}, Status: {status}") if status == 0 else logging.error(
+                            f"Message: Failed to send message, Sensor: {str(self.client_id)}, Status: {status}")
 
                         time.sleep(self.delay[delay_index])
 

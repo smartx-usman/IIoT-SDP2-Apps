@@ -47,8 +47,9 @@ class ValueTypeAbnormal(ValueType):
                         # success = result.get() == TBPublishInfo.TB_ERR_SUCCESS
 
                         # logging.info(f"{telemetry}") if result.get() == 0 else logging.error(
-                        logging.info(f"Message - {telemetry} Status - {status}") if status == 0 else logging.error(
-                            f"Failed to send message from sensor {str(self.client_id)} to topic {self.mqtt_topic}")
+                        logging.info(
+                            f"Message: Successful to send message, Sensor: {str(self.client_id)}, Status: {status}") if status == 0 else logging.error(
+                            f"Message: Failed to send message, Sensor: {str(self.client_id)}, Status: {status}")
 
                         # msg_count += 1
                         time.sleep(self.delay[0])
@@ -82,8 +83,9 @@ class ValueTypeAbnormal(ValueType):
                         # result = self.client.send_telemetry(telemetry)
 
                         # logging.info(f"{telemetry}") if result.get() == 0 else logging.error(
-                        logging.info(f"Message - {telemetry} Status - {status}") if status == 0 else logging.error(
-                            f"Failed to send message from sensor {str(self.client_id)} to topic {self.mqtt_topic}")
+                        logging.info(
+                            f"Message: Successful to send message, Sensor: {str(self.client_id)}, Status: {status}") if status == 0 else logging.error(
+                            f"Message: Failed to send message, Sensor: {str(self.client_id)}, Status: {status}")
 
                         time.sleep(self.delay[delay_index])
 
@@ -91,5 +93,5 @@ class ValueTypeAbnormal(ValueType):
                         if delay_index == len(self.delay):
                             delay_index = 0
 
-        # mosquitto_pub -t "v1/devices/me/telemetry" -h 130.243.26.28 -p 30320 -u 0iKj6GLHWJDLHwJ9RPsj -m '{"serialNumber": "SN-001", "sensorType": "Thermometer", "sensorModel": "T1000", "temp": 42, "hum": 58}'
+        # mosquitto_pub -t "v1/devices/me/telemetry" -h x.x.x.x -p 30320 -u 0iKj6GLHWJDLHwJ9RPsj -m '{"serialNumber": "SN-001", "sensorType": "Thermometer", "sensorModel": "T1000", "temp": 42, "hum": 58}'
         # mosquitto_sub -t "v1/devices/me/telemetry" -h thingsboard-mqtt.thingsboard.svc.cluster.local -p 1883 -u 0iKj6GLHWJDLHwJ9RPsj
