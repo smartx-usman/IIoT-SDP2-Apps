@@ -45,11 +45,12 @@ spec:
         args: ["publisher/publisher.py",
                "--value_type", "abnormal",
                "--data_type", "both",
-               "--mqtt_broker", "tb-mqtt-transport.thingsboard.svc.cluster.local",
+               "--mqtt_broker", "mqtt-mosquitto.uc2.svc.cluster.local",
                "--mqtt_broker_port", "1883",
                "--thingsboard_token", "sensor-abnormal-token",
-               "--mqtt_topic", "v1/devices/me/telemetry",
-               "--sensors", "50",
+               "--mqtt_topic", "mqtt/temperature/data",
+               "--thingsboard_publisher", "false",
+               "--sensors", "10",
                "--delay_type", "fixed",
                "--delay_start_range", "0",
                "--delay_end_range", "10.0",
@@ -63,10 +64,10 @@ spec:
         resources:
           limits:
             cpu: 50m
-            memory: 60Mi
+            memory: 50Mi
           requests:
             cpu: 20m
-            memory: 30Mi
+            memory: 20Mi
         volumeMounts:
         - mountPath: /data
           name: data-volume
