@@ -9,6 +9,7 @@ import sys
 import time
 
 import faust
+from faust import Record
 from opentelemetry import trace
 from opentelemetry.exporter.jaeger.thrift import JaegerExporter
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
@@ -71,13 +72,11 @@ tracer = trace.get_tracer(__name__)
 
 def connect_to_mqtt():
     """Connect to MQTT broker"""
-
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
-            logging.info('Connected to MQTT Broker!')
+            logging.info('Message: Connected to MQTT Broker!')
         else:
-            logging.critical(f'Failed to connect, return code {rc}.')
-
+            logging.critical(f'Message: Failed to connect, Code: {rc}.')
     try:
         client = mqtt_client.Client(mqtt_client_id)
         client.on_connect = on_connect
@@ -154,9 +153,7 @@ with tracer.start_as_current_span("analyzer-setup") as parent_span_1:
 
     with tracer.start_as_current_span("type-setter") as child_level1_span5:
         """Create a class to parse messages from Kafka"""
-
-
-        class Temperature(faust.Record, serializer='json'):
+        class Temperature(Record, serializer='json'):
             measurement_ts: str
             sensor: str
             temperature: int
@@ -166,12 +163,12 @@ with tracer.start_as_current_span("analyzer-setup") as parent_span_1:
         client = connect_to_mqtt()
 
     with tracer.start_as_current_span("faust-connector") as child_level1_span7:
-        app = faust.App('temp-analyzer', broker=kafka_broker, )
+        app = faust.App('temp-analyzer', broker=kafka_broker, value_serializer='json')
         topic = app.topic(kafka_topic, value_type=Temperature)
 
 
 @app.agent(topic)
-async def check(messages):
+async def process_data(messages):
     async for message in messages:
         with tracer.start_as_current_span("analyzer") as parent_span:
             """Create worker to process incoming streaming data"""
@@ -187,7 +184,7 @@ async def check(messages):
                     child_level1_span2.set_attribute('store_name', save_data)
                     store.store_data(table=table_invalid, reading_ts=reading_ts, process_ts=process_ts,
                                      sensor=message.sensor, temperature=temperature_value, humidity=humidity_value)
-                logging.warning(f'[Anomaly] Message: Invalid value, Sensor: {message.sensor}, Value: {str(temperature_value)}')
+                logging.warning(f'Message: Anomalous data value, Sensor: {message.sensor}, Value: {str(temperature_value)}')
             else:
                 get_actuator_action(sensor=message.sensor, value=temperature_value,
                                     reading_ts=reading_ts)
@@ -196,10 +193,12 @@ async def check(messages):
                     child_level1_span2.set_attribute('store_name', save_data)
                     store.store_data(table=table_valid, reading_ts=reading_ts, process_ts=process_ts,
                                      sensor=message.sensor, temperature=temperature_value, humidity=humidity_value)
+                    logging.info(
+                        f'Message: Normal data value, Sensor: {message.sensor}, Value: {str(temperature_value)}')
 
             end_time = time.perf_counter()
             time_ms = round((end_time - start_time) * 1000, 4)
-            logging.info(f'[Time] Message: Valid value, Sensor: {message.sensor}, Processing_time: {time_ms}ms')
+            logging.info(f'Message: Total processing time, Sensor: {message.sensor}, Processing_time: {time_ms}ms')
             parent_span.set_attribute('sensor', message.sensor)
             parent_span.set_attribute('processing_time', time_ms)
 
