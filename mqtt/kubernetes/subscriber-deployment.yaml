@@ -24,11 +24,11 @@ spec:
         - name: MQTT_BROKER_PORT
           value: "1883"
         - name: MQTT_TOPIC
-          value: "mqtt/temperature/readings"
+          value: "mqtt/temperature/data"
         - name: THINGSBOARD_DEVICE_TOKEN
           value: "3CvCfOphVy9DnnpqVTzT"
         - name: KAFKA_BROKER
-          value: "bitnami-kafka-0.bitnami-kafka-headless.uc2.svc.cluster.local:9092"
+          value: "bitnami-kafka-headless.uc2.svc.cluster.local:9092"
         - name: KAFKA_TOPIC
           value: "temperature-readings"
         command: ["python3"]
