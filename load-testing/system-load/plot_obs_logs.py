@@ -110,7 +110,7 @@ def network_usage(input_file_name, output_file_name):
 
 
 output_file = ['loki_resource_usage.png']
-input_file = ['loki_memory_result_50-pods.csv', 'loki_memory_result_100-pods.csv', 'loki_memory_result_200-pods.csv',
+input_file = ['loki_mem_result_50-pods.csv', 'loki_mem_result_100-pods.csv', 'loki_mem_result_200-pods.csv',
               'loki_cpu_result_50-pods.csv', 'loki_cpu_result_100-pods.csv', 'loki_cpu_result_200-pods.csv']
 
 memory_usage(input_file_name=input_file[0], subgraph='ax1y1')
