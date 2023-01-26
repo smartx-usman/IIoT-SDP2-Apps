@@ -37,6 +37,6 @@ class FileStore(DataStore):
             logging.error(f'Exception while opening file {temperature_file_anomalous}.', exc_info=True)
         return temperature_file_normal, temperature_file_anomalous
 
-    def store_data(self, session, file_handler, reading_ts, process_ts, sensor, temperature, humidity):
-        file_handler.write(
+    def store_data(self, table, reading_ts, process_ts, sensor, temperature, humidity):
+        table.write(
             str(reading_ts) + "," + str(process_ts) + "," + sensor + "," + str(temperature) + "," + str(humidity) + "\n")
