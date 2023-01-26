@@ -45,7 +45,7 @@ spec:
         args: ["publisher/publisher.py",
                "--value_type", "abnormal",
                "--data_type", "both",
-               "--mqtt_broker", "mqtt-mosquitto.uc2.svc.cluster.local",
+               "--mqtt_broker", "mqtt-mosquitto.uc1.svc.cluster.local",
                "--mqtt_broker_port", "1883",
                "--thingsboard_token", "sensor-abnormal-token",
                "--mqtt_topic", "mqtt/temperature/data",
