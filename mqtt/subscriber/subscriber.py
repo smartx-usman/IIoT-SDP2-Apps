@@ -61,10 +61,9 @@ def kafka_publish_message(producer_instance, message):
             'measurement_ts': split_message[0].split(':')[1],
             'temperature': split_message[1].split(':')[1],
             'humidity': split_message[2].split(':')[1],
-            'sensor': split_message[3].split(':')[1]
+            'sensor': split_message[3].split(':')[1][:-1]
         }
         message_dump = json.dumps(json_message)
-
         logging.info(f"Message: {message_dump}")
         value_bytes = bytes(message_dump, encoding='utf-8')
         producer_instance.send(kafka_topic, key=key_bytes, value=value_bytes)
@@ -76,7 +75,6 @@ def kafka_publish_message(producer_instance, message):
 def mqtt_subscribe_message(client: mqtt_client, producer):
     """Subscribe to MQTT topic"""
     def on_message(client, userdata, msg):
-        logging.info(f"Message: {msg.payload.decode()}")
         message = msg.payload.decode()
         kafka_publish_message(producer, message)
 
