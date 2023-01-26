@@ -43,59 +43,59 @@ Here is the description of each step:
 ## Installation/Deployment Steps
 1. Create a namespace:
 ```shell
-kubectl create namespace uc2
+kubectl create namespace uc1
 ```
 
 2. Add MQTT helm repo and deploy it:
 ```shell
 helm repo add t3n https://storage.googleapis.com/t3n-helm-charts
-helm -n uc2 upgrade --install mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
+helm -n uc1 upgrade --install mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
 ```
 
 <!-- 
 Deploy mqtt-stresser:
 ```shell
-kubectl apply -f -n uc2 mqtt-stresser/mqtt-stresser-pod.yaml
+kubectl apply -f -n uc1 mqtt-stresser/mqtt-stresser-pod.yaml
 ```
 -->
 
 3. Add Kafka helm repo and deploy it:
 ```shell
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm upgrade --install bitnami -n uc2 -f kafka-broker/kafka-values.yaml bitnami/kafka
+helm upgrade --install bitnami -n uc1 -f kafka-broker/kafka-values.yaml bitnami/kafka
 ```
 
 4. Add Cassandra helm repo and deploy it:
 ```shell
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm upgrade --install cassandra -n=uc2 -f datastores/cassandra-values.yaml bitnami/cassandra
+helm upgrade --install cassandra -n=uc1 -f datastores/cassandra-values.yaml bitnami/cassandra
 ```
 
 5. Deploy synthetic data generator (Job):
 ```shell
-kubectl apply -n uc2 -f kubernetes/data-generator-job.yaml
+kubectl apply -n uc1 -f kubernetes/data-generator-job.yaml
 ```
 
 6. Deploy MQTT Publisher to send generated values to MQTT broker (anyone or more options can be selected):
 ```shell
-kubectl apply -n uc2 -f kubernetes/publisher-deployment-normal.yaml #Deploy 10 normal sensors with fixed message delay as pods
-kubectl apply -n uc2 -f kubernetes/publisher-deployment-abnormal.yaml #Deploy 1 abnormal sensor with fixed message delay as a pod
-kubectl apply -n uc2 -f kubernetes/publisher-deployment-mixed.yaml #Deploy 1 sensor with mixed data at random message delay as a pod
+kubectl apply -n uc1 -f kubernetes/publisher-deployment-normal.yaml #Deploy 10 normal sensors with fixed message delay as pods
+kubectl apply -n uc1 -f kubernetes/publisher-deployment-abnormal.yaml #Deploy 1 abnormal sensor with fixed message delay as a pod
+kubectl apply -n uc1 -f kubernetes/publisher-deployment-mixed.yaml #Deploy 1 sensor with mixed data at random message delay as a pod
 ```
 
 7. Deploy MQTT Subscriber and Kafka Producer:
 ```shell
-kubectl apply -n uc2 -f kubernetes/subscriber-deployment.yaml
+kubectl apply -n uc1 -f kubernetes/subscriber-deployment.yaml
 ```
 
 8. Deploy Kafka Consumer and Faust streaming analysis application:
 ```shell
-kubectl apply -n uc2 -f kubernetes/temp-analyzer-deployment.yaml
+kubectl apply -n uc1 -f kubernetes/temp-analyzer-deployment.yaml
 ```
 
 9. Deploy actuator to read actions from MQTT:
 ```shell
-kubectl apply -n uc2 -f kubernetes/temp-actuator-pod.yaml
+kubectl apply -n uc1 -f kubernetes/temp-actuator-pod.yaml
 ```
 
 ## Parameters Description (Need to be updated)
