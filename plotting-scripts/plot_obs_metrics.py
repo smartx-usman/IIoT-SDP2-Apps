@@ -9,41 +9,46 @@ pd.set_option('display.max_rows', None)
 plt.rcParams["figure.figsize"] = [7.0, 6.0]
 plt.rcParams["figure.autolayout"] = True
 
-fig, ((ax1y1, ax1y2, ax1y3), (ax2y1, ax2y2, ax2y3)) = plt.subplots(2, 3, sharex='col', sharey='row')
+fig, axs = plt.subplots(2, 3, sharex='col', sharey='row')
 
 
-def memory_usage(input_file_name, subgraph):
+def memory_usage(input_file, axs_row, axs_col, title, x_label, y_label, y_lim_start, y_lim_end, legend_set,
+                 set_x_label):
     """Plot Memory Usage"""
-    df = pd.read_csv(input_file_name)
-    df['time_stamp'] = pd.to_datetime(df['timestamp'], unit='s')
+    df = pd.read_csv(input_file)
+    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
     df['value'] = (df['value'] / 1000000)  # / 16384) * 100
 
     for node in ('worker1', 'worker2', 'observability1', 'master'):
         df_app = df[df['host'] == node]
-        df_final = df_app[["time_stamp", "host", "value"]]
+        df_final = df_app[["timestamp", "host", "value"]]
 
-        print(df_final.head(5))
+        print(df_final.head(2))
         print(len(df_final))
 
-        create_plot(df=df_final, label=node, subgraph=subgraph)
+        create_plot(df=df_final, x_col="timestamp", y_col="value", label=node, axs_row=axs_row, axs_col=axs_col,
+                    title=title, x_label=x_label, y_label=y_label,
+                    y_lim_start=y_lim_start, y_lim_end=y_lim_end, legend_set=legend_set, set_x_label=set_x_label)
 
 
-def cpu_usage(input_file_name, subgraph):
+def cpu_usage(input_file, axs_row, axs_col, title, x_label, y_label, y_lim_start, y_lim_end, legend_set, set_x_label):
     """Plot CPU Usage"""
-    df = pd.read_csv(input_file_name)
-    df['time_stamp'] = pd.to_datetime(df['timestamp'], unit='s', origin='unix')
+    df = pd.read_csv(input_file)
+    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s', origin='unix')
     df['value'] = (df['value'] / 1000000)
 
     print(df.dtypes)
 
     for node in ('worker1', 'worker2', 'observability1', 'master'):
         df_app = df[df['host'] == node]
-        df_final = df_app[["time_stamp", "host", "value"]]
+        df_final = df_app[["timestamp", "host", "value"]]
 
         print(df_final.head(2))
         print(len(df_app))
 
-        create_plot(df=df_final, label=node, subgraph=subgraph)
+        create_plot(df=df_final, x_col="timestamp", y_col="value", label=node, axs_row=axs_row, axs_col=axs_col,
+                    title=title, x_label=x_label, y_label=y_label,
+                    y_lim_start=y_lim_start, y_lim_end=y_lim_end, legend_set=legend_set, set_x_label=set_x_label)
 
 
 def network_usage(input_file_name, fault_timestamp, output_file_name):
@@ -86,49 +91,19 @@ def network_usage(input_file_name, fault_timestamp, output_file_name):
     plt.savefig(output_file_name, dpi=800)
 
 
-def create_plot(df, label, subgraph):
+def create_plot(df, x_col, y_col, label, axs_row, axs_col, title, x_label, y_label, y_lim_start, y_lim_end, legend_set,
+                set_x_label):
     """Create plots"""
-    if subgraph == 'ax1y1':
-        ax1y1.set_title('250ms')
-        ax1y1.set_ylabel('Memory Usage (MiB)')
-        ax1y1.set_ylim(0, 80)  # scale between these values
-        ax1y1.plot_date(df["time_stamp"], df["value"], label=label, linestyle='-', markersize=1)
-        ax1y1.yaxis.grid(color='gray')
-    elif subgraph == 'ax1y2':
-        ax1y2.set_title('1s')
-        ax1y2.set_ylabel('Memory Usage (MiB)')
-        ax1y2.set_ylim(0, 80)  # scale between these values
-        ax1y2.plot_date(df["time_stamp"], df["value"], label=label, linestyle='-', markersize=1)
-        ax1y2.yaxis.grid(color='gray')
-    elif subgraph == 'ax1y3':
-        ax1y3.set_title('10s')
-        ax1y3.set_ylabel('Memory Usage (MiB)')
-        ax1y3.set_ylim(0, 80)  # scale between these values
-        ax1y3.plot_date(df["time_stamp"], df["value"], label=label, linestyle='-', markersize=1)
-        ax1y3.yaxis.grid(color='gray')
-        ax1y3.legend(loc='lower right')
-    elif subgraph == 'ax2y1':
-        ax2y1.set_title('250ms')
-        ax2y1.set_ylabel('CPU Usage (ms)')
-        ax2y1.set_ylim(0, 100)  # scale between these values
-        ax2y1.plot_date(df["time_stamp"], df["value"], label=label, linestyle='-', markersize=1)
-        ax2y1.yaxis.grid(color='gray')
-    elif subgraph == 'ax2y2':
-        ax2y2.set_title('1s')
-        ax2y2.set_xlabel('Timestamp')
-        ax2y2.set_ylabel('CPU Usage (ms)')
-        ax2y2.set_ylim(0, 100)  # scale between these values
-        ax2y2.plot_date(df["time_stamp"], df["value"], label=label, linestyle='-', markersize=1)
-        ax2y2.yaxis.grid(color='gray')
-    elif subgraph == 'ax2y3':
-        ax2y3.set_title('10s')
-        ax2y3.set_ylabel('CPU Usage (ms)')
-        ax2y3.set_ylim(0, 100)  # scale between these values
-        ax2y3.plot_date(df["time_stamp"], df["value"], label=label, linestyle='-', markersize=1)
-        ax2y3.yaxis.grid(color='gray')
-    else:
-        print('Invalid subgraph')
-        sys.exit(1)
+    axs[axs_row, axs_col].set_title(title)
+    if set_x_label:
+        axs[axs_row, axs_col].set_xlabel(x_label)
+    axs[axs_row, axs_col].set_ylabel(y_label)
+    axs[axs_row, axs_col].set_ylim(y_lim_start, y_lim_end)  # scale between these values
+    axs[axs_row, axs_col].plot_date(df[x_col], df[y_col], label=label, linestyle='-', markersize=1)
+    axs[axs_row, axs_col].yaxis.grid('gray')
+
+    if legend_set:
+        axs[axs_row, axs_col].legend(loc='lower right')
 
 
 def main():
@@ -137,13 +112,25 @@ def main():
     input_file = ['telegraf_mem_result_250ms.csv', 'telegraf_mem_result_1s.csv', 'telegraf_mem_result_10s-master.csv',
                   'telegraf_cpu_result_250ms.csv', 'telegraf_cpu_result_1s.csv', 'telegraf_cpu_result_10s-master.csv']
 
-    memory_usage(input_file_name=input_file[0], subgraph='ax1y1')
-    memory_usage(input_file_name=input_file[1], subgraph='ax1y2')
-    memory_usage(input_file_name=input_file[2], subgraph='ax1y3')
+    memory_usage(input_file=input_file[0], axs_row=0, axs_col=0, title="250ms",
+                 x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=80, legend_set=False,
+                 set_x_label=False)
+    memory_usage(input_file=input_file[1], axs_row=0, axs_col=1, title="1s",
+                 x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=80, legend_set=False,
+                 set_x_label=False)
+    memory_usage(input_file=input_file[2], axs_row=0, axs_col=2, title="10s",
+                 x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=80, legend_set=True,
+                 set_x_label=False)
 
-    cpu_usage(input_file_name=input_file[3], subgraph='ax2y1')
-    cpu_usage(input_file_name=input_file[4], subgraph='ax2y2')
-    cpu_usage(input_file_name=input_file[5], subgraph='ax2y3')
+    cpu_usage(input_file=input_file[3], axs_row=1, axs_col=0, title="250ms",
+              x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=100, legend_set=False,
+              set_x_label=False)
+    cpu_usage(input_file=input_file[4], axs_row=1, axs_col=1, title="250ms",
+              x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=100, legend_set=False,
+              set_x_label=True)
+    cpu_usage(input_file=input_file[5], axs_row=1, axs_col=2, title="250ms",
+              x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=100, legend_set=False,
+              set_x_label=False)
 
     fig.autofmt_xdate(rotation=50)
     fig.tight_layout()
