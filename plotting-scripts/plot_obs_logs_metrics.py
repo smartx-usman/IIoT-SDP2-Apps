@@ -14,7 +14,7 @@ fig, axs = plt.subplots(2, 3, sharex='col', sharey='row')
 
 
 def plot_logs_data(input_files, sensor, label, axs_row, axs_col, title, x_label, y_label, y_lim_start, y_lim_end,
-                   legend_set, color, alpha):
+                   legend_set, set_x_label, color, alpha):
     """Process Logs Data"""
     df_init = pd.read_csv(input_files[0])
     # sensor_count = 1
@@ -33,13 +33,13 @@ def plot_logs_data(input_files, sensor, label, axs_row, axs_col, title, x_label,
                 title=title,
                 x_label=x_label, y_label=y_label,
                 y_lim_start=y_lim_start, y_lim_end=y_lim_end,
-                legend_set=legend_set,
+                legend_set=legend_set, set_x_label=set_x_label,
                 color=color, alpha=alpha)
     #    sensor_count = sensor_count + 1
 
 
 def plot_metrics_data(input_files, sensor, label, axs_row, axs_col, title, x_label, y_label, y_lim_start, y_lim_end,
-                      legend_set, color, alpha):
+                      legend_set, set_x_label, color, alpha):
     """Process CPU Usage Data"""
     df = pd.read_csv(input_files[0])
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s', origin='unix')
@@ -54,15 +54,16 @@ def plot_metrics_data(input_files, sensor, label, axs_row, axs_col, title, x_lab
                 title=title,
                 x_label=x_label, y_label=y_label,
                 y_lim_start=y_lim_start, y_lim_end=y_lim_end,
-                legend_set=legend_set,
+                legend_set=legend_set, set_x_label=set_x_label,
                 color=color, alpha=alpha)
 
 
 def create_plot(df, x_col, y_col, label, axs_row, axs_col, title, x_label, y_label, y_lim_start, y_lim_end, legend_set,
-                color, alpha):
+                set_x_label, color, alpha):
     """Create plots"""
     axs[axs_row, axs_col].set_title(title)
-    axs[axs_row, axs_col].set_xlabel(x_label)
+    if set_x_label:
+        axs[axs_row, axs_col].set_xlabel(x_label)
     axs[axs_row, axs_col].set_ylabel(y_label)
     axs[axs_row, axs_col].set_ylim(y_lim_start, y_lim_end)  # scale between these values
     axs[axs_row, axs_col].plot(df[x_col], df[y_col], color, lw=1, label=str(label))
@@ -88,17 +89,17 @@ def main():
                        axs_col=0,
                        title="Normal Pods",
                        x_label="Timestamp", y_label="Number of logs",
-                       y_lim_start=0, y_lim_end=5000, legend_set=True, color='C' + str(sensor),
+                       y_lim_start=0, y_lim_end=5000, legend_set=True, set_x_label=False, color='C' + str(sensor),
                        alpha=0.2)
     plot_logs_data(input_files=logs_input_files, sensor=sensors[3], label='Sensor-4', axs_row=0, axs_col=1,
                    title="Abnormal Pods",
                    x_label="Timestamp", y_label="Number of logs",
-                   y_lim_start=0, y_lim_end=5000, legend_set=True, color='C3',
+                   y_lim_start=0, y_lim_end=5000, legend_set=True, set_x_label=False, color='C3',
                    alpha=0.2)
     plot_logs_data(input_files=logs_input_files, sensor=sensors[4], label='Sensor-5', axs_row=0, axs_col=2,
                    title="Mixed Pods",
                    x_label="Timestamp", y_label="Number of logs",
-                   y_lim_start=0, y_lim_end=5000, legend_set=True, color='C4',
+                   y_lim_start=0, y_lim_end=5000, legend_set=True, set_x_label=False, color='C4',
                    alpha=0.2)
 
     metrics_input_files = ['faulty_sensor_cpu_usage.csv']
@@ -107,18 +108,18 @@ def main():
                           axs_row=1, axs_col=0,
                           title="Normal Pods",
                           x_label="Timestamp", y_label="CPU Usage (ms)",
-                          y_lim_start=0, y_lim_end=60, legend_set=True, color='C' + str(sensor),
+                          y_lim_start=0, y_lim_end=60, legend_set=True, set_x_label=False, color='C' + str(sensor),
                           alpha=0.2)
     plot_metrics_data(input_files=metrics_input_files, sensor=sensors[3], label='Sensor-4',
                       axs_row=1, axs_col=1,
                       title="Normal Pods",
                       x_label="Timestamp", y_label="CPU Usage (ms)",
-                      y_lim_start=0, y_lim_end=60, legend_set=True,
+                      y_lim_start=0, y_lim_end=60, legend_set=True, set_x_label=True,
                       color='C3', alpha=0.2)
     plot_metrics_data(input_files=metrics_input_files, sensor=sensors[4], label='Sensor-5', axs_row=1, axs_col=2,
                       title="Normal Pods",
                       x_label="Timestamp", y_label="CPU Usage (ms)",
-                      y_lim_start=0, y_lim_end=60, legend_set=True,
+                      y_lim_start=0, y_lim_end=60, legend_set=True, set_x_label=False,
                       color='C4', alpha=0.2)
 
     fig.autofmt_xdate(rotation=50)
