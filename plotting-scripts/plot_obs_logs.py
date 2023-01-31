@@ -23,7 +23,7 @@ def memory_usage(input_file, plt_title_labels, axs_dim, y_lim, set_legend, set_x
     for node in ('worker1', 'worker2', 'observability1'):
         df_app = df[df['host'] == node]
         df_final = df_app[["timestamp", "host", "value"]]
-        print(f'[plot_memory_data] - Node: {node} Records: {str(len(df))}')
+        print(f'[plot_memory_data] - Node: {node}, Records: {str(len(df))}')
 
         create_plot(df=df_final, x_col="timestamp", y_col="value", label=node, plt_title_labels=plt_title_labels,
                     axs_dim=axs_dim, y_lim=y_lim, set_legend=set_legend, set_x_label=set_x_label)
@@ -40,7 +40,7 @@ def cpu_usage(input_file, plt_title_labels, axs_dim, y_lim, set_legend, set_x_la
     for node in ('worker1', 'worker2', 'observability1'):
         df_app = df[df['host'] == node]
         df_final = df_app[["timestamp", "host", "value"]]
-        print(f'[plot_cpu_data] - Node: {node} Records: {str(len(df))}')
+        print(f'[plot_cpu_data] - Node: {node}, Records: {str(len(df))}')
         create_plot(df=df_final, x_col="timestamp", y_col="value", label=node, plt_title_labels=plt_title_labels,
                     axs_dim=axs_dim, y_lim=y_lim, set_legend=set_legend, set_x_label=set_x_label)
 
@@ -93,7 +93,7 @@ def main():
     memory_usage(input_file=input_file[1], plt_title_labels=("100 Pods", "Timestamp", "Memory Usage (MiB)"),
                  axs_dim=(0, 1), y_lim=(0, 80), set_legend=False, set_x_label=False)
     memory_usage(input_file=input_file[2], plt_title_labels=("200 Pods", "Timestamp", "Memory Usage (MiB)"),
-                 axs_dim=(0, 2), y_lim=(0, 80), set_legend=False, set_x_label=True)
+                 axs_dim=(0, 2), y_lim=(0, 80), set_legend=True, set_x_label=True)
 
     cpu_usage(input_file=input_file[3], plt_title_labels=("50 Pods", "Timestamp", "CPU Usage (ms)"),
               axs_dim=(1, 0), y_lim=(0, 100), set_legend=False, set_x_label=False)
