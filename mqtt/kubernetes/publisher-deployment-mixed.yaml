@@ -43,13 +43,14 @@ spec:
           value: "30"
         command: ["python3"]
         args: ["publisher/publisher.py",
-               "--value_type", "both",
+               "--value_type", "mixed",
                "--data_type", "both",
-               "--mqtt_broker", "tb-mqtt-transport.thingsboard.svc.cluster.local",
+               "--mqtt_broker", "mqtt-mosquitto.uc1.svc.cluster.local",
                "--mqtt_broker_port", "1883",
                "--thingsboard_token", "sensor-mixed-token",
-               "--mqtt_topic", "v1/devices/me/telemetry",
-               "--sensors", "50",
+               "--mqtt_topic", "mqtt/temperature/data",
+               "--thingsboard_publisher", "false",
+               "--sensors", "10",
                "--delay_type", "fixed",
                "--delay_start_range", "0",
                "--delay_end_range", "10.0",
@@ -63,11 +64,11 @@ spec:
 
         resources:
           limits:
-            cpu: 100m
-            memory: 100Mi
-          requests:
             cpu: 50m
             memory: 50Mi
+          requests:
+            cpu: 20m
+            memory: 20Mi
         volumeMounts:
         - mountPath: /data
           name: data-volume

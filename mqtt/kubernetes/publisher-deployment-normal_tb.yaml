@@ -6,7 +6,7 @@ metadata:
     environment: production
     app: mqtt-publisher-normal
 spec:
-  replicas: 18
+  replicas: 2
   selector:
     matchLabels:
       app: mqtt-publisher-normal
@@ -45,11 +45,10 @@ spec:
         args: ["publisher/publisher.py",
                "--value_type", "normal",
                "--data_type", "both",
-               "--mqtt_broker", "mqtt-mosquitto.uc1.svc.cluster.local",
+               "--mqtt_broker", "tb-mqtt-transport.thingsboard.svc.cluster.local",
                "--mqtt_broker_port", "1883",
                "--thingsboard_token", "sensor-normal-token",
-               "--mqtt_topic", "mqtt/temperature/data",
-               "--thingsboard_publisher", "false",
+               "--mqtt_topic", "v1/devices/me/telemetry",
                "--sensors", "10",
                "--delay_type", "fixed",
                "--delay_start_range", "0",

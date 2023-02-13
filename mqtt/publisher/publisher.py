@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 For publishing synthetic data to MQTT.
-Author: Muhammad Usman
-Version: 0.4.0
+Version: 0.4.1
 """
 
 import argparse as ap
@@ -17,7 +16,7 @@ from paho.mqtt import client as mqtt_client
 
 from stress import Stress
 from value_type_abnormal import ValueTypeAbnormal
-from value_type_both import ValueTypeBoth
+from value_type_mixed import ValueTypeMixed
 from value_type_normal import ValueTypeNormal
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
@@ -26,13 +25,15 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=lo
 def parse_arguments():
     """Read and parse commandline arguments"""
     parser = ap.ArgumentParser(prog='data_generator', usage='%(prog)s [options]', add_help=True)
-    parser.add_argument('-t', '--value_type', nargs=1, help='Value type normal|abnormal|both', required=True)
+    parser.add_argument('-t', '--value_type', nargs=1, help='Value type normal|abnormal|mixed', required=True)
     parser.add_argument('-d', '--data_type', nargs=1, help='Data type integer|float|both', required=True)
 
     parser.add_argument('-m', '--mqtt_broker', nargs=1, help='MQTT broker ip or service name', required=True)
     parser.add_argument('-p', '--mqtt_broker_port', nargs=1, help='MQTT broker port', required=True)
-    parser.add_argument('-at', '--thingsboard_token', nargs=1, help='Thingsboard device access token', required=False)
     parser.add_argument('-to', '--mqtt_topic', nargs=1, help='MQTT broker topic', required=True)
+
+    parser.add_argument('-tp', '--thingsboard_publisher', nargs=1, help='ThingsBoard publisher true|false', required=True)
+    parser.add_argument('-tt', '--thingsboard_token', nargs=1, help='Thingsboard device access token', required=False)
 
     parser.add_argument('-s', '--sensors', nargs=1, help='The number of sensors to start', required=True)
 
@@ -63,7 +64,10 @@ def connect_mqtt(client_id):
     #                            client_id=client_id)
     # client.connect()
     client = mqtt_client.Client(client_id=client_id, clean_session=True, transport="tcp")
-    client.username_pw_set(arguments.thingsboard_token[0])
+
+    if arguments.thingsboard_publisher[0]:
+        client.username_pw_set(arguments.thingsboard_token[0])
+
     client.connect_async(arguments.mqtt_broker[0], int(arguments.mqtt_broker_port[0]))
     client.loop_start()
 
@@ -86,8 +90,8 @@ def fixed_delay(client, client_id):
                                        normal_input=arguments.normal_input_file[0],
                                        abnormal_input=arguments.abnormal_input_file[0])
         value_type.process_data()
-    elif arguments.value_type[0] == 'both':
-        value_type = ValueTypeBoth(client=client, client_id=client_id, delay=delay,
+    elif arguments.value_type[0] == 'mixed':
+        value_type = ValueTypeMixed(client=client, client_id=client_id, delay=delay,
                                    mqtt_topic=arguments.mqtt_topic[0],
                                    invalid_value_occurrence=arguments.invalid_value_occurrence[0],
                                    normal_input=arguments.normal_input_file[0],
@@ -116,8 +120,8 @@ def random_delay(client, client_id):
                                        normal_input=arguments.normal_input_file[0],
                                        abnormal_input=arguments.abnormal_input_file[0])
         value_type.process_data()
-    elif arguments.value_type[0] == 'both':
-        value_type = ValueTypeBoth(client=client, client_id=client_id, delay=delay,
+    elif arguments.value_type[0] == 'mixed':
+        value_type = ValueTypeMixed(client=client, client_id=client_id, delay=delay,
                                    mqtt_topic=arguments.mqtt_topic[0],
                                    invalid_value_occurrence=arguments.invalid_value_occurrence[0],
                                    normal_input=arguments.normal_input_file[0],

@@ -70,7 +70,7 @@ securityContext: {}
   # fsGroup: 10000
 
 nodeSelector:
-  kubernetes.io/hostname: worker1
+  kubernetes.io/hostname: worker2
 
 tolerations: []
 

@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: publisher-deployment-normal
+  name: publisher-deployment-mixed
   labels:
     environment: production
-    app: mqtt-publisher-normal
+    app: mqtt-publisher-mixed
 spec:
-  replicas: 18
+  replicas: 1
   selector:
     matchLabels:
-      app: mqtt-publisher-normal
+      app: mqtt-publisher-mixed
   template:
     metadata:
       labels:
-        app: mqtt-publisher-normal
+        app: mqtt-publisher-mixed
     spec:
       containers:
-      - name: publisher-normal-container
+      - name: publisher-container-mixed
         image: usman476/mqtt-kafka-faust:latest
         env:
         - name: POD_NAME
@@ -43,24 +43,24 @@ spec:
           value: "30"
         command: ["python3"]
         args: ["publisher/publisher.py",
-               "--value_type", "normal",
+               "--value_type", "mixed",
                "--data_type", "both",
-               "--mqtt_broker", "mqtt-mosquitto.uc1.svc.cluster.local",
+               "--mqtt_broker", "tb-mqtt-transport.thingsboard.svc.cluster.local",
                "--mqtt_broker_port", "1883",
-               "--thingsboard_token", "sensor-normal-token",
-               "--mqtt_topic", "mqtt/temperature/data",
-               "--thingsboard_publisher", "false",
+               "--thingsboard_token", "sensor-mixed-token",
+               "--mqtt_topic", "v1/devices/me/telemetry",
                "--sensors", "10",
                "--delay_type", "fixed",
                "--delay_start_range", "0",
                "--delay_end_range", "10.0",
-               "--delay", "1.0",
+               "--delay", "0.1",
                "--invalid_value_occurrence", "10",
-               "--invalid_value", "19",
+               "--invalid_value", "19.99",
                "--normal_input_file", "normal_data.csv",
                "--abnormal_input_file", "abnormal_data.csv"
         ]
         imagePullPolicy: "Always"
+
         resources:
           limits:
             cpu: 50m
