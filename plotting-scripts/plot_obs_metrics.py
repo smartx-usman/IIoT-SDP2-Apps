@@ -123,13 +123,13 @@ def main():
                  set_x_label=False)
 
     cpu_usage(input_file=input_file[3], axs_row=1, axs_col=0, title="250ms",
-              x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=100, legend_set=False,
+              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=100, legend_set=False,
               set_x_label=False)
-    cpu_usage(input_file=input_file[4], axs_row=1, axs_col=1, title="250ms",
-              x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=100, legend_set=False,
+    cpu_usage(input_file=input_file[4], axs_row=1, axs_col=1, title="1s",
+              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=100, legend_set=False,
               set_x_label=True)
-    cpu_usage(input_file=input_file[5], axs_row=1, axs_col=2, title="250ms",
-              x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=100, legend_set=False,
+    cpu_usage(input_file=input_file[5], axs_row=1, axs_col=2, title="10s",
+              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=100, legend_set=False,
               set_x_label=False)
 
     fig.autofmt_xdate(rotation=50)

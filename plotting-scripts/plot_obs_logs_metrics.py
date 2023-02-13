@@ -92,12 +92,12 @@ def main():
                        y_lim_start=0, y_lim_end=5000, legend_set=True, set_x_label=False, color='C' + str(sensor),
                        alpha=0.2)
     plot_logs_data(input_files=logs_input_files, sensor=sensors[3], label='Sensor-4', axs_row=0, axs_col=1,
-                   title="Abnormal Pods",
+                   title="Abnormal Pod",
                    x_label="Timestamp", y_label="Number of logs",
                    y_lim_start=0, y_lim_end=5000, legend_set=True, set_x_label=False, color='C3',
                    alpha=0.2)
     plot_logs_data(input_files=logs_input_files, sensor=sensors[4], label='Sensor-5', axs_row=0, axs_col=2,
-                   title="Mixed Pods",
+                   title="Mixed Pod",
                    x_label="Timestamp", y_label="Number of logs",
                    y_lim_start=0, y_lim_end=5000, legend_set=True, set_x_label=False, color='C4',
                    alpha=0.2)
@@ -112,12 +112,12 @@ def main():
                           alpha=0.2)
     plot_metrics_data(input_files=metrics_input_files, sensor=sensors[3], label='Sensor-4',
                       axs_row=1, axs_col=1,
-                      title="Normal Pods",
+                      title="Abnormal Pod",
                       x_label="Timestamp", y_label="CPU Usage (ms)",
                       y_lim_start=0, y_lim_end=60, legend_set=True, set_x_label=True,
                       color='C3', alpha=0.2)
     plot_metrics_data(input_files=metrics_input_files, sensor=sensors[4], label='Sensor-5', axs_row=1, axs_col=2,
-                      title="Normal Pods",
+                      title="Mixed Pod",
                       x_label="Timestamp", y_label="CPU Usage (ms)",
                       y_lim_start=0, y_lim_end=60, legend_set=True, set_x_label=False,
                       color='C4', alpha=0.2)
