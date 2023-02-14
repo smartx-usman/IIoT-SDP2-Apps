@@ -28,16 +28,16 @@ class MQTTPublish():
 
         def on_connect(client, userdata, flags, rc):
             if rc == 0:
-                logging.info('Message: Connected to MQTT Broker!')
+                logging.info('message=Connected to MQTT Broker!')
             else:
-                logging.critical(f'Message: Failed to connect, Code: {rc}.')
+                logging.critical(f'message=Failed to connect, code: {rc}.')
 
         try:
             client = mqtt_client.Client(self.client_id)
             client.on_connect = on_connect
             client.connect(self.broker, self.port)
         except Exception as ex:
-            logging.critical('Exception while connecting MQTT.', exc_info=True)
+            logging.critical('message=Exception while connecting to MQTT.', exc_info=True)
             sys.exit(1)
         return client
 
@@ -52,4 +52,4 @@ class MQTTPublish():
             if status == 0:
                 pass
             else:
-                logging.error(f"Message: Failed to send message, Status: {status}")
+                logging.error(f"message=Failed to send message, status={status}")
