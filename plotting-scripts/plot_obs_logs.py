@@ -85,22 +85,22 @@ def create_plot(df, x_col, y_col, label, plt_title_labels, axs_dim, y_lim, set_l
 def main():
     """Main function"""
     output_file = ['loki_resource_usage.png']
-    input_file = ['loki_mem_result_50-pods.csv', 'loki_mem_result_100-pods.csv', 'loki_mem_result_200-pods.csv',
-                  'loki_cpu_result_50-pods.csv', 'loki_cpu_result_100-pods.csv', 'loki_cpu_result_200-pods.csv']
+    input_file = ['loki_mem_result_50-pods.csv', 'loki_mem_result_80-pods.csv', 'loki_mem_result_110-pods.csv',
+                  'loki_cpu_result_50-pods.csv', 'loki_cpu_result_80-pods.csv', 'loki_cpu_result_110-pods.csv']
 
     memory_usage(input_file=input_file[0], plt_title_labels=("50 Pods", "Timestamp", "Memory Usage (MiB)"),
                  axs_dim=(0, 0), y_lim=(0, 80), set_legend=False, set_x_label=False)
-    memory_usage(input_file=input_file[1], plt_title_labels=("100 Pods", "Timestamp", "Memory Usage (MiB)"),
+    memory_usage(input_file=input_file[1], plt_title_labels=("80 Pods", "Timestamp", "Memory Usage (MiB)"),
                  axs_dim=(0, 1), y_lim=(0, 80), set_legend=False, set_x_label=False)
-    memory_usage(input_file=input_file[2], plt_title_labels=("200 Pods", "Timestamp", "Memory Usage (MiB)"),
+    memory_usage(input_file=input_file[2], plt_title_labels=("110 Pods", "Timestamp", "Memory Usage (MiB)"),
                  axs_dim=(0, 2), y_lim=(0, 80), set_legend=True, set_x_label=True)
 
     cpu_usage(input_file=input_file[3], plt_title_labels=("50 Pods", "Timestamp", "CPU Usage (ms)"),
-              axs_dim=(1, 0), y_lim=(0, 100), set_legend=False, set_x_label=False)
-    cpu_usage(input_file=input_file[4], plt_title_labels=("100 Pods", "Timestamp", "CPU Usage (ms)"),
-              axs_dim=(1, 1), y_lim=(0, 100), set_legend=False, set_x_label=True)
-    cpu_usage(input_file=input_file[5], plt_title_labels=("200 Pods", "Timestamp", "CPU Usage (ms)"),
-              axs_dim=(1, 2), y_lim=(0, 100), set_legend=False, set_x_label=False)
+              axs_dim=(1, 0), y_lim=(0, 150), set_legend=False, set_x_label=False)
+    cpu_usage(input_file=input_file[4], plt_title_labels=("80 Pods", "Timestamp", "CPU Usage (ms)"),
+              axs_dim=(1, 1), y_lim=(0, 150), set_legend=False, set_x_label=True)
+    cpu_usage(input_file=input_file[5], plt_title_labels=("110 Pods", "Timestamp", "CPU Usage (ms)"),
+              axs_dim=(1, 2), y_lim=(0, 150), set_legend=False, set_x_label=False)
 
     fig.autofmt_xdate(rotation=50)
     fig.tight_layout()
