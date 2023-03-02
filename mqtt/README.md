@@ -65,10 +65,10 @@ helm repo add bitnami https://charts.bitnami.com/bitnami
 helm upgrade --install bitnami -n uc1 -f kafka-broker/kafka-values.yaml bitnami/kafka
 ```
 
-4. Add Cassandra helm repo and deploy it:
+4. Deploy Cassandra/MySQL helm repo:
 ```shell
-helm repo add bitnami https://charts.bitnami.com/bitnami
 helm upgrade --install cassandra -n=uc1 -f datastores/cassandra-values.yaml bitnami/cassandra
+helm upgrade --install mysql -n=uc1 -f mysql-values.yaml bitnami/mysql
 ```
 
 5. Deploy synthetic data generator (Job):
