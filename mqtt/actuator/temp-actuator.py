@@ -38,33 +38,31 @@ clientID = f'python-mqtt-actuator'
 def connect_mqtt() -> mqtt_client:
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
-            logging.info('Connected to MQTT Broker!')
+            logging.info('message=Connected to MQTT Broker!')
         else:
-            logging.critical(f'Failed to connect, return code {rc}.')
+            logging.critical(f'message=Failed to connect, return code {rc}.')
 
     try:
         client = mqtt_client.Client(clientID)
         client.on_connect = on_connect
         client.connect(mqtt_broker, mqtt_port)
     except Exception as ex:
-        logging.critical('Exception while connecting MQTT.', exc_info=True)
+        logging.critical('message=Exception while connecting MQTT.', exc_info=True)
     return client
 
 
 # Subscribe messages from MQTT topic
 def mqtt_subscribe_message(client: mqtt_client):
     def on_message(client, userdata, msg):
-        #with tracer.start_as_current_span("actuator") as parent_span:
         time_ms = round(time.time() * 1000)
-        #logging.debug(f"Received `{msg.payload.decode()}` from `{msg.topic}` topic")
         message = msg.payload.decode()
-        logging.info(f'[Message] Current_ts:{time_ms} {message}')
+        logging.info(f'message=Message details, current_ts:{time_ms}, {message}')
         split_message = message.split()
         reading_ts = int((split_message[1].split(':'))[1])
         total_delay = (time_ms - reading_ts)
 
-        #logging.info(f'[Processor] {split_message[3]} is going to be processed by {split_message[3]}')
-        logging.info(f'[Delay] End-to-end delay (reading_ts - current_ts): {total_delay}ms')
+        # logging.info(f'[Processor] {split_message[3]} is going to be processed by {split_message[3]}')
+        logging.info(f'message=End-to-end delay (reading_ts - current_ts), value={total_delay}ms')
         #    parent_span.set_attribute('e2e_latency', total_delay)
 
     client.subscribe(mqtt_topic)
