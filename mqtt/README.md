@@ -77,11 +77,20 @@ kubectl apply -n uc1 -f kubernetes/data-generator-job.yaml
 ```
 
 6. Deploy MQTT Publisher to send generated values to MQTT broker (anyone or more options can be selected):
-```shell
-kubectl apply -n uc1 -f kubernetes/publisher-deployment-normal.yaml #Deploy normal sensors with fixed message delay.
-kubectl apply -n uc1 -f kubernetes/publisher-deployment-abnormal.yaml #Deploy abnormal sensor with fixed message delay.
-kubectl apply -n uc1 -f kubernetes/publisher-deployment-mixed.yaml #Deploy sensor with mixed data at random message delay.
-```
+- Deploy normal sensors with fixed message delay.
+    ```shell
+    kubectl apply -n uc1 -f kubernetes/publisher-deployment-normal.yaml
+    ```
+
+- Deploy abnormal sensor with fixed message delay.
+    ```shell
+    kubectl apply -n uc1 -f kubernetes/publisher-deployment-abnormal.yaml
+    ```
+
+- Deploy sensor with mixed data at random message delay.
+    ```shell
+    kubectl apply -n uc1 -f kubernetes/publisher-deployment-mixed.yaml
+    ```
 
 7. Deploy MQTT Subscriber and Kafka Producer:
 ```shell
