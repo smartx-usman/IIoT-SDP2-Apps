@@ -104,7 +104,7 @@ kubectl apply -n uc1 -f kubernetes/temp-analyzer-deployment.yaml
 
 9. Deploy actuator to read actions from MQTT:
 ```shell
-kubectl apply -n uc1 -f kubernetes/temp-actuator-pod.yaml
+kubectl apply -n uc1 -f kubernetes/temp-actuator-deployment.yaml
 ```
 
 ## Parameters Description (Need to be updated)

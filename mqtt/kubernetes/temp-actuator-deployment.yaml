@@ -30,4 +30,4 @@ spec:
         args: ["actuator/temp-actuator.py"]
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: worker2
+        kubernetes.io/hostname: worker1
