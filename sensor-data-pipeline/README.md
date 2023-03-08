@@ -1,5 +1,5 @@
-# Use Case Example
-This is an example of a use case for creating load in a Kubernetes cluster. For all of these tools, a single Docker image is created. Using this Docker image, however, multiple pods are created to perform specific functions.
+# Sensor Data Processing Pipeline
+This is a sensor data processing workload for creating load in a Kubernetes cluster. For all of these tools, a single Docker image is created. Using this Docker image, however, multiple pods are created to perform specific functions.
 
 ## Synthetic Data Production and Processing (SDP2) Pipeline
 ### Framework Design
@@ -43,68 +43,68 @@ Here is the description of each step:
 ## Installation/Deployment Steps
 1. Create a namespace:
 ```shell
-kubectl create namespace uc1
+kubectl create namespace sensor-pipeline
 ```
 
 2. Add MQTT helm repo and deploy it:
 ```shell
 helm repo add t3n https://storage.googleapis.com/t3n-helm-charts
-helm -n uc1 upgrade --install mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
+helm -n sensor-pipeline upgrade --install mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
 ```
 
 <!-- 
 Deploy mqtt-stresser:
 ```shell
-kubectl apply -f -n uc1 mqtt-stresser/mqtt-stresser-pod.yaml
+kubectl apply -f -n sensor-pipeline mqtt-stresser/mqtt-stresser-pod.yaml
 ```
 -->
 
 3. Add Kafka helm repo and deploy it:
 ```shell
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm upgrade --install bitnami -n uc1 -f kafka-broker/kafka-values.yaml bitnami/kafka
+helm upgrade --install bitnami -n sensor-pipeline -f kafka-broker/kafka-values.yaml bitnami/kafka
 ```
 
 4. Deploy Cassandra/MySQL helm repo:
 ```shell
-helm upgrade --install cassandra -n=uc1 -f datastores/cassandra-values.yaml bitnami/cassandra
-helm upgrade --install mysql -n=uc1 -f mysql-values.yaml bitnami/mysql
+helm upgrade --install cassandra -n=sensor-pipeline -f datastores/cassandra-values.yaml bitnami/cassandra
+helm upgrade --install mysql -n=sensor-pipeline -f datastores/mysql-values.yaml bitnami/mysql
 ```
 
 5. Deploy synthetic data generator (Job):
 ```shell
-kubectl apply -n uc1 -f kubernetes/data-generator-job.yaml
+kubectl apply -n sensor-pipeline -f kubernetes/data-generator-job.yaml
 ```
 
 6. Deploy MQTT Publisher to send generated values to MQTT broker (anyone or more options can be selected):
 - Deploy normal sensors with fixed message delay.
     ```shell
-    kubectl apply -n uc1 -f kubernetes/publisher-deployment-normal.yaml
+    kubectl apply -n sensor-pipeline -f kubernetes/publisher-deployment-normal.yaml
     ```
 
 - Deploy abnormal sensor with fixed message delay.
     ```shell
-    kubectl apply -n uc1 -f kubernetes/publisher-deployment-abnormal.yaml
+    kubectl apply -n sensor-pipeline -f kubernetes/publisher-deployment-abnormal.yaml
     ```
 
 - Deploy sensor with mixed data at random message delay.
     ```shell
-    kubectl apply -n uc1 -f kubernetes/publisher-deployment-mixed.yaml
+    kubectl apply -n sensor-pipeline -f kubernetes/publisher-deployment-mixed.yaml
     ```
 
 7. Deploy MQTT Subscriber and Kafka Producer:
 ```shell
-kubectl apply -n uc1 -f kubernetes/subscriber-deployment.yaml
+kubectl apply -n sensor-pipeline -f kubernetes/subscriber-deployment.yaml
 ```
 
 8. Deploy Kafka Consumer and Faust streaming analysis application:
 ```shell
-kubectl apply -n uc1 -f kubernetes/temp-analyzer-deployment.yaml
+kubectl apply -n sensor-pipeline -f kubernetes/temp-analyzer-deployment.yaml
 ```
 
 9. Deploy actuator to read actions from MQTT:
 ```shell
-kubectl apply -n uc1 -f kubernetes/temp-actuator-deployment.yaml
+kubectl apply -n sensor-pipeline -f kubernetes/temp-actuator-deployment.yaml
 ```
 
 ## Parameters Description (Need to be updated)
