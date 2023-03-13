@@ -26,7 +26,6 @@ def create_file(filename, size_in_bytes):
 
 
 # Example usage: create a file "dummy.txt" with 10 KB of random content
-
 create_file(f"{DIRECTORY}/file-tiny.txt", 10000)
 create_file(f"{DIRECTORY}/file-small.txt", 1000000)
 create_file(f"{DIRECTORY}/file-large.txt", 100000000)

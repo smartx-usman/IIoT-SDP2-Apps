@@ -16,14 +16,20 @@ total_requests = int(os.getenv('TOTAL_REQUESTS'))
 while True:
     urls = []
     current_time = datetime.datetime.now()
+    day_of_week = current_time.weekday()
 
     if seasonality:
-        if 9 <= current_time.hour < 18:
-            total_requests = 80
-        elif (6 <= current_time.hour < 9) or (18 <= current_time.hour < 21):
-            total_requests = 15
+        if day_of_week <= 4:
+            if 9 <= current_time.hour < 18:
+                total_requests = 80
+            elif (6 <= current_time.hour < 9) or (18 <= current_time.hour < 21):
+                total_requests = 15
+            else:
+                total_requests = 5
         else:
-            total_requests = 5
+            logging.info("It is a weekend, no requests will be made")
+            time.sleep(60)
+            continue
 
     logging.info(f"Total concurrent requests: {total_requests}")
 
@@ -34,8 +40,6 @@ while True:
             urls.append(f"http://{server_url}:{server_port}/file-small.txt")
         else:
             urls.append(f"http://{server_url}:{server_port}/file-large.txt")
-
-    #logging.info(urls)
 
 
     def get_file(url):

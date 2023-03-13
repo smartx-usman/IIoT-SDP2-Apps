@@ -25,7 +25,7 @@ To deploy the file server in Kubernetes, you can use the included file-server.ya
 
 To deploy the file server, run the following command:
 ```shell
-kubectl apply -f file-server.yaml
+kubectl apply -f file-server/file-server.yaml
 ```
 
 This will create the Deployment and a NodePort Service that exposes the file server on port 30000.
@@ -36,5 +36,5 @@ To access the file server, you can use the IP address of the nodes in your Kuber
 This is a Python client for downloading files from our file server and stressing it. It uses the requests library to make HTTP GET requests to the file server.
 
 ```shell
-kubectl apply -f file-client.yaml
+kubectl apply -f file-server/file-client.yaml
 ```
