@@ -13,5 +13,5 @@ docker buildx build --platform linux/amd64,linux/arm64 --push -t usman476/demo-f
 
 Deploy flask application:
 ```shell
-kubectl apply -n flask-server -f flask.yaml
+kubectl apply -n flask-server -f web-server/flask.yaml
 ```
