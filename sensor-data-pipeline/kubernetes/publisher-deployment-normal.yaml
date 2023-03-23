@@ -6,7 +6,7 @@ metadata:
     environment: production
     app: mqtt-publisher-normal
 spec:
-  replicas: 18
+  replicas: 5
   selector:
     matchLabels:
       app: mqtt-publisher-normal
@@ -45,12 +45,12 @@ spec:
         args: ["publisher/publisher.py",
                "--value_type", "normal",
                "--data_type", "both",
-               "--mqtt_broker", "mqtt-mosquitto.uc1.svc.cluster.local",
+               "--mqtt_broker", "mqtt-mosquitto.sensor-pipeline.svc.cluster.local",
                "--mqtt_broker_port", "1883",
                "--thingsboard_token", "sensor-normal-token",
                "--mqtt_topic", "mqtt/temperature/data",
                "--thingsboard_publisher", "false",
-               "--sensors", "10",
+               "--sensors", "1",
                "--delay_type", "fixed",
                "--delay_start_range", "0",
                "--delay_end_range", "10.0",
@@ -63,11 +63,13 @@ spec:
         imagePullPolicy: "Always"
         resources:
           limits:
+            #cpu: 30m
+            #memory: 20Mi
             cpu: 50m
             memory: 50Mi
           requests:
-            cpu: 20m
-            memory: 20Mi
+            cpu: 10m
+            memory: 10Mi
         volumeMounts:
         - mountPath: /data
           name: data-volume

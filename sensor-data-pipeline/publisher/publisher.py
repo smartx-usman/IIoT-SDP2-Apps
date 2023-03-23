@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
 """
 For publishing synthetic data to MQTT.
-Version: 0.4.1
+Version: 0.5.0
 """
 
 import argparse as ap
 import logging
 import os
 import sys
-from threading import Thread
+from threading import Thread as Process
+#from multiprocessing import Process
 
-import numpy as np
-from tb_device_mqtt import TBDeviceMqttClient
 from paho.mqtt import client as mqtt_client
 
+from fixed_delay import DelayTypeFixed
+from random_delay import DelayTypeRandom
 from stress import Stress
-from value_type_abnormal import ValueTypeAbnormal
-from value_type_mixed import ValueTypeMixed
-from value_type_normal import ValueTypeNormal
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -32,7 +30,8 @@ def parse_arguments():
     parser.add_argument('-p', '--mqtt_broker_port', nargs=1, help='MQTT broker port', required=True)
     parser.add_argument('-to', '--mqtt_topic', nargs=1, help='MQTT broker topic', required=True)
 
-    parser.add_argument('-tp', '--thingsboard_publisher', nargs=1, help='ThingsBoard publisher true|false', required=True)
+    parser.add_argument('-tp', '--thingsboard_publisher', nargs=1, help='ThingsBoard publisher true|false',
+                        required=True)
     parser.add_argument('-tt', '--thingsboard_token', nargs=1, help='Thingsboard device access token', required=False)
 
     parser.add_argument('-s', '--sensors', nargs=1, help='The number of sensors to start', required=True)
@@ -54,6 +53,7 @@ def parse_arguments():
 
 def connect_mqtt(client_id):
     """Connect to MQTT broker"""
+
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
             logging.info("Connected to MQTT Broker!")
@@ -74,76 +74,20 @@ def connect_mqtt(client_id):
     return client
 
 
-def fixed_delay(client, client_id):
-    """Process Fixed delay"""
-    delay = [float(arguments.delay[0])]
-
-    # Check value type
-    if arguments.value_type[0] == 'normal':
-        value_type = ValueTypeNormal(client=client, client_id=client_id, delay=delay,
-                                     mqtt_topic=arguments.mqtt_topic[0],
-                                     normal_input=arguments.normal_input_file[0])
-        value_type.process_data()
-    elif arguments.value_type[0] == 'abnormal':
-        value_type = ValueTypeAbnormal(client=client, client_id=client_id, delay=delay,
-                                       mqtt_topic=arguments.mqtt_topic[0],
-                                       normal_input=arguments.normal_input_file[0],
-                                       abnormal_input=arguments.abnormal_input_file[0])
-        value_type.process_data()
-    elif arguments.value_type[0] == 'mixed':
-        value_type = ValueTypeMixed(client=client, client_id=client_id, delay=delay,
-                                   mqtt_topic=arguments.mqtt_topic[0],
-                                   invalid_value_occurrence=arguments.invalid_value_occurrence[0],
-                                   normal_input=arguments.normal_input_file[0],
-                                   abnormal_input=arguments.abnormal_input_file[0])
-        value_type.process_data()
-    else:
-        logging.error(f'Invalid data value_type is provided: {arguments.value_type[0]}')
-        sys.exit(1)
-
-
-def random_delay(client, client_id):
-    """Process Random delay"""
-    delay = list(np.random.uniform(low=float(arguments.delay_start_range[0]),
-                                   high=float(arguments.delay_end_range[0]),
-                                   size=int(10)))
-
-    # Check value type
-    if arguments.value_type[0] == 'normal':
-        value_type = ValueTypeNormal(client=client, client_id=client_id, delay=delay,
-                                     mqtt_topic=arguments.mqtt_topic[0],
-                                     normal_input=arguments.normal_input_file[0])
-        value_type.process_data()
-    elif arguments.value_type[0] == 'abnormal':
-        value_type = ValueTypeAbnormal(client=client, client_id=client_id, delay=delay,
-                                       mqtt_topic=arguments.mqtt_topic[0],
-                                       normal_input=arguments.normal_input_file[0],
-                                       abnormal_input=arguments.abnormal_input_file[0])
-        value_type.process_data()
-    elif arguments.value_type[0] == 'mixed':
-        value_type = ValueTypeMixed(client=client, client_id=client_id, delay=delay,
-                                   mqtt_topic=arguments.mqtt_topic[0],
-                                   invalid_value_occurrence=arguments.invalid_value_occurrence[0],
-                                   normal_input=arguments.normal_input_file[0],
-                                   abnormal_input=arguments.abnormal_input_file[0])
-        value_type.process_data()
-    else:
-        logging.error(f'Invalid data value_type is provided: {arguments.value_type[0]}')
-        sys.exit(1)
-
-
 def mqtt_publish_message(client_id):
     """Publish message to MQTT topic"""
     client = connect_mqtt(client_id)
 
     # Check delay type
     if arguments.delay_type[0] == 'fixed':
-        fixed_delay(client=client, client_id=client_id)
+        delay_type = DelayTypeFixed(arguments.value_type[0])
     elif arguments.delay_type[0] == 'random':
-        random_delay(client=client, client_id=client_id)
+        delay_type = DelayTypeRandom(arguments.value_type[0])
     else:
         logging.error(f'Invalid message delay_type is provided: {arguments.delay_type[0]}')
         sys.exit(1)
+
+    delay_type.add_delay(client=client, client_id=client_id, arguments=arguments)
 
 
 def run():
@@ -155,18 +99,18 @@ def run():
         logging.info(f'Number of sensors to start {sensor_count}.')
         stress = os.environ['STRESS_APP'].capitalize()
 
-        if (stress == "True"):
+        if stress == "True":
             stress = Stress(os.environ['STRESS_CPU'], os.environ['STRESS_VM'], os.environ['STRESS_VM_BYTES'],
                             os.environ['STRESS_IO'], os.environ['STRESS_HDD'], os.environ['STRESS_TIMEOUT'],
                             int(os.environ['IDLE_TIMEOUT']), int(os.environ['STRESS_INIT_DELAY'])
                             )
-            stress_thread = Thread(target=stress.stress_task)
+            stress_thread = Process(target=stress.stress_task)
             # stress_thread.daemon = True
             threads.append(stress_thread)
             stress_thread.start()
 
         for n in range(0, sensor_count):
-            t = Thread(target=mqtt_publish_message, args=(f"{pod_name}-{n}",))
+            t = Process(target=mqtt_publish_message, args=(f"{pod_name}-{n}",))
             threads.append(t)
             t.start()
 
@@ -179,15 +123,5 @@ def run():
 
 arguments = parse_arguments()
 pod_name = os.environ['POD_NAME']
-
-# Cast values from string to integer
-if arguments.data_type[0] == 'integer':
-    invalid_value = int(arguments.invalid_value[0])
-    invalid_value = str(invalid_value) + ',' + str(float(invalid_value))
-
-# Cast values from string to float
-if arguments.data_type[0] == 'float':
-    invalid_value = float(arguments.invalid_value[0])
-    invalid_value = str(int(invalid_value)) + ',' + str(invalid_value)
 
 run()

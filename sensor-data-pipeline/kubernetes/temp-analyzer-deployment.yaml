@@ -20,7 +20,7 @@ spec:
         image: usman476/mqtt-kafka-faust:latest
         env:
         - name: MQTT_BROKER
-          value: "mqtt-mosquitto.uc1.svc.cluster.local"
+          value: "mqtt-mosquitto.sensor-pipeline.svc.cluster.local"
         - name: MQTT_BROKER_PORT
           value: "1883"
         - name: MQTT_ACTUATOR_TOPIC
@@ -28,7 +28,7 @@ spec:
         - name: THINGSBOARD_DEVICE_TOKEN
           value: "3CvCfOphVy9DnnpqVTzT"
         - name: KAFKA_BROKER
-          value: "bitnami-kafka-headless.uc1.svc.cluster.local:9092"
+          value: "bitnami-kafka-headless.sensor-pipeline.svc.cluster.local:9092"
         - name: KAFKA_TOPIC
           value: "temperature-readings"
         - name: VALID_VALUE_RANGE_START
@@ -40,15 +40,15 @@ spec:
         - name: MAX_THRESHOLD_VALUE
           value: "8"
         - name: SAVE_DATA
-          value: "file"
+          value: "mysql"
         - name: DATABASE_URL
-          value: "mysql.uc1.svc.cluster.local"
+          value: "mysql.sensor-pipeline.svc.cluster.local"
         - name: JAEGER_AGENT_HOST
           value: "jaeger-agent.observability.svc.cluster.local"
         - name: JAEGER_AGENT_PORT
           value: "6831"
         - name: TRACE_SAMPLING_RATE
-          value: "100"
+          value: "10"
         #- name: DATABASE_URL
         #  value: "cassandra-0.cassandra-headless.uc1.svc.cluster.local"
         command: ["python3"]

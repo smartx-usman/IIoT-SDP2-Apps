@@ -87,7 +87,7 @@ with tracer.start_as_current_span("analyzer-setup") as parent_span_1:
             table_valid = file_valid
             table_invalid = file_invalid
         else:
-            logging.info('Message: Data is not going to be saved.')
+            logging.info('message=Data is not going to be saved.')
     with tracer.start_as_current_span("type-setter") as child_level1_span5:
         """Create a class to parse messages from Kafka"""
 
@@ -106,7 +106,7 @@ with tracer.start_as_current_span("analyzer-setup") as parent_span_1:
         topic = app.topic(kafka_topic, value_type=Temperature)
 
 
-@app.agent(topic)
+@app.agent(topic, concurrency=3)
 async def process_data(messages):
     async for message in messages:
         with tracer.start_as_current_span("analyzer") as parent_span:

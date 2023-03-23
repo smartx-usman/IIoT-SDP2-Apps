@@ -69,7 +69,7 @@ diagnosticMode:
 image:
   registry: docker.io
   repository: bitnami/kafka
-  tag: 3.2.1-debian-11-r4
+  tag: 3.3.2-debian-11-r0
   digest: ""
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -185,7 +185,7 @@ numIoThreads: 8
 numNetworkThreads: 3
 ## @param numPartitions The default number of log partitions per topic
 ##
-numPartitions: 2
+numPartitions: 3
 ## @param numRecoveryThreadsPerDataDir The number of threads per data directory to be used for log recovery at startup and flushing at shutdown
 ##
 numRecoveryThreadsPerDataDir: 1
@@ -429,6 +429,10 @@ replicaCount: 1
 ## E.g., with `minBrokerId=100` and 3 nodes, IDs will be 100, 101, 102 for brokers 0, 1, and 2, respectively.
 ##
 minBrokerId: 0
+## @param brokerRackAssignment Set Broker Assignment for multi tenant environment Allowed values: `aws-az`
+## ref: https://cwiki.apache.org/confluence/display/KAFKA/KIP-392%3A+Allow+consumers+to+fetch+from+closest+replica
+##
+brokerRackAssignment: ""
 ## @param containerPorts.client Kafka client container port
 ## @param containerPorts.internal Kafka inter-broker container port
 ## @param containerPorts.external Kafka external container port
@@ -514,6 +518,7 @@ podSecurityContext:
 ## @param containerSecurityContext.enabled Enable Kafka containers' Security Context
 ## @param containerSecurityContext.runAsUser Set Kafka containers' Security Context runAsUser
 ## @param containerSecurityContext.runAsNonRoot Set Kafka containers' Security Context runAsNonRoot
+## @param containerSecurityContext.allowPrivilegeEscalation Force the child process to be run as nonprivilege
 ## e.g:
 ##   containerSecurityContext:
 ##     enabled: true
@@ -525,6 +530,7 @@ containerSecurityContext:
   enabled: true
   runAsUser: 1001
   runAsNonRoot: true
+  allowPrivilegeEscalation: false
 ## @param hostAliases Kafka pods host aliases
 ## https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/
 ##
@@ -719,6 +725,9 @@ service:
   ## Headless service properties
   ##
   headless:
+    ## @param service.headless.publishNotReadyAddresses Indicates that any agent which deals with endpoints for this Service should disregard any indications of ready/not-ready
+    ## ref: https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/
+    publishNotReadyAddresses: false
     ## @param service.headless.annotations Annotations for the headless service.
     ##
     annotations: {}
@@ -754,7 +763,7 @@ externalAccess:
     image:
       registry: docker.io
       repository: bitnami/kubectl
-      tag: 1.24.3-debian-11-r10
+      tag: 1.25.6-debian-11-r1
       digest: ""
       ## Specify a imagePullPolicy
       ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -780,7 +789,7 @@ externalAccess:
   ## Note: A new service per broker will be created
   ##
   service:
-    ## @param externalAccess.service.type Kubernetes Service type for external access. It can be NodePort or LoadBalancer
+    ## @param externalAccess.service.type Kubernetes Service type for external access. It can be NodePort, LoadBalancer or ClusterIP
     ##
     type: LoadBalancer
     ## @param externalAccess.service.ports.external Kafka port used for external access when service type is LoadBalancer
@@ -828,10 +837,14 @@ externalAccess:
     ## @param externalAccess.service.usePodIPs using the MY_POD_IP address for external access.
     ##
     usePodIPs: false
-    ## @param externalAccess.service.domain Domain or external ip used to configure Kafka external listener when service type is NodePort
-    ## If not specified, the container will try to get the kubernetes node external IP
+    ## @param externalAccess.service.domain Domain or external ip used to configure Kafka external listener when service type is NodePort or ClusterIP
+    ## NodePort: If not specified, the container will try to get the kubernetes node external IP
+    ## ClusterIP: Must be specified, ingress IP or domain where tcp for external ports is configured
     ##
     domain: ""
+    ## @param externalAccess.service.publishNotReadyAddresses Indicates that any agent which deals with endpoints for this Service should disregard any indications of ready/not-ready
+    ## ref: https://kubernetes.io/docs/reference/kubernetes-api/service-resources/service-v1/
+    publishNotReadyAddresses: false
     ## @param externalAccess.service.labels Service labels for external access
     ##
     labels: {}
@@ -919,6 +932,9 @@ persistence:
   ## @param persistence.annotations Annotations for the PVC
   ##
   annotations: {}
+  ## @param persistence.labels Labels for the PVC
+  ##
+  labels: {}
   ## @param persistence.selector Selector to match an existing Persistent Volume for Kafka data PVC. If set, the PVC can't have a PV dynamically provisioned for it
   ## selector:
   ##   matchLabels:
@@ -986,7 +1002,7 @@ volumePermissions:
   image:
     registry: docker.io
     repository: bitnami/bitnami-shell
-    tag: 11-debian-11-r23
+    tag: 11-debian-11-r75
     digest: ""
     pullPolicy: IfNotPresent
     ## Optionally specify an array of imagePullSecrets.
@@ -1066,7 +1082,7 @@ metrics:
     image:
       registry: docker.io
       repository: bitnami/kafka-exporter
-      tag: 1.4.2-debian-11-r25
+      tag: 1.6.0-debian-11-r52
       digest: ""
       ## Specify a imagePullPolicy
       ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1302,7 +1318,7 @@ metrics:
     image:
       registry: docker.io
       repository: bitnami/jmx-exporter
-      tag: 0.17.0-debian-11-r24
+      tag: 0.17.2-debian-11-r41
       digest: ""
       ## Specify a imagePullPolicy
       ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
@@ -1424,7 +1440,7 @@ metrics:
     ##
     labels: {}
     ## @param metrics.serviceMonitor.selector Prometheus instance selector labels
-    ## ref: https://github.com/bitnami/charts/tree/master/bitnami/prometheus-operator#prometheus-configuration
+    ## ref: https://github.com/bitnami/charts/tree/main/bitnami/prometheus-operator#prometheus-configuration
     ##
     selector: {}
     ## @param metrics.serviceMonitor.relabelings RelabelConfigs to apply to samples before scraping
@@ -1439,6 +1455,20 @@ metrics:
     ## @param metrics.serviceMonitor.jobLabel The name of the label on the target service to use as the job name in prometheus.
     ##
     jobLabel: ""
+
+  prometheusRule:
+    ## @param metrics.prometheusRule.enabled if `true`, creates a Prometheus Operator PrometheusRule (requires `metrics.kafka.enabled` or `metrics.jmx.enabled` to be `true`)
+    ##
+    enabled: false
+    ## @param metrics.prometheusRule.namespace Namespace in which Prometheus is running
+    ##
+    namespace: ""
+    ## @param metrics.prometheusRule.labels Additional labels that can be used so PrometheusRule will be discovered by Prometheus
+    ##
+    labels: {}
+    ## @param metrics.prometheusRule.groups Prometheus Rule Groups for Kafka
+    ##
+    groups: []
 
 ## @section Kafka provisioning parameters
 
@@ -1464,6 +1494,10 @@ provisioning:
   ##     flush.messages: 1
   ##
   topics: []
+  ## @param provisioning.nodeSelector Node labels for pod assignment
+  ## Ref: https://kubernetes.io/docs/user-guide/node-selection/
+  ##
+  nodeSelector: {}
   ## @param provisioning.tolerations Tolerations for pod assignment
   ## Ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
   ##
@@ -1573,6 +1607,21 @@ provisioning:
   ## Ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
   ##
   podLabels: {}
+  ## Kafka provisioning pods ServiceAccount
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
+  ##
+  serviceAccount:
+    ## @param provisioning.serviceAccount.create Enable creation of ServiceAccount for Kafka provisioning pods
+    ##
+    create: false
+    ## @param provisioning.serviceAccount.name The name of the service account to use. If not set and `create` is `true`, a name is generated
+    ## If not set and create is true, a name is generated using the provisioning.serviceAccount.name template
+    ##
+    name: ""
+    ## @param provisioning.serviceAccount.automountServiceAccountToken Allows auto mount of ServiceAccountToken on the serviceAccount created
+    ## Can be set to false if pods using this serviceAccount do not need to use K8s API
+    ##
+    automountServiceAccountToken: true
   ## Kafka provisioning resource requests and limits
   ## ref: https://kubernetes.io/docs/user-guide/compute-resources/
   ## @param provisioning.resources.limits The resources limits for the Kafka provisioning container
@@ -1653,7 +1702,7 @@ provisioning:
 ## @section ZooKeeper chart parameters
 
 ## ZooKeeper chart configuration
-## https://github.com/bitnami/charts/blob/master/bitnami/zookeeper/values.yaml
+## https://github.com/bitnami/charts/blob/main/bitnami/zookeeper/values.yaml
 ##
 zookeeper:
   ## @param zookeeper.enabled Switch to enable or disable the ZooKeeper helm chart

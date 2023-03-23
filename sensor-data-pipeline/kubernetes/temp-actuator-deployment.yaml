@@ -20,7 +20,7 @@ spec:
         image: usman476/mqtt-kafka-faust:latest
         env:
         - name: MQTT_BROKER
-          value: "mqtt-mosquitto.uc1.svc.cluster.local"
+          value: "mqtt-mosquitto.sensor-pipeline.svc.cluster.local"
         - name: MQTT_BROKER_PORT
           value: "1883"
         - name: MQTT_ACTUATOR_TOPIC
@@ -30,4 +30,4 @@ spec:
         args: ["actuator/temp-actuator.py"]
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: worker2
+        kubernetes.io/hostname: worker1

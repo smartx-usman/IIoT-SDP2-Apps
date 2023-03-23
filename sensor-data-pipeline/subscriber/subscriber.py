@@ -28,9 +28,9 @@ def connect_mqtt() -> mqtt_client:
     """Connect to MQTT broker"""
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
-            logging.info('Message: Connected to MQTT Broker!')
+            logging.info('message=Connected to MQTT Broker!')
         else:
-            logging.critical(f'Message: Failed to connect, Code: {rc}')
+            logging.critical(f'message=Failed to connect, Code: {rc}')
 
     try:
         client = mqtt_client.Client(client_id)
@@ -38,7 +38,7 @@ def connect_mqtt() -> mqtt_client:
         client.on_connect = on_connect
         client.connect(mqtt_broker, mqtt_port)
     except Exception as ex:
-        logging.critical('Message: Exception while connecting MQTT.', exc_info=True)
+        logging.critical('message=Exception while connecting MQTT.', exc_info=True)
     return client
 
 
@@ -48,7 +48,7 @@ def connect_kafka_producer(kafka_broker):
     try:
         _producer = KafkaProducer(bootstrap_servers=kafka_broker, api_version=(1, 0, 0))
     except Exception as ex:
-        logging.critical('Message: Exception while connecting Kafka.', exc_info=True)
+        logging.critical('message=Exception while connecting Kafka.', exc_info=True)
     return _producer
 
 
@@ -64,12 +64,12 @@ def kafka_publish_message(producer_instance, message):
             'sensor': split_message[3].split(':')[1][:-1]
         }
         message_dump = json.dumps(json_message)
-        logging.info(f"Message: {message_dump}")
+        logging.info(f"message={message_dump}")
         value_bytes = bytes(message_dump, encoding='utf-8')
         producer_instance.send(kafka_topic, key=key_bytes, value=value_bytes)
         producer_instance.flush()
     except Exception as ex:
-        logging.error('Message: Exception in publishing message.', exc_info=True)
+        logging.error('message=Exception in publishing message.', exc_info=True)
 
 
 def mqtt_subscribe_message(client: mqtt_client, producer):

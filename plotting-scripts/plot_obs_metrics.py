@@ -19,7 +19,7 @@ def memory_usage(input_file, axs_row, axs_col, title, x_label, y_label, y_lim_st
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
     df['value'] = (df['value'] / 1000000)  # / 16384) * 100
 
-    for node in ('worker1', 'worker2', 'observability1', 'master'):
+    for node in ('worker1', 'worker2', 'observability1'):
         df_app = df[df['host'] == node]
         df_final = df_app[["timestamp", "host", "value"]]
 
@@ -39,7 +39,7 @@ def cpu_usage(input_file, axs_row, axs_col, title, x_label, y_label, y_lim_start
 
     print(df.dtypes)
 
-    for node in ('worker1', 'worker2', 'observability1', 'master'):
+    for node in ('worker1', 'worker2', 'observability1'):
         df_app = df[df['host'] == node]
         df_final = df_app[["timestamp", "host", "value"]]
 
@@ -66,7 +66,7 @@ def network_usage(input_file_name, fault_timestamp, output_file_name):
     plt.ylabel('Pod CPU Usage (ms)')
     plt.ylim(0, 120)  # scale between these values
 
-    for node in ('worker1', 'worker2', 'observability1', 'master'):
+    for node in ('worker1', 'worker2', 'observability1'):
         df_app = df[df['host'] == node]
         print(len(df_app))
         df_final = df_app[["time_stamp", "host", "value"]]
@@ -109,27 +109,27 @@ def create_plot(df, x_col, y_col, label, axs_row, axs_col, title, x_label, y_lab
 def main():
     """Main function"""
     output_file = ['telegraf_resource_usage.png']
-    input_file = ['telegraf_mem_result_250ms.csv', 'telegraf_mem_result_1s.csv', 'telegraf_mem_result_10s-master.csv',
-                  'telegraf_cpu_result_250ms.csv', 'telegraf_cpu_result_1s.csv', 'telegraf_cpu_result_10s-master.csv']
+    input_file = ['telegraf_memory_result_1s.csv', 'telegraf_memory_result_5s.csv', 'telegraf_memory_result_10s.csv',
+                  'telegraf_cpu_result_1s.csv', 'telegraf_cpu_result_5s.csv', 'telegraf_cpu_result_10s.csv']
 
-    memory_usage(input_file=input_file[0], axs_row=0, axs_col=0, title="250ms",
-                 x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=80, legend_set=False,
+    memory_usage(input_file=input_file[0], axs_row=0, axs_col=0, title="1s",
+                 x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=100, legend_set=False,
                  set_x_label=False)
-    memory_usage(input_file=input_file[1], axs_row=0, axs_col=1, title="1s",
-                 x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=80, legend_set=False,
+    memory_usage(input_file=input_file[1], axs_row=0, axs_col=1, title="5s",
+                 x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=100, legend_set=False,
                  set_x_label=False)
     memory_usage(input_file=input_file[2], axs_row=0, axs_col=2, title="10s",
-                 x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=80, legend_set=True,
+                 x_label="Timestamp", y_label="Memory Usage (MiB)", y_lim_start=0, y_lim_end=100, legend_set=True,
                  set_x_label=False)
 
-    cpu_usage(input_file=input_file[3], axs_row=1, axs_col=0, title="250ms",
-              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=100, legend_set=False,
+    cpu_usage(input_file=input_file[3], axs_row=1, axs_col=0, title="1s",
+              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=50, legend_set=False,
               set_x_label=False)
-    cpu_usage(input_file=input_file[4], axs_row=1, axs_col=1, title="1s",
-              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=100, legend_set=False,
+    cpu_usage(input_file=input_file[4], axs_row=1, axs_col=1, title="5s",
+              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=50, legend_set=False,
               set_x_label=True)
     cpu_usage(input_file=input_file[5], axs_row=1, axs_col=2, title="10s",
-              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=100, legend_set=False,
+              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=50, legend_set=False,
               set_x_label=False)
 
     fig.autofmt_xdate(rotation=50)
