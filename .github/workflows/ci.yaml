@@ -20,7 +20,7 @@ jobs:
         name: Build the Docker image
         with:
           image: usman476/mqtt-kafka-faust
-          dockerfile: mqtt/Dockerfile
+          dockerfile: sensor-data-pipeline/mqtt/Dockerfile
           directory: mqtt
           tags: latest
           registry: docker.io
