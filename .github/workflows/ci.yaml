@@ -21,7 +21,7 @@ jobs:
         with:
           image: usman476/mqtt-kafka-faust
           dockerfile: sensor-data-pipeline/Dockerfile
-          directory: mqtt
+          directory: sensor-data-pipeline
           tags: latest
           registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
