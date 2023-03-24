@@ -57,7 +57,7 @@ spec:
           image: usman476/demo-flask-app:latest
           env:
             - name: STRESS_APP
-              value: "True"
+              value: "False"
             - name: STRESS_CPU
               value: "0"
             - name: STRESS_VM

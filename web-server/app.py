@@ -13,7 +13,7 @@ from cassandra.cluster import Cluster
 from flask import Flask, request, jsonify, abort
 from flask_mysqldb import MySQL
 from opentelemetry import trace
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
@@ -22,23 +22,17 @@ from waitress import serve
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 resource = Resource(attributes={
-    SERVICE_NAME: "observability-microservice"
+    SERVICE_NAME: "flask-web-service"
 })
 
-jaeger_exporter = JaegerExporter(
-    agent_host_name="jaeger-agent.observability.svc.cluster.local",
-    agent_port=6831,
-)
-
 provider = TracerProvider(resource=resource)
-processor = BatchSpanProcessor(jaeger_exporter)
+processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://jaeger-collector.observability.svc.cluster.local:4317", insecure=True))
 provider.add_span_processor(processor)
 trace.set_tracer_provider(provider)
 
 tracer = trace.get_tracer(__name__)
 
 app = Flask(__name__)
-app.config['MYSQL_HOST'] = 'mysql.uc1.svc.cluster.local'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'root'
 app.config['MYSQL_DB'] = 'flask'
@@ -50,6 +44,7 @@ mysql = MySQL(app)
 def roll():
     sides = int(request.args.get('sides'))
     rolls = int(request.args.get('rolls'))
+    logging.info('Roll request completed.')
     return roll_sum(sides, rolls)
 
 
@@ -126,6 +121,7 @@ def matrix_multiply():
         result = np.matmul(matrix_a, matrix_b)
         child_span2.set_attribute('rows', rows)
         child_span2.set_attribute('cols', cols)
+    logging.info('Matrix multiplication request completed.')
 
 
 @app.route("/sorting")
@@ -146,6 +142,7 @@ def sorting():
         end_dt = time.time()
         latency = end_dt - start_dt
         parent_span.set_attribute('e2e_latency', latency)
+        logging.info('Data sorting request completed.')
     return 'Request completed.'
 
 
@@ -175,6 +172,8 @@ def save_data_mysql(data, kind):
         child_span3.set_attribute('table', 'sorted_data')
         server = request.remote_addr
         client = request.environ.get('HTTP_X_FORWARDED_FOR', request.environ['REMOTE_ADDR'])
+        namespace = request.args.get('namespace')
+        app.config['MYSQL_HOST'] = f'mysql.{namespace}.svc.cluster.local'
 
         # Creating a connection cursor
         cursor = mysql.connection.cursor()
