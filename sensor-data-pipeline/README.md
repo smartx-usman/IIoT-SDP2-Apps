@@ -49,7 +49,7 @@ kubectl create namespace sensor-pipeline
 2. Add MQTT helm repo and deploy it:
 ```shell
 helm repo add t3n https://storage.googleapis.com/t3n-helm-charts
-helm -n sensor-pipeline upgrade --install mqtt -f mqtt-broker/mqtt-values.yaml t3n/mosquitto
+helm -n sensor-pipeline upgrade --install mqtt -f brokers/mqtt-values.yaml t3n/mosquitto
 ```
 
 <!-- 
@@ -62,7 +62,7 @@ kubectl apply -f -n sensor-pipeline mqtt-stresser/mqtt-stresser-pod.yaml
 3. Add Kafka helm repo and deploy it:
 ```shell
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm upgrade --install bitnami -n sensor-pipeline -f kafka-broker/kafka-values.yaml bitnami/kafka
+helm upgrade --install bitnami -n sensor-pipeline -f brokers/kafka-values.yaml bitnami/kafka
 ```
 
 4. Deploy Cassandra/MySQL helm repo:
