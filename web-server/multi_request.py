@@ -42,4 +42,4 @@ for response in response_list:
     print(response)
 
 # How to run this tool
-# python3 demo-apps/observability-app/flask/multi_request.py -a x.x.x.x -d mysql -s 1000 -l merge -n uc1 -r 2
+# python3 multi_request.py -a 192.168.222.82 -d mysql -s 1000 -l merge -n sensor-pipeline -r 100
