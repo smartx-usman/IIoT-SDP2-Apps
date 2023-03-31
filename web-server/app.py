@@ -8,28 +8,39 @@ from random import randint
 from threading import Thread
 
 import numpy as np
-from cassandra.auth import PlainTextAuthProvider
-from cassandra.cluster import Cluster
-from flask import Flask, request, jsonify, abort
+from waitress import serve
 from flask_mysqldb import MySQL
 from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from cassandra.cluster import Cluster
+from flask import Flask, request, jsonify, abort
+from cassandra.auth import PlainTextAuthProvider
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
-from waitress import serve
+from opentelemetry.sdk.resources import SERVICE_NAME, Resource
+from opentelemetry.sdk.trace.sampling import TraceIdRatioBased
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+
+trace_agent_host = os.environ['TRACE_AGENT_HOST']
+trace_agent_port = os.environ['TRACE_AGENT_PORT']
+trace_sampling_rate = int(os.environ['TRACE_SAMPLING_RATE'])
 
 resource = Resource(attributes={
     SERVICE_NAME: "flask-web-service"
 })
 
-provider = TracerProvider(resource=resource)
-processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://jaeger-collector.observability.svc.cluster.local:4317", insecure=True))
-provider.add_span_processor(processor)
-trace.set_tracer_provider(provider)
+trace_exporter_uri = OTLPSpanExporter(endpoint=trace_agent_host + ":" + trace_agent_port, insecure=True)
 
+"""sample 1 in every n traces"""
+sampler = TraceIdRatioBased(1 / trace_sampling_rate)
+
+provider = TracerProvider(resource=resource, sampler=sampler)
+processor = BatchSpanProcessor(trace_exporter_uri)
+provider.add_span_processor(processor)
+
+trace.set_tracer_provider(provider)
 tracer = trace.get_tracer(__name__)
 
 app = Flask(__name__)
