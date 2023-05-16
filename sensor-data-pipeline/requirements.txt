@@ -7,5 +7,4 @@ cassandra-driver
 mysql-connector-python
 opentelemetry-distro
 opentelemetry-instrumentation
-opentelemetry-exporter-jaeger
-opentelemetry-exporter-jaeger-proto-grpc
+opentelemetry-exporter-otlp

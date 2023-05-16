@@ -1,4 +1,4 @@
-FROM python:3.8-slim
+FROM python:3.9.16-slim
 
 ENV SENSORS="1"
 ENV MESSAGE_DELAY="0.5"

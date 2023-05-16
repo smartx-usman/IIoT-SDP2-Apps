@@ -57,7 +57,7 @@ spec:
           image: usman476/demo-flask-app:latest
           env:
             - name: STRESS_APP
-              value: "True"
+              value: "False"
             - name: STRESS_CPU
               value: "0"
             - name: STRESS_VM
@@ -76,7 +76,12 @@ spec:
               value: "60"
             - name: FLASK_THREADS
               value: "128"
-
+            - name: TRACE_AGENT_HOST
+              value: "http://jaeger-collector.observability.svc.cluster.local"
+            - name: TRACE_AGENT_PORT
+              value: "4317"
+            - name: TRACE_SAMPLING_RATE
+              value: "1"
           command: [ "python3" ]
           args: [ "app.py" ]
           #command: [ "flask" ]

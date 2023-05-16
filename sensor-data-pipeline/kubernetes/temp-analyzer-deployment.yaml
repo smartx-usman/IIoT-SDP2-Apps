@@ -39,18 +39,18 @@ spec:
           value: "2"
         - name: MAX_THRESHOLD_VALUE
           value: "8"
-        - name: SAVE_DATA
+        - name: DATASTORE
           value: "mysql"
         - name: DATABASE_URL
           value: "mysql.sensor-pipeline.svc.cluster.local"
-        - name: JAEGER_AGENT_HOST
-          value: "jaeger-agent.observability.svc.cluster.local"
-        - name: JAEGER_AGENT_PORT
-          value: "6831"
+          #value: "cassandra-0.cassandra-headless.uc1.svc.cluster.local"
+        - name: TRACE_AGENT_HOST
+          #value: "http://otel-collector.observability.svc.cluster.local"
+          value: "http://jaeger-collector.observability.svc.cluster.local"
+        - name: TRACE_AGENT_PORT
+          value: "4317"
         - name: TRACE_SAMPLING_RATE
-          value: "10"
-        #- name: DATABASE_URL
-        #  value: "cassandra-0.cassandra-headless.uc1.svc.cluster.local"
+          value: "1"
         command: ["python3"]
         args: ["analyzer/temp-analyzer.py", "worker", "-l", "info"]
         imagePullPolicy: "Always"
