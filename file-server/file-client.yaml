@@ -27,3 +27,5 @@ spec:
           value: "True"
         - name: TOTAL_REQUESTS
           value: "3"
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-4
