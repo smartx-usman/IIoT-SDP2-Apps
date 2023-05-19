@@ -17,6 +17,7 @@ RUN pip3 install -r requirements.txt
 #RUN /usr/local/bin/python -m pip install --upgrade pip
 
 COPY app.py $Pathdir
+COPY multi_request.py $Pathdir
 
 
 WORKDIR $Pathdir
