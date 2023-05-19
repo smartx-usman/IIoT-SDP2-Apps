@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 import argparse as ap
+import logging
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
 
 def parse_arguments():
@@ -27,7 +30,7 @@ def get_url(url):
 arguments = parse_arguments()
 
 url = f'http://{arguments.address[0]}:30101/sorting?namespace={arguments.namespace[0]}&size={arguments.size[0]}&start=1&end=1000&kind={arguments.algorithm[0]}&store={arguments.database[0]}&database=flask'
-print(url)
+logging.info(url)
 
 # list_of_urls = ["http://x.x.x.x:30101/drop_database?namespace=uc1&database=flask"] * 1
 # list_of_urls = ["http://x.x.x.x:30101/create_database?namespace=uc1&database=flask"] * 1
@@ -39,7 +42,7 @@ with ThreadPoolExecutor(max_workers=n_threads) as pool:
     response_list = list(pool.map(get_url, list_of_urls))
 
 for response in response_list:
-    print(response)
+    logging.info(response)
 
 # How to run this tool
 # python3 multi_request.py -a 192.168.222.82 -d mysql -s 1000 -l merge -n sensor-pipeline -r 100
