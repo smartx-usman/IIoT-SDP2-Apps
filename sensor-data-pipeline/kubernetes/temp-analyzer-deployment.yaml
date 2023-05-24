@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: temp-analyzer-deployment
   labels:
@@ -45,8 +45,8 @@ spec:
           value: "mysql.sensor-pipeline.svc.cluster.local"
           #value: "cassandra-0.cassandra-headless.uc1.svc.cluster.local"
         - name: TRACE_AGENT_HOST
-          #value: "http://otel-collector.observability.svc.cluster.local"
-          value: "http://jaeger-collector.observability.svc.cluster.local"
+          value: "otel-opentelemetry-collector.observability.svc.cluster.local"
+          #value: "http://jaeger-collector.observability.svc.cluster.local"
         - name: TRACE_AGENT_PORT
           value: "4317"
         - name: TRACE_SAMPLING_RATE
@@ -59,7 +59,7 @@ spec:
           name: temperature-analyzer-volume
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: worker2
+        kubernetes.io/hostname: k8s-worker-4
       volumes:
       - name: temperature-analyzer-volume
         hostPath:
