@@ -1,12 +1,12 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: publisher-deployment-normal
   labels:
     environment: production
     app: mqtt-publisher-normal
 spec:
-  replicas: 5
+  replicas: 10
   selector:
     matchLabels:
       app: mqtt-publisher-normal
@@ -75,7 +75,7 @@ spec:
           name: data-volume
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: worker1
+        kubernetes.io/hostname: k8s-worker-1
       volumes:
       - name: data-volume
         hostPath:
