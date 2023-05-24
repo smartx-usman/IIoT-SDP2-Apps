@@ -35,10 +35,10 @@ spec:
       name: flask-port
 
 ---
-kind: Deployment
+kind: StatefulSet
 apiVersion: apps/v1
 metadata:
-  name: demo-flask-app-1
+  name: flask-app-1
   namespace: flask-server
   labels:
     app: flask-app-1
@@ -98,4 +98,4 @@ spec:
           imagePullPolicy: "Always"
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: worker1
+        kubernetes.io/hostname: k8s-worker-5

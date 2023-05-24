@@ -6,7 +6,7 @@ metadata:
 
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: file-server-deployment
   namespace: file-server
@@ -31,7 +31,7 @@ spec:
           mountPath: /files
 
       nodeSelector:
-        kubernetes.io/hostname: worker1
+        kubernetes.io/hostname: k8s-worker-1
       restartPolicy: Always
       volumes:
         - name: files-volume
