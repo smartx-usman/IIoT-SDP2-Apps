@@ -21,6 +21,7 @@ trap '{ set +x; } 2>/dev/null; echo -n "[$(date -Is)]  "; set -x' DEBUG
 while :
 do
   echo -e "$Yellow Starting new cycle of experiments...${NC}" >&3
+  truncate -s 0 setup.log
 
   echo -e "$BBlue Create namespaces...${NC}" >&3
     echo -e "$White Create ns sensor-pipeline..." >&3
