@@ -1,1 +1,2 @@
-CoAPthon3
+#CoAPthon3
+aiocoap==0.4.7
