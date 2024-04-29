@@ -1,7 +1,7 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
-  name: file-client-deployment
+  name: file-clients
   namespace: file-server
 spec:
   replicas: 1
@@ -27,3 +27,5 @@ spec:
           value: "True"
         - name: TOTAL_REQUESTS
           value: "3"
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-4

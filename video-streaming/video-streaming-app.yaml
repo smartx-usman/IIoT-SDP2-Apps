@@ -14,6 +14,8 @@ spec:
         app: akri-video-streaming-app
     spec:
       serviceAccountName: akri-video-streaming-app-sa
+      nodeSelector:
+        kubernetes.io/hostname: k8s-worker-7
       containers:
       - name: akri-video-streaming-app
         image: ghcr.io/project-akri/akri/video-streaming-app:latest-dev

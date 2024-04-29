@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: mqtt-to-kafka
   labels:
@@ -36,4 +36,4 @@ spec:
         imagePullPolicy: "Always"
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: worker2
+        kubernetes.io/hostname: k8s-worker-4
