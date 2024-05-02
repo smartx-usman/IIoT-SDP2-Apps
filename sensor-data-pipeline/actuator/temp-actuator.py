@@ -2,7 +2,7 @@ import logging
 import os
 import time
 
-from paho.mqtt import client as mqtt_client
+import paho.mqtt.client as mqtt_client
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -12,17 +12,19 @@ mqtt_topic = os.environ['MQTT_ACTUATOR_TOPIC']
 clientID = f'python-mqtt-actuator'
 
 
-def connect_mqtt() -> mqtt_client:
+def connect_mqtt():# -> mqtt_client:
     """Connect to MQTT Broker"""
 
-    def on_connect(client, userdata, flags, rc):
+    def on_connect(client, userdata, flags, rc, properties=None):
         if rc == 0:
             logging.info('message=Connected to MQTT Broker!')
         else:
             logging.critical(f'message=Failed to connect, return code {rc}.')
 
     try:
-        client = mqtt_client.Client(clientID)
+        client = mqtt_client.Client(client_id=clientID, callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2)
+        client.enable_logger()
+
         client.on_connect = on_connect
         client.connect(mqtt_broker, mqtt_port)
     except Exception as ex:
