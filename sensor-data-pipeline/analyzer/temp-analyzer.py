@@ -1,6 +1,6 @@
 """
 For processing synthetic sensor data.
-Version: 0.6.1
+Version: 0.7.0
 """
 
 import logging
@@ -87,8 +87,6 @@ with tracer.start_as_current_span("analyzer-setup") as parent_span_1:
             logging.info('message=Data is not going to be saved.')
     with tracer.start_as_current_span("type-setter") as child_level1_span5:
         """Create a class to parse messages from Kafka"""
-
-
         class Temperature(Record, serializer='json'):
             measurement_ts: str
             sensor: str
@@ -100,10 +98,10 @@ with tracer.start_as_current_span("analyzer-setup") as parent_span_1:
         action_generator = ActionGenerator(tracer=tracer, mqtt_client=mqtt_client)
     with tracer.start_as_current_span("stream-connector") as child_level1_span8:
         app = faust.App('temp-analyzer', broker=kafka_broker, value_serializer='json')
-        topic = app.topic(kafka_topic, value_type=Temperature)
+        topic = app.topic(kafka_topic, value_type=Temperature, replicas=1)
 
 
-@app.agent(topic, concurrency=3)
+@app.agent(topic, concurrency=1)
 async def process_data(messages):
     async for message in messages:
         with tracer.start_as_current_span("analyzer") as parent_span:

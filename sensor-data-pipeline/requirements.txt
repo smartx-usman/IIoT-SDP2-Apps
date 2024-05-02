@@ -1,6 +1,7 @@
 kafka-python
-tb-mqtt-client
-faust
+#tb-mqtt-client
+paho-mqtt
+faust-streaming
 typing-extensions
 numpy
 cassandra-driver

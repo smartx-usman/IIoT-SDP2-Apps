@@ -16,10 +16,12 @@ def memory_usage(input_file, axs_row, axs_col, title, x_label, y_label, y_lim_st
                  set_x_label):
     """Plot Memory Usage"""
     df = pd.read_csv(input_file)
-    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s')
+    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s', origin='unix')
+    #df['timestamp'] = df['timestamp'].apply(lambda x: pd.to_datetime(x, unit='s', errors='coerce') if x != 'timestamp' else x)
+    #df['value'] = pd.to_numeric(df['value'])
     df['value'] = (df['value'] / 1000000)  # / 16384) * 100
 
-    for node in ('worker1', 'worker2', 'observability1'):
+    for node in ('worker1', 'worker2', 'worker3'):
         df_app = df[df['host'] == node]
         df_final = df_app[["timestamp", "host", "value"]]
 
@@ -37,9 +39,7 @@ def cpu_usage(input_file, axs_row, axs_col, title, x_label, y_label, y_lim_start
     df['timestamp'] = pd.to_datetime(df['timestamp'], unit='s', origin='unix')
     df['value'] = (df['value'] / 1000000)
 
-    print(df.dtypes)
-
-    for node in ('worker1', 'worker2', 'observability1'):
+    for node in ('worker1', 'worker2', 'worker3'):
         df_app = df[df['host'] == node]
         df_final = df_app[["timestamp", "host", "value"]]
 
@@ -123,13 +123,13 @@ def main():
                  set_x_label=False)
 
     cpu_usage(input_file=input_file[3], axs_row=1, axs_col=0, title="1s",
-              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=50, legend_set=False,
+              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=80, legend_set=False,
               set_x_label=False)
     cpu_usage(input_file=input_file[4], axs_row=1, axs_col=1, title="5s",
-              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=50, legend_set=False,
+              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=80, legend_set=False,
               set_x_label=True)
     cpu_usage(input_file=input_file[5], axs_row=1, axs_col=2, title="10s",
-              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=50, legend_set=False,
+              x_label="Timestamp", y_label="CPU Usage (ms)", y_lim_start=0, y_lim_end=80, legend_set=False,
               set_x_label=False)
 
     fig.autofmt_xdate(rotation=50)

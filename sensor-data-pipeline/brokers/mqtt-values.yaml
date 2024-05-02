@@ -3,7 +3,7 @@ strategyType: Recreate
 
 image:
   repository: eclipse-mosquitto
-  tag: 1.6.12
+  tag: latest
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -110,6 +110,7 @@ config: |
   listener 1883
   listener 9090
   protocol websockets
+  allow_anonymous true
 
 ## Additional volumes.
 extraVolumes: []
