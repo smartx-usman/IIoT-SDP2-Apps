@@ -52,14 +52,14 @@ spec:
         - name: TRACE_SAMPLING_RATE
           value: "1"
         command: ["python3"]
-        args: ["analyzer/temp-analyzer.py", "worker", "-l", "info"]
+        args: ["analyzer/temp-analyzer.py", "worker", "-l", "info", "--without-web"]
         imagePullPolicy: "Always"
         volumeMounts:
         - mountPath: /analyzer
           name: temperature-analyzer-volume
       restartPolicy: Always
       nodeSelector:
-        kubernetes.io/hostname: k8s-worker-4
+        kubernetes.io/hostname: worker1
       volumes:
       - name: temperature-analyzer-volume
         hostPath:
