@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 For subscribing synthetic data from MQTT.
-Version: 0.2.1
+Version: 0.3.0
 """
 import json
 import logging
@@ -9,7 +9,7 @@ import os
 import random
 
 from kafka import KafkaProducer
-from paho.mqtt import client as mqtt_client
+import paho.mqtt.client as mqtt_client
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -24,17 +24,19 @@ kafka_key = "server-room"
 client_id = f'python-mqtt-{random.randint(0, 100)}'
 
 
-def connect_mqtt() -> mqtt_client:
+def connect_mqtt(): #-> mqtt_client:
     """Connect to MQTT broker"""
-    def on_connect(client, userdata, flags, rc):
+    def on_connect(client, userdata, flags, rc, properties=None):
         if rc == 0:
             logging.info('message=Connected to MQTT Broker!')
         else:
             logging.critical(f'message=Failed to connect, Code: {rc}')
 
     try:
-        client = mqtt_client.Client(client_id)
-        client.username_pw_set(thingsboard_device_token)
+        client = mqtt_client.Client(client_id=client_id, callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2)
+        client.enable_logger()
+
+        #client.username_pw_set(thingsboard_device_token)
         client.on_connect = on_connect
         client.connect(mqtt_broker, mqtt_port)
     except Exception as ex:
@@ -46,7 +48,7 @@ def connect_kafka_producer(kafka_broker):
     """Creates a Kafka producer"""
     _producer = None
     try:
-        _producer = KafkaProducer(bootstrap_servers=kafka_broker, api_version=(1, 0, 0))
+        _producer = KafkaProducer(bootstrap_servers=kafka_broker)
     except Exception as ex:
         logging.critical('message=Exception while connecting Kafka.', exc_info=True)
     return _producer
