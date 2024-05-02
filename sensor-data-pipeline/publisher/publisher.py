@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 For publishing synthetic data to MQTT.
-Version: 0.5.0
+Version: 0.6.0
 """
 
 import argparse as ap
@@ -11,7 +11,7 @@ import sys
 from threading import Thread as Process
 #from multiprocessing import Process
 
-from paho.mqtt import client as mqtt_client
+import paho.mqtt.client as mqtt_client
 
 from fixed_delay import DelayTypeFixed
 from random_delay import DelayTypeRandom
@@ -53,7 +53,6 @@ def parse_arguments():
 
 def connect_mqtt(client_id):
     """Connect to MQTT broker"""
-
     def on_connect(client, userdata, flags, rc):
         if rc == 0:
             logging.info("Connected to MQTT Broker!")
@@ -63,12 +62,15 @@ def connect_mqtt(client_id):
     # client = TBDeviceMqttClient(arguments.mqtt_broker[0], port=1883, username=arguments.thingsboard_token[0],
     #                            client_id=client_id)
     # client.connect()
-    client = mqtt_client.Client(client_id=client_id, clean_session=True, transport="tcp")
+    unacked_publish = set()
+    client = mqtt_client.Client(client_id=client_id, clean_session=True, transport="tcp", callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2)
+    client.enable_logger()
+    client.user_data_set(unacked_publish)
 
     if arguments.thingsboard_publisher[0]:
         client.username_pw_set(arguments.thingsboard_token[0])
 
-    client.connect_async(arguments.mqtt_broker[0], int(arguments.mqtt_broker_port[0]))
+    client.connect(arguments.mqtt_broker[0], int(arguments.mqtt_broker_port[0]))
     client.loop_start()
 
     return client
