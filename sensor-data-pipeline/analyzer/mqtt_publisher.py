@@ -1,6 +1,6 @@
 """
 For generating synthetic data.
-Version: 0.1.0
+Version: 0.2.0
 """
 
 import logging
@@ -8,7 +8,7 @@ import os
 import sys
 import time
 
-from paho.mqtt import client as mqtt_client
+import paho.mqtt.client as mqtt_client
 
 
 class MQTTPublish():
@@ -33,7 +33,13 @@ class MQTTPublish():
                 logging.critical(f'message=Failed to connect, code: {rc}.')
 
         try:
-            client = mqtt_client.Client(self.client_id)
+            unacked_publish = set()
+            client = mqtt_client.Client(client_id=self.client_id, clean_session=True, transport="tcp",
+                                        callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2)
+            client.enable_logger()
+            client.user_data_set(unacked_publish)
+
+            #client = mqtt_client.Client(self.client_id)
             client.on_connect = on_connect
             client.connect(self.broker, self.port)
         except Exception as ex:
