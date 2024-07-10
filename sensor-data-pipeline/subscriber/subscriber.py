@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """
 For subscribing synthetic data from MQTT.
-Version: 0.3.0
+Version: 0.3.1
 """
 import json
 import logging
 import os
 import random
 
-from kafka import KafkaProducer
 import paho.mqtt.client as mqtt_client
+from kafka import KafkaProducer
+from kafka.errors import TopicAlreadyExistsError
+from kafka.admin import KafkaAdminClient, NewTopic
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -19,12 +21,14 @@ mqtt_topic = os.environ['MQTT_TOPIC']
 thingsboard_device_token = os.environ['THINGSBOARD_DEVICE_TOKEN']
 kafka_broker = os.environ['KAFKA_BROKER']
 kafka_topic = os.environ['KAFKA_TOPIC']
+num_partitions = int(os.environ['KAFKA_NUM_PARTITIONS'])
+replication_factor = int(os.environ['KAFKA_REPLICATION_FACTOR'])
 kafka_key = "server-room"
 # generate client ID with pub prefix randomly
 client_id = f'python-mqtt-{random.randint(0, 100)}'
 
 
-def connect_mqtt(): #-> mqtt_client:
+def connect_mqtt():
     """Connect to MQTT broker"""
     def on_connect(client, userdata, flags, rc, properties=None):
         if rc == 0:
@@ -36,7 +40,7 @@ def connect_mqtt(): #-> mqtt_client:
         client = mqtt_client.Client(client_id=client_id, callback_api_version=mqtt_client.CallbackAPIVersion.VERSION2)
         client.enable_logger()
 
-        #client.username_pw_set(thingsboard_device_token)
+        # client.username_pw_set(thingsboard_device_token)
         client.on_connect = on_connect
         client.connect(mqtt_broker, mqtt_port)
     except Exception as ex:
@@ -52,6 +56,32 @@ def connect_kafka_producer(kafka_broker):
     except Exception as ex:
         logging.critical('message=Exception while connecting Kafka.', exc_info=True)
     return _producer
+
+
+def create_kafka_topic():
+    # Create a Kafka admin client
+    admin_client = KafkaAdminClient(
+        bootstrap_servers=kafka_broker,
+        client_id='python-kafka-client'
+    )
+
+    # Define the topic
+    topic = NewTopic(
+        name=kafka_topic,
+        num_partitions=num_partitions,
+        replication_factor=replication_factor
+    )
+
+    # Check if the topic already exists
+    existing_topics = admin_client.list_topics()
+    if kafka_topic in existing_topics:
+        logging.info(f'Topic {kafka_topic} already exists.')
+    else:
+        try:
+            admin_client.create_topics(new_topics=[topic], validate_only=False)
+            logging.info(f'Topic {kafka_topic} created successfully.')
+        except TopicAlreadyExistsError:
+            logging.info(f'Topic {kafka_topic} already exists.')
 
 
 def kafka_publish_message(producer_instance, message):
@@ -88,6 +118,7 @@ def run():
     """Run the subscriber"""
     mqtt_subscriber = connect_mqtt()
     kafka_producer = connect_kafka_producer(kafka_broker)
+    create_kafka_topic()
     mqtt_subscribe_message(mqtt_subscriber, kafka_producer)
     mqtt_subscriber.loop_forever()
 
