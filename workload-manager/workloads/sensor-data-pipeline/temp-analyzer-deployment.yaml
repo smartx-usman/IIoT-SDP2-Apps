@@ -20,7 +20,7 @@ spec:
         image: usman476/mqtt-kafka-faust:latest
         env:
         - name: MQTT_BROKER
-          value: "mqtt-mosquitto.sensor-pipeline.svc.cluster.local"
+          value: "mqtt-mosquitto.workloads.svc.cluster.local"
         - name: MQTT_BROKER_PORT
           value: "1883"
         - name: MQTT_ACTUATOR_TOPIC
@@ -28,7 +28,7 @@ spec:
         - name: THINGSBOARD_DEVICE_TOKEN
           value: "3CvCfOphVy9DnnpqVTzT"
         - name: KAFKA_BROKER
-          value: "bitnami-kafka-headless.sensor-pipeline.svc.cluster.local:9092"
+          value: "kafka.workloads.svc.cluster.local:9092"
         - name: KAFKA_TOPIC
           value: "temperature-readings"
         - name: VALID_VALUE_RANGE_START
@@ -42,7 +42,7 @@ spec:
         - name: DATASTORE
           value: "mysql"
         - name: DATABASE_URL
-          value: "mysql.sensor-pipeline.svc.cluster.local"
+          value: "mysql.workloads.svc.cluster.local"
           #value: "cassandra-0.cassandra-headless.uc1.svc.cluster.local"
         - name: TRACE_AGENT_HOST
           value: "otel-opentelemetry-collector.observability.svc.cluster.local"
@@ -52,14 +52,15 @@ spec:
         - name: TRACE_SAMPLING_RATE
           value: "1"
         command: ["python3"]
-        args: ["analyzer/temp-analyzer.py", "worker", "-l", "info", "--without-web"]
+        #args: ["-m", "bytewax.run", "analyzer/temp-analyzer"]
+        args: ["analyzer/temp-analyzer.py"]
         imagePullPolicy: "Always"
         volumeMounts:
         - mountPath: /analyzer
           name: temperature-analyzer-volume
       restartPolicy: Always
-      nodeSelector:
-        kubernetes.io/hostname: worker1
+      #nodeSelector:
+      #  kubernetes.io/hostname: worker1
       volumes:
       - name: temperature-analyzer-volume
         hostPath:

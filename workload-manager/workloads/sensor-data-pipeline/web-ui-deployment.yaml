@@ -22,7 +22,7 @@ spec:
           - containerPort: 5000
         env:
         - name: MYSQL_URL
-          value: "mysql://root:root@mysql.sensor-pipeline.svc.cluster.local/iiot"
+          value: "mysql://root:root@mysql.workloads.svc.cluster.local/iiot"
         - name: REFRESH_INTERVAL
           value: "60"  # Set your desired refresh interval
         - name: DATA_RANGE
@@ -38,8 +38,8 @@ spec:
             cpu: 50m
             memory: 50Mi
       restartPolicy: Always
-      nodeSelector:
-        kubernetes.io/hostname: worker1
+      #nodeSelector:
+      #  kubernetes.io/hostname: worker1
 
 ---
 apiVersion: v1

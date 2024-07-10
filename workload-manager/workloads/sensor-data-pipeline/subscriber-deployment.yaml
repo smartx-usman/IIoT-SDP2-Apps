@@ -20,7 +20,7 @@ spec:
         image: usman476/mqtt-kafka-faust:latest
         env:
         - name: MQTT_BROKER
-          value: "mqtt-mosquitto.sensor-pipeline.svc.cluster.local"
+          value: "mqtt-mosquitto.workloads.svc.cluster.local"
         - name: MQTT_BROKER_PORT
           value: "1883"
         - name: MQTT_TOPIC
@@ -28,12 +28,16 @@ spec:
         - name: THINGSBOARD_DEVICE_TOKEN
           value: "3CvCfOphVy9DnnpqVTzT"
         - name: KAFKA_BROKER
-          value: "bitnami-kafka-headless.sensor-pipeline.svc.cluster.local:9092"
+          value: "kafka-broker-headless.workloads.svc.cluster.local:9092"
         - name: KAFKA_TOPIC
           value: "temperature-readings"
+        - name: KAFKA_NUM_PARTITIONS
+          value: "1"
+        - name: KAFKA_REPLICATION_FACTOR
+          value: "1"
         command: ["python3"]
         args: ["subscriber/subscriber.py"]
         imagePullPolicy: "Always"
       restartPolicy: Always
-      nodeSelector:
-        kubernetes.io/hostname: k8s-worker-4
+      #nodeSelector:
+      #  kubernetes.io/hostname: k8s-worker-4

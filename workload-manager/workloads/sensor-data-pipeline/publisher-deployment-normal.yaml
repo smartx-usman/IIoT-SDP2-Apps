@@ -6,7 +6,7 @@ metadata:
     environment: production
     app: mqtt-publisher-normal
 spec:
-  replicas: 10
+  replicas: 1
   selector:
     matchLabels:
       app: mqtt-publisher-normal
@@ -45,7 +45,7 @@ spec:
         args: ["publisher/publisher.py",
                "--value_type", "normal",
                "--data_type", "both",
-               "--mqtt_broker", "mqtt-mosquitto.sensor-pipeline.svc.cluster.local",
+               "--mqtt_broker", "mqtt-mosquitto.workloads.svc.cluster.local",
                "--mqtt_broker_port", "1883",
                "--thingsboard_token", "sensor-normal-token",
                "--mqtt_topic", "mqtt/temperature/data",
@@ -74,8 +74,8 @@ spec:
         - mountPath: /data
           name: data-volume
       restartPolicy: Always
-      nodeSelector:
-        kubernetes.io/hostname: k8s-worker-1
+      #nodeSelector:
+      #  kubernetes.io/hostname: k8s-worker-1
       volumes:
       - name: data-volume
         hostPath:
