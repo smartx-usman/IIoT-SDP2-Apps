@@ -62,7 +62,7 @@ kubectl apply -f -n sensor-pipeline mqtt-stresser/mqtt-stresser-pod.yaml
 3. Add Kafka helm repo and deploy it:
 ```shell
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm upgrade --install bitnami -n sensor-pipeline -f brokers/kafka-values.yaml bitnami/kafka
+helm upgrade --install kafka -n sensor-pipeline -f brokers/kafka-values.yaml bitnami/kafka
 ```
 
 4. Deploy Cassandra/MySQL helm repo:
@@ -147,8 +147,5 @@ kubectl apply -n sensor-pipeline -f kubernetes/temp-actuator-deployment.yaml
 |:---------------------------|:-----------------------------------------------------------|:------------------------------------------------------------------|
 | `MQTT_ACTUATOR_TOPIC`      | MQTT topic for sending actions from Analyzer.              | mqtt/temperature/actions                                          |
 
-### Reading resources about MQTT and MQTT Stresser
-
-[MQTT-Stresser](https://github.com/flaviostutz/mqtt-stresser)
-
-[MQTT](https://github.com/t3n/helm-charts/tree/master/mosquitto)
+## License
+This project is licensed under the MIT License - see the [LICENSE](../../../LICENSE) file for details.
