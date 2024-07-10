@@ -1,0 +1,81 @@
+<!-- templates/index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Data Timeline Graphs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        function reloadPage() {
+            location.reload();
+        }
+        setTimeout(reloadPage, {{ refresh_interval * 1000 }});
+    </script>
+</head>
+<body>
+    <div class="container-fluid bg-dark text-light py-3">
+        <h1 class="text-center mb-0">Sensor Temporal Data Visualization Dashboard</h1>
+    </div>
+
+    <div class="container mt-3">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="config-section">
+                    <h2 class="text-center">Configurations</h2>
+                    <div class="info-panel">
+                        <p><strong>Page Refresh Interval:</strong> {{ refresh_interval }} seconds</p>
+                        <p><strong>Data Time Range:</strong> {{ data_range }}</p>
+                        <p><strong>Database Source:</strong> {{ database_source }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="graph-section">
+                    <h2 class="text-center">Data Filter</h2>
+                    <form action="/" method="post">
+                        <div class="form-group row">
+                            <label for="sensor" class="col-sm-3 col-form-label">Select Sensor:</label>
+                            <div class="col-sm-7">
+                                <select class="form-control" name="sensor" id="sensor">
+                                    {% for sensor_id in sensor_ids %}
+                                        <option value="{{ sensor_id }}" {% if sensor_id == selected_sensor %} selected {% endif %}>{{ sensor_id }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-sm-10 offset-sm-2">
+                                <button type="submit" class="btn btn-primary">Submit</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="graph-section">
+                    <h2 class="text-center">Graphs</h2>
+                    <div class="graph-container">
+                        <div class="graph">
+                            <div id="temperature-graph"></div>
+                        </div>
+                        <div class="graph">
+                            <div id="humidity-graph"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        var temperature_graph_data = {{ temperature_graph | safe }};
+        var humidity_graph_data = {{ humidity_graph | safe }};
+
+        Plotly.newPlot('temperature-graph', temperature_graph_data.data, temperature_graph_data.layout);
+        Plotly.newPlot('humidity-graph', humidity_graph_data.data, humidity_graph_data.layout);
+    </script>
+</body>
+</html>
