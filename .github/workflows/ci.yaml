@@ -20,8 +20,8 @@ jobs:
         name: Build the Docker image
         with:
           image: usman476/mqtt-kafka-faust
-          dockerfile: sensor-data-pipeline/Dockerfile
-          directory: sensor-data-pipeline
+          dockerfile: src/iot-sensor-pipeline/Dockerfile
+          directory: iot-sensor-pipeline
           tags: latest
           registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
