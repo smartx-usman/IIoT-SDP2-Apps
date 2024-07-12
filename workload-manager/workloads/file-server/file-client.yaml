@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: file-clients
-  namespace: file-server
+#  namespace: file-server
 spec:
   replicas: 1
   selector:
@@ -20,12 +20,12 @@ spec:
         args: [ "file-client.py" ]
         env:
         - name: FILE_SERVER_URL
-          value: "fs-service.file-server.svc.cluster.local"
+          value: "fs-service.workloads.svc.cluster.local"
         - name: FILE_SERVER_PORT
           value: "80"
         - name: SEASONALITY
           value: "True"
         - name: TOTAL_REQUESTS
           value: "3"
-      nodeSelector:
-        kubernetes.io/hostname: k8s-worker-4
+      #nodeSelector:
+      #  kubernetes.io/hostname: k8s-worker-4
