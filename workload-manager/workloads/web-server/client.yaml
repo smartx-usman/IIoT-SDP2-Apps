@@ -1,14 +1,14 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: flask-server
+#apiVersion: v1
+#kind: Namespace
+#metadata:
+#  name: flask-server
 
 ---
 kind: StatefulSet
 apiVersion: apps/v1
 metadata:
   name: flask-client
-  namespace: flask-server
+#  namespace: flask-server
   labels:
     app: flask-client
 spec:
@@ -25,7 +25,7 @@ spec:
         - name: flask-client-container
           image: usman476/demo-flask-app:latest
           command: [ "python3" ]
-          args: [ "multi_request.py",  "-a", "192.168.222.187",  "-d", "mysql",  "-n", "sensor-pipeline",  "-s", "100",  "-l", "merge",  "-r", "100"]
+          args: [ "multi_request.py",  "-a", "192.168.222.187",  "-d", "mysql",  "-n", "workloads",  "-s", "100",  "-l", "merge",  "-r", "100"]
           resources:
             requests:
               memory: "100Mi"
@@ -35,5 +35,5 @@ spec:
               cpu: "200m"
           imagePullPolicy: "Always"
       restartPolicy: Always
-      nodeSelector:
-        kubernetes.io/hostname: k8s-worker-3
+      #nodeSelector:
+      #  kubernetes.io/hostname: k8s-worker-3

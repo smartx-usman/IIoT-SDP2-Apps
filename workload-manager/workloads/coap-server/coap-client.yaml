@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: coap-clients
-  namespace: coap-server
+#  namespace: coap-server
 spec:
   replicas: 1
   selector:
@@ -18,7 +18,7 @@ spec:
         image: usman476/coap:latest
         env:
         - name: COAP_SERVER_URI
-          value: "coap-svc.coap-server.svc.cluster.local"
+          value: "coap-svc.workloads.svc.cluster.local"
         - name: COAP_CLIENTS
           value: "2"
         command: [ "python3" ]
