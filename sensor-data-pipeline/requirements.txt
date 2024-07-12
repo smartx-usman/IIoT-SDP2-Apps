@@ -1,7 +1,9 @@
 kafka-python
 #tb-mqtt-client
 paho-mqtt
-faust-streaming
+#bytewax==0.20.1
+confluent-kafka==2.4.0
+#faust-streaming
 typing-extensions
 numpy
 cassandra-driver
