@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workload Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</head>
+<body>
+<header>
+    <h1>Workload Deployment and Cluster Stress Testing Portal</h1>
+</header>
+<div class="main-container">
+    <div id="left-panel" class="left-panel">
+        <div class="left-title"><h3>Deployment Portal</h3></div>
+        <p>Select any of the given options:</p>
+        <div class="menu-item" onclick="showSection('addWorkloadType')">Add New Workload Type</div>
+        <div class="menu-item" onclick="showSection('createWorkload')">Deploy Workload</div>
+        <div class="menu-item" onclick="showSection('deployMonitoring')">Deploy Monitoring System</div>
+    </div>
+    <div id="right-panel" class="right-panel">
+        <!--<div class="panel-title right-title">Dashboard</div>
+        <p>Select an option from the menu to get started.</p>-->
+        <div id="alert-success" class="alert alert-success" style="display: none;"></div>
+        <div id="alert-error" class="alert alert-error" style="display: none;"></div>
+
+        <div id="addWorkloadType" class="section" style="display: none;">
+            <div class="upper-inner-div">
+                <h3 style="color: white">Create New Workload Type</h3>
+            </div>
+            <div class="lower-inner-div">
+                <form id="workload-type-form">
+                    <div class="form-group">
+                        <label for="workloadKey">Workload Key:</label>
+                        <input type="text" id="workloadKey" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="workloadDisplayName">Workload Display Name:</label>
+                        <input type="text" id="workloadDisplayName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="workloadEnabled">Workload Enabled:</label>
+                        <select id="workloadEnabled" class="form-control" required>
+                            <option value="true" selected>True</option>
+                            <option value="false">False</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="workloadYaml">Upload YAML File:</label>
+                        <input type="file" id="workloadYaml" name="workload_yaml" class="form-control-file" accept=".yaml,.yml" multiple required>
+                    </div>
+                    <button type="submit" class="btn btn-primary" value="Submit">Save Workload Type</button>
+                </form>
+            </div>
+        </div>
+        <div id="createWorkload" class="section">
+            <div class="upper-inner-div">
+                <h3 style="color: white">Deploy Workload(s) in the Kubernetes Cluster</h3>
+            </div>
+            <div class="lower-inner-div">
+                <form id="workload-form">
+                    <!--<form id="workload-form" method="post" action="/submit">-->
+                    <div id="workloads">
+                        <div>
+                            <div class="form-group">
+                                <label for="workload_type">Workload Type:</label>
+                                <select name="workload_type[]" class="form-control workload_type" required></select>
+                            </div>
+                            <div class="form-group">
+                                <label for="duration">Run Duration (seconds):</label>
+                                <input type="number" name="duration[]" class="form-control duration" min="1" value="120" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="replicas">No. of Replicas:</label>
+                                <input type="number" name="replicas[]" class="form-control replicas" min="1" value="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="node_name">Cluster Node for Deployment:</label>
+                                <select name="node_name[]" class="form-control node_name" required>
+                                    <option value="any">Any</option>
+                                </select>
+                            </div>
+                            <button type="button" class="btn btn-danger" onclick="removeWorkload(this)">Remove</button>
+                            <hr>
+                        </div>
+                    </div>
+                    <button type="button" id="addWorkloadBtn" class="btn btn-primary">Add Workload</button>
+                    <br><br>
+                    <input type="submit" value="Submit" class="btn btn-success">
+                </form>
+            </div>
+        </div>
+        <div id="deployMonitoring" class="section" style="display: none;">
+            <div class="upper-inner-div">
+                <h3 style="color: white">Deploy Monitoring System in the Cluster</h3>
+            </div>
+            <div class="lower-inner-div">
+                <br>
+                <p>A monitoring system with the following tools will be deployed/removed:</p>
+                <ol type="i">
+                    <li>Telegraf - Monitoring Agent</li>
+                    <li>Prometheus - Monitoring Backend Storage</li>
+                    <li>Grafana - Metrics Visualization</li>
+                </ol>
+                <form id="monitoring-form">
+                    <!--<button class="btn btn-primary">Deploy</button>-->
+                    <p>Select an option:</p>
+                    <label for="deploy">
+                        <input type="radio" id="deploy" name="options" value="deploy" class="btn btn-primary" checked>
+                        Deploy Monitoring System
+                    </label>
+
+                    <label for="delete">
+                        <input type="radio" id="delete" name="options" value="delete" class="btn btn-primary">
+                        Delete Monitoring System
+                    </label>
+                    <br><br>
+                    <input type="submit" value="Submit" class="btn btn-success">
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
