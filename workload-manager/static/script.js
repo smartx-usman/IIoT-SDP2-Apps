@@ -33,6 +33,23 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => console.error('Error fetching workload types:', error));
 
+    // User Registration Form submission handler
+    document.getElementById('user-registration-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        fetch('/register', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            showAlert(data.status, data.message);
+        })
+        .catch(error => {
+            showAlert('error', 'An error occurred while registering new user.');
+        });
+    });
+
     // Monitoring system deployment Form submission handler
     document.getElementById('monitoring-form').addEventListener('submit', function(event) {
         event.preventDefault();
@@ -184,16 +201,64 @@ function removeWorkload(button) {
     button.closest('div').remove();
 }
 
+// Fetch deployed workloads via an AJAX call
+function fetchDeployedWorkloads() {
+    fetch('/deployed_workloads')
+        .then(response => response.json())
+        .then(data => {
+            var workloadList = document.getElementById('workload-list');
+            workloadList.innerHTML = "";  // Clear previous contents
+
+            // If there are workloads, display them
+            if (data.length > 0) {
+                var table = document.createElement('table');
+                var header = table.createTHead();
+                var headerRow = header.insertRow(0);
+                headerRow.insertCell(0).innerHTML = "Workload Name";
+                headerRow.insertCell(1).innerHTML = "Duration";
+                headerRow.insertCell(2).innerHTML = "Replicas";
+                headerRow.insertCell(3).innerHTML = "Node";
+                headerRow.insertCell(4).innerHTML = "Status";
+                headerRow.insertCell(5).innerHTML = "Deployed By";
+                headerRow.insertCell(6).innerHTML = "Created At";
+
+                var body = table.createTBody();
+                data.forEach(workload => {
+                    var row = body.insertRow();
+                    row.insertCell(0).innerHTML = workload.workload_name;
+                    row.insertCell(1).innerHTML = workload.duration;
+                    row.insertCell(2).innerHTML = workload.replicas;
+                    row.insertCell(3).innerHTML = workload.node_name;
+                    row.insertCell(4).innerHTML = workload.status;
+                    row.insertCell(5).innerHTML = workload.username;
+                    row.insertCell(6).innerHTML = workload.created_at;
+                });
+
+                workloadList.appendChild(table);
+            } else {
+                workloadList.innerHTML = "<p>No workloads deployed yet.</p>";
+            }
+        })
+        .catch(error => {
+            console.error("Error fetching deployed workloads:", error);
+        });
+}
+
 function showSection(sectionId) {
     document.querySelectorAll('.section').forEach(section => {
         section.style.display = 'none';
     });
+
     const section = document.getElementById(sectionId);
     if (section) {
+        if (sectionId === 'listWorkload') {
+            fetchDeployedWorkloads();
+        }
         section.style.display = 'block';
     } else {
         console.error(`No section found with id: ${sectionId}`);
     }
+
 }
 
 function showAlert(type, message) {

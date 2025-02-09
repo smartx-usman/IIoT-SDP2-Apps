@@ -8,10 +8,13 @@ body {
 }
 
 header {
-    background-color: #f2f2f2; /* Main orange color */
-    color: black;
+    /*background-color: #f2f2f2; *//* Main orange color *//*
+    color: black;*/
+    background-color: #404040;
+    color: white;
     padding: 10px 0;
     text-align: center;
+    font-size: 24px;
     border-bottom: 2px solid #8c8c8c;
     height: 5%;
     flex-shrink: 0;
@@ -25,7 +28,7 @@ header {
 
 #left-panel {
     width: 20%;
-    background-color: #cccccc;
+    background-color: #e6e6e6;
     padding: 20px;
     /*border-right: 1px solid #dee2e6;*/
     border-right: 2px solid #b3b3b3;
@@ -100,15 +103,74 @@ header {
 .right-title {
     color: white;
 }
+
 .upper-inner-div {
     height: 10%;
-    background-color: #4d4d4d;
+    color: white;
+    background-color: #85a3e0;
+    border: 2px solid #adc2eb;
+    text-align: center;
+    /*background-color: #4d4d4d;*/
     padding: 8px;
 }
+
 .lower-inner-div {
     height: 90%;
     padding: 8px;
+    border: 2px solid #adc2eb;
     /*display: flex;
     align-items: center;
     justify-content: center;*/
+}
+
+.login-container, .register-container {
+    width: 300px;
+    margin: 100px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #fff;
+}
+
+.login-container h2, .register-container h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+table {
+    width: 80%;
+    margin: 50px auto;
+    border-collapse: collapse;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    background-color: #fff;
+}
+
+th, td {
+    padding: 8px 10px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+th {
+    background-color: #4CAF50;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 16px;
+}
+
+tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+tr:hover {
+    background-color: #f1c40f;
+    color: white;
+}
+
+caption {
+    font-size: 24px;
+    margin: 15px;
+    font-weight: bold;
+    color: #333;
 }

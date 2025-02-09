@@ -4,14 +4,26 @@ import os
 import subprocess
 import threading
 import time
+from datetime import datetime
+
+import yaml
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_sqlalchemy import SQLAlchemy
+from kubernetes.client.rest import ApiException
+from requests import session
+from werkzeug.security import generate_password_hash, check_password_hash
 
 import kubernetes
-import yaml
-from flask import Flask, render_template, request, jsonify
-from kubernetes.client.rest import ApiException
 from kubernetes import utils
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'admin_secret_key'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
 WORKLOADS_NAMESPACE = os.environ['WORKLOADS_NAMESPACE']
 UPLOAD_FOLDER = os.environ['UPLOAD_FOLDER']
@@ -37,6 +49,98 @@ default_workload_types = [
 ]
 
 
+# User model
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+    role = db.Column(db.String(10), nullable=False)  # 'admin' or 'user'
+
+
+class DeployedWorkload(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.Integer, db.ForeignKey('user.username'), nullable=False)
+    workload_name = db.Column(db.String(255), nullable=False)
+    duration = db.Column(db.Integer, nullable=False)
+    replicas = db.Column(db.Integer, nullable=False)
+    node_name = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(50), nullable=False, default='pending')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    #updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    #yaml_content = db.Column(db.Text, nullable=True)
+    user = db.relationship('User')
+
+
+# Create database
+with app.app_context():
+    db.create_all()
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    # return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
+
+
+# Function to create a default admin user
+def create_default_admin():
+    if not User.query.filter_by(role='admin').first():
+        hashed_password = generate_password_hash('admin_password', method='pbkdf2:sha256')
+        new_admin = User(username='admin', password=hashed_password, role='admin')
+        db.session.add(new_admin)
+        db.session.commit()
+        logging.info(f'Default admin user created. Username: admin, Password: admin_password')
+
+
+# Call function to create default admin user at startup
+with app.app_context():
+    create_default_admin()
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        user = User.query.filter_by(username=username).first()
+        if user and check_password_hash(user.password, password):
+            logging.info(f'Login successful. Username: {username}')
+            login_user(user)
+            return redirect(url_for('index'))
+        else:
+            logging.warning(f'Login failed. Username: {username}')
+            flash('Login failed. Check your username and password.')
+    return render_template('login.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('login'))
+
+
+@app.route('/register', methods=['GET', 'POST'])
+@login_required
+def register():
+    try:
+        if current_user.role != 'admin':
+            return redirect(url_for('index'))
+
+        if request.method == 'POST':
+            username = request.form.get('username')
+            password = request.form.get('password')
+            role = request.form.get('role')
+            hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
+            new_user = User(username=username, password=hashed_password, role=role)
+            db.session.add(new_user)
+            db.session.commit()
+            logging.info(f'New user registered successfully. Username: {username}, Role: {role}')
+            return jsonify({"status": "success", "message": "New user registered successfully."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)})
+
+
 def initialize_workload_types():
     if not os.path.exists(WORKLOAD_TYPES_FILE):
         with open(WORKLOAD_TYPES_FILE, 'w') as file:
@@ -53,11 +157,13 @@ def get_cluster_nodes():
 
 
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 
 
 @app.route('/nodes', methods=['GET'])
+@login_required
 def get_nodes():
     load_kube_config()
     v1 = kubernetes.client.CoreV1Api()
@@ -73,6 +179,7 @@ def get_nodes():
 
 
 @app.route('/workload_types', methods=['GET'])
+@login_required
 def get_workload_types():
     if os.path.exists(WORKLOAD_TYPES_FILE):
         with open(WORKLOAD_TYPES_FILE, 'r') as file:
@@ -84,15 +191,12 @@ def get_workload_types():
 
 
 @app.route('/add_workload_type', methods=['POST'])
+@login_required
 def add_workload_type():
     try:
-        # new_workload_type = request.json
-
-        # workload_yaml = request.files.get('workload_yaml')
         workload_key = request.form.get('workload_key')
         workload_display_name = request.form.get('workload_display_name')
         workload_enabled = request.form.get('workload_enabled')
-        # workload_yaml = request.files.get('workload_yaml')
         workload_yaml = request.files.getlist('files')
 
         if not workload_key or not workload_display_name or not workload_yaml:
@@ -101,7 +205,6 @@ def add_workload_type():
         if not os.path.exists(f'{UPLOAD_FOLDER}/{workload_key}'):
             os.makedirs(f'{UPLOAD_FOLDER}/{workload_key}')
 
-        # workload_yaml.save(os.path.join(f'{UPLOAD_FOLDER}/{workload_key}', workload_yaml.filename))
         for file in workload_yaml:
             if file and file.filename.endswith('.yaml'):
                 file_path = os.path.join(f'{UPLOAD_FOLDER}/{workload_key}', file.filename)
@@ -147,6 +250,40 @@ def save_workload_types_to_file(workload_types):
         logging.error(f"An error occurred in save_workload_types_to_file: {e}")
 
 
+# Viewing previously deployed workloads
+@app.route('/deployed_workloads')
+@login_required
+def deployed_workloads():
+    if not current_user.is_authenticated:
+        logging.warning('User is not authenticated.')
+        return redirect(url_for('login'))
+
+    try:
+        if current_user.role == 'admin':
+            workloads = DeployedWorkload.query.all()
+        else:
+            workloads = DeployedWorkload.query.filter_by(username=current_user.username).all()
+
+        logging.info(f"Workloads fetched successfully for user '{current_user.username}'.")
+
+        workload_data = []
+        for workload in workloads:
+            workload_data.append({
+                'workload_name': workload.workload_name,
+                'duration': workload.duration,
+                'replicas': workload.replicas,
+                'node_name': workload.node_name,
+                'status': workload.status,
+                'username': workload.user.username,
+                'created_at': workload.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+
+        return workload_data
+    except Exception as e:
+        logging.error(f"Error fetching workloads: {str(e)}")
+        return jsonify({'error': 'Failed to fetch workloads for user ' + current_user.username}), 500
+
+
 def load_kube_config():
     try:
         kubernetes.config.load_kube_config(config_file=KUBECONFIG_PATH)  # This looks for ~/.kube/config by default
@@ -156,6 +293,7 @@ def load_kube_config():
 
 
 @app.route('/submit', methods=['POST'])
+@login_required
 def submit():
     try:
         workloads = []
@@ -174,117 +312,96 @@ def submit():
                 'node_name': node_names[i]
             })
 
-        threading.Thread(target=handle_workloads, args=(workloads, chained)).start()
+        threading.Thread(target=handle_workloads, args=(workloads, chained, current_user.username)).start()
 
         return jsonify({"status": "success", "message": "Workload submitted successfully."})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
 
-def handle_workloads(workloads, chained=False):
+def handle_workloads(workloads, chained=False, username=None):
     for workload in workloads:
-        threading.Thread(target=create_and_delete_resources, args=(workload, chained)).start()
+        threading.Thread(target=create_and_delete_resources, args=(workload, chained, username)).start()
 
 
-def create_and_delete_resources(workload, chained):
-    load_kube_config()
-    api_instance_apps = kubernetes.client.AppsV1Api()
-    api_instance_batch = kubernetes.client.BatchV1Api()
-    api_instance_core = kubernetes.client.CoreV1Api()
+def create_and_delete_resources(workload, chained, username):
+    with app.app_context():  # Manually push the application context
+        load_kube_config()
+        api_instance_apps = kubernetes.client.AppsV1Api()
+        api_instance_batch = kubernetes.client.BatchV1Api()
+        api_instance_core = kubernetes.client.CoreV1Api()
 
-    create_namespace(api_instance_core, WORKLOADS_NAMESPACE)
+        create_namespace(api_instance_core, WORKLOADS_NAMESPACE)
 
-    deployment_dir = get_deployment_files_path(workload['type'])
-    resources = []
+        deployment_dir = get_deployment_files_path(workload['type'])
+        resources = []
 
-    if workload['type'] == 'iot-sensor-pipeline':
-        helm_mqtt_repo = ['helm', 'repo', 'add', 't3n', 'https://storage.googleapis.com/t3n-helm-charts']
-        helm_bitnami_repo = ['helm', 'repo', 'add', 'bitnami', 'https://charts.bitnami.com/bitnami']
-        subprocess.run(helm_mqtt_repo, check=True)
-        subprocess.run(helm_bitnami_repo, check=True)
+        if workload['type'] == 'iot-sensor-pipeline':
+            commands = ['helm repo add t3n https://storage.googleapis.com/t3n-helm-charts',
+                        'helm repo add bitnami https://charts.bitnami.com/bitnami',
+                        f'helm -n {WORKLOADS_NAMESPACE} upgrade --install mqtt --kubeconfig {KUBECONFIG_PATH} -f {deployment_dir}/brokers/mqtt-values.yaml t3n/mosquitto',
+                        f'helm -n {WORKLOADS_NAMESPACE} upgrade --install kafka --kubeconfig {KUBECONFIG_PATH} -f {deployment_dir}/brokers/kafka-values.yaml bitnami/kafka',
+                        f'helm -n {WORKLOADS_NAMESPACE} upgrade --install mysql --kubeconfig {KUBECONFIG_PATH} -f {deployment_dir}/datastores/mysql-values.yaml bitnami/mysql']
 
-        helm_mqtt_command = ['helm', '-n', WORKLOADS_NAMESPACE, 'upgrade', '--install', 'mqtt',
-                             '--kubeconfig', f'{KUBECONFIG_PATH}',
-                             '-f', f'{deployment_dir}/brokers/mqtt-values.yaml', 't3n/mosquitto']
-        helm_kafka_command = ['helm', '-n', WORKLOADS_NAMESPACE, 'upgrade', '--install', 'kafka',
-                              '--kubeconfig', f'{KUBECONFIG_PATH}',
-                              '-f', f'{deployment_dir}/brokers/kafka-values.yaml', 'bitnami/kafka']
-        helm_mysql_command = ['helm', '-n', WORKLOADS_NAMESPACE, 'upgrade', '--install', 'mysql',
-                              '--kubeconfig', f'{KUBECONFIG_PATH}',
-                              '-f', f'{deployment_dir}/datastores/mysql-values.yaml', 'bitnami/mysql']
+            for command in commands:
+                process_helm(command)
 
-        subprocess.run(helm_mqtt_command, check=True)
-        subprocess.run(helm_kafka_command, check=True)
-        subprocess.run(helm_mysql_command, check=True)
-        time.sleep(30)
+            time.sleep(30)
 
-    for filename in os.listdir(deployment_dir):
-        if filename.endswith('.yaml'):
-            with open(os.path.join(deployment_dir, filename), 'r') as file:
-                documents = yaml.safe_load_all(file)
-                for doc in documents:
-                    resources.append(doc)
+        for filename in os.listdir(deployment_dir):
+            if filename.endswith('.yaml'):
+                with open(os.path.join(deployment_dir, filename), 'r') as file:
+                    documents = yaml.safe_load_all(file)
+                    for doc in documents:
+                        resources.append(doc)
 
-                    try:
-                        """ Set nodeSelector for Deployment, StatefulSet, and Job resources """
-                        if doc['kind'] in ['Deployment', 'StatefulSet', 'Job'] and workload['node_name'] != 'any':
-                            doc['spec']['template']['spec']['nodeSelector'] = {
-                                'kubernetes.io/hostname': workload['node_name']}
+                        try:
+                            """ Set nodeSelector for Deployment, StatefulSet, and Job resources """
+                            if doc['kind'] in ['Deployment', 'StatefulSet', 'Job'] and workload['node_name'] != 'any':
+                                doc['spec']['template']['spec']['nodeSelector'] = {
+                                    'kubernetes.io/hostname': workload['node_name']}
 
-                        deploy_object(namespace=WORKLOADS_NAMESPACE, doc=doc, api_instance_apps=api_instance_apps,
-                                      api_instance_core=api_instance_core, api_instance_batch=api_instance_batch,
-                                      replicas=workload['replicas'])
+                            process_object(namespace=WORKLOADS_NAMESPACE, doc=doc, option='install',
+                                           api_instance_apps=api_instance_apps, api_instance_core=api_instance_core,
+                                           api_instance_batch=api_instance_batch, replicas=workload['replicas'])
 
-                    except ApiException as e:
-                        logging.warning(f"Exception when creating {doc['kind']} {filename}: {e}")
+                        except ApiException as e:
+                            logging.warning(f"Exception when creating {doc['kind']} {filename}: {e}")
 
-    logging.info(f"Workload '{workload}' created successfully.")
-    logging.info(f"Workload will be running for '{workload['duration']}'s.")
-    time.sleep(workload['duration'])
+        #user_id = session['user_id']
+        #workload_name = request.form.get('workload_name')
+        #yaml_content = request.form.get('yaml_content')
 
-    for doc in resources:
-        try:
-            if doc['kind'] == 'Deployment':
-                api_instance_apps.delete_namespaced_deployment(
-                    name=doc['metadata']['name'],
-                    namespace=WORKLOADS_NAMESPACE,
-                    body=kubernetes.client.V1DeleteOptions(propagation_policy='Foreground')
-                )
-            elif doc['kind'] == 'StatefulSet':
-                api_instance_apps.delete_namespaced_stateful_set(
-                    name=doc['metadata']['name'],
-                    namespace=WORKLOADS_NAMESPACE,
-                    body=kubernetes.client.V1DeleteOptions(propagation_policy='Foreground')
-                )
-            elif doc['kind'] == 'Job':
-                api_instance_batch.delete_namespaced_job(
-                    name=doc['metadata']['name'],
-                    namespace=WORKLOADS_NAMESPACE,
-                    body=kubernetes.client.V1DeleteOptions(propagation_policy='Foreground')
-                )
-            elif doc['kind'] == 'Service':
-                api_instance_core.delete_namespaced_service(
-                    name=doc['metadata']['name'],
-                    namespace=WORKLOADS_NAMESPACE
-                )
-            elif doc['kind'] == 'Namespace':
-                api_instance_core.delete_namespace(
-                    name=doc['metadata']['name'],
-                    body=kubernetes.client.V1DeleteOptions(propagation_policy='Foreground')
-                )
+        # Log the deployment action
+        new_workload = DeployedWorkload(username=username, workload_name=workload['type'],
+                                        duration=workload['duration'],
+                                        replicas=workload['replicas'],
+                                        node_name=workload['node_name'],
+                                        status='success',
+                                        created_at=datetime.utcnow())
+        db.session.add(new_workload)
+        db.session.commit()
 
-        except ApiException as e:
-            print(f"Exception when deleting {doc['kind']} {doc['metadata']['name']}: {e}")
+        logging.info(f"Workload '{workload}' created successfully.")
+        logging.info(f"Workload will be running for '{workload['duration']}'s.")
+        time.sleep(workload['duration'])
 
-    if workload['type'] == 'iot-sensor-pipeline':
-        helm_mqtt_delete = ['helm', 'delete', 'mqtt', '--kubeconfig', f'{KUBECONFIG_PATH}', '-n', 'workloads']
-        helm_kafka_delete = ['helm', 'delete', 'kafka', '--kubeconfig', f'{KUBECONFIG_PATH}', '-n', 'workloads']
-        helm_mysql_delete = ['helm', 'delete', 'mysql', '--kubeconfig', f'{KUBECONFIG_PATH}', '-n', 'workloads']
-        subprocess.run(helm_mqtt_delete, check=True)
-        subprocess.run(helm_kafka_delete, check=True)
-        subprocess.run(helm_mysql_delete, check=True)
+        for doc in resources:
+            try:
+                process_object(namespace=WORKLOADS_NAMESPACE, doc=doc, option='delete', api_instance_apps=api_instance_apps,
+                               api_instance_core=api_instance_core, api_instance_batch=api_instance_batch)
 
-    logging.info(f"Workload '{workload}' deleted successfully.")
+            except ApiException as e:
+                print(f"Exception when deleting {doc['kind']} {doc['metadata']['name']}: {e}")
+
+        if workload['type'] == 'iot-sensor-pipeline':
+            commands = [f'helm delete mqtt --kubeconfig {KUBECONFIG_PATH} -n {WORKLOADS_NAMESPACE}',
+                        f'helm delete kafka --kubeconfig {KUBECONFIG_PATH} -n {WORKLOADS_NAMESPACE}',
+                        f'helm delete mysql --kubeconfig {KUBECONFIG_PATH} -n {WORKLOADS_NAMESPACE}']
+            for command in commands:
+                process_helm(command)
+
+        logging.info(f"Workload '{workload}' deleted successfully.")
 
 
 def create_namespace(api_instance_core, namespace_name):
@@ -304,6 +421,7 @@ def get_deployment_files_path(workload_type):
 
 
 @app.route('/monitoring', methods=['POST'])
+@login_required
 def deploy_monitoring_system():
     try:
         selected_option = request.form.get('options')
@@ -328,19 +446,14 @@ def deploy_monitoring_system():
                     logging.error(f"An error occurred: {e}")
 
             # Deploy/Delete Prometheus and Grafana
-            repo = ['helm', 'repo', 'add', 'prometheus-community', 'https://prometheus-community.github.io/helm-charts']
-            subprocess.run(repo, check=True)
+            commands = ['helm repo add prometheus-community https://prometheus-community.github.io/helm-charts',
+                        'helm repo add grafana https://grafana.github.io/helm-charts',
+                        f'helm -n {namespace} upgrade --install prometheus --kubeconfig {KUBECONFIG_PATH} -f {deployment_dir}/prometheus.yaml prometheus-community/prometheus'
+                        f'helm -n {namespace} upgrade --install grafana --kubeconfig {KUBECONFIG_PATH} -f {deployment_dir}/grafana.yaml grafana/grafana'
+                        ]
 
-            repo = ['helm', 'repo', 'add', 'grafana', 'https://grafana.github.io/helm-charts']
-            subprocess.run(repo, check=True)
-
-            command = ['helm', '-n', f'{namespace}', 'upgrade', '--install', 'prometheus', '--kubeconfig', f'{KUBECONFIG_PATH}',
-                       '-f', f'{deployment_dir}/prometheus.yaml', 'prometheus-community/prometheus']
-            subprocess.run(command, check=True)
-
-            command = ['helm', '-n', f'{namespace}', 'upgrade', '--install', 'grafana',
-                       '--kubeconfig', f'{KUBECONFIG_PATH}', '-f', f'{deployment_dir}/grafana.yaml', 'grafana/grafana']
-            subprocess.run(command, check=True)
+            for command in commands:
+                process_helm(command, 'install')
 
             time.sleep(15)
 
@@ -351,8 +464,9 @@ def deploy_monitoring_system():
                 with open(os.path.join(deployment_dir, filename), 'r') as file:
                     documents = yaml.safe_load_all(file)
                     for doc in documents:
-                        deploy_object(namespace=namespace, doc=doc, api_instance_apps=api_instance_apps,
-                                      api_instance_core=api_instance_core, api_instance_rbac=api_instance_rbac)
+                        process_object(namespace=namespace, doc=doc, option='install',
+                                       api_instance_apps=api_instance_apps,
+                                       api_instance_core=api_instance_core, api_instance_rbac=api_instance_rbac)
 
         else:
             try:
@@ -381,60 +495,82 @@ def deploy_monitoring_system():
 
         time.sleep(10)
 
-        return jsonify({"status": "success", "message": f"Monitoring system {selected_option} request submitted successfully."})
+        return jsonify(
+            {"status": "success", "message": f"Monitoring system {selected_option} request submitted successfully."})
     except Exception as e:
         logging.error(str(e))
         return jsonify({"status": "error", "message": str(e)})
 
 
-def deploy_object(namespace, doc, api_instance_apps, api_instance_core, api_instance_rbac=None, api_instance_batch=None,
-                  replicas=1):
-    if doc['kind'] == 'ClusterRole':
-        utils.create_from_dict(api_instance_rbac.api_client, doc)
-        logging.info(f"ClusterRole '{doc['metadata']['name']}' created.")
-
-    elif doc['kind'] == 'ClusterRoleBinding':
-        utils.create_from_dict(api_instance_rbac.api_client, doc)
-        logging.info(f"ClusterRoleBinding '{doc['metadata']['name']}' created.")
-
-    elif doc['kind'] == 'ConfigMap':
-        api_instance_core.create_namespaced_config_map(namespace=namespace, body=doc)
-        logging.info(f"ConfigMap '{doc['metadata']['name']}' created.")
-
-    elif doc['kind'] == 'Secret':
-        api_instance_core.create_namespaced_secret(namespace=namespace, body=doc)
-        logging.info(f"Secret '{doc['metadata']['name']}' created.")
-
-    elif doc['kind'] == 'DaemonSet':
-        api_instance_apps.create_namespaced_daemon_set(namespace=namespace, body=doc)
-        logging.info(f"Daemonset '{doc['metadata']['name']}' created.")
-
-    elif doc['kind'] == 'Deployment':
-        doc['spec']['replicas'] = int(replicas)
-        api_instance_apps.create_namespaced_deployment(namespace=namespace, body=doc)
-        logging.info(f"Deployment '{doc['metadata']['name']}' created.")
-
-    elif doc['kind'] == 'Job':
-        api_instance_batch.create_namespaced_job(namespace=WORKLOADS_NAMESPACE, body=doc)
-        logging.info(f"Job '{doc['metadata']['name']}' created.")
-
-    elif doc['kind'] == 'ServiceAccount':
-        api_instance_core.create_namespaced_service_account(namespace=namespace, body=doc)
-        logging.info(f"ServiceAccount '{doc['metadata']['name']}' created.")
-
-    elif doc['kind'] == 'Service':
-        api_instance_core.create_namespaced_service(namespace=namespace, body=doc)
-        logging.info(f"Service '{doc['metadata']['name']}' created.")
-
-    elif doc['kind'] == 'StatefulSet':
-        doc['spec']['replicas'] = int(replicas)
-        api_instance_apps.create_namespaced_stateful_set(namespace=namespace, body=doc)
-
-    elif doc['kind'] == 'Namespace':
-        api_instance_core.create_namespace(body=doc)
-
+def process_object(namespace, doc, option, api_instance_apps, api_instance_core, api_instance_rbac=None,
+                   api_instance_batch=None,
+                   replicas=1):
+    if option == 'install':
+        if doc['kind'] == 'ClusterRole':
+            utils.create_from_dict(api_instance_rbac.api_client, doc)
+            logging.info(f"ClusterRole '{doc['metadata']['name']}' created.")
+        elif doc['kind'] == 'ClusterRoleBinding':
+            utils.create_from_dict(api_instance_rbac.api_client, doc)
+            logging.info(f"ClusterRoleBinding '{doc['metadata']['name']}' created.")
+        elif doc['kind'] == 'ConfigMap':
+            api_instance_core.create_namespaced_config_map(namespace=namespace, body=doc)
+            logging.info(f"ConfigMap '{doc['metadata']['name']}' created.")
+        elif doc['kind'] == 'Secret':
+            api_instance_core.create_namespaced_secret(namespace=namespace, body=doc)
+            logging.info(f"Secret '{doc['metadata']['name']}' created.")
+        elif doc['kind'] == 'DaemonSet':
+            api_instance_apps.create_namespaced_daemon_set(namespace=namespace, body=doc)
+            logging.info(f"Daemonset '{doc['metadata']['name']}' created.")
+        elif doc['kind'] == 'Deployment':
+            doc['spec']['replicas'] = int(replicas)
+            api_instance_apps.create_namespaced_deployment(namespace=namespace, body=doc)
+            logging.info(f"Deployment '{doc['metadata']['name']}' created.")
+        elif doc['kind'] == 'Job':
+            api_instance_batch.create_namespaced_job(namespace=WORKLOADS_NAMESPACE, body=doc)
+            logging.info(f"Job '{doc['metadata']['name']}' created.")
+        elif doc['kind'] == 'ServiceAccount':
+            api_instance_core.create_namespaced_service_account(namespace=namespace, body=doc)
+            logging.info(f"ServiceAccount '{doc['metadata']['name']}' created.")
+        elif doc['kind'] == 'Service':
+            api_instance_core.create_namespaced_service(namespace=namespace, body=doc)
+            logging.info(f"Service '{doc['metadata']['name']}' created.")
+        elif doc['kind'] == 'StatefulSet':
+            doc['spec']['replicas'] = int(replicas)
+            api_instance_apps.create_namespaced_stateful_set(namespace=namespace, body=doc)
+        elif doc['kind'] == 'Namespace':
+            api_instance_core.create_namespace(body=doc)
+        else:
+            logging.warning(f"Unknown resource type: {doc['kind']}")
     else:
-        logging.warning(f"Unknown resource type: {doc['kind']}")
+        if doc['kind'] == 'Deployment':
+            api_instance_apps.delete_namespaced_deployment(
+                name=doc['metadata']['name'], namespace=namespace,
+                body=kubernetes.client.V1DeleteOptions(propagation_policy='Foreground')
+            )
+        elif doc['kind'] == 'StatefulSet':
+            api_instance_apps.delete_namespaced_stateful_set(
+                name=doc['metadata']['name'], namespace=namespace,
+                body=kubernetes.client.V1DeleteOptions(propagation_policy='Foreground')
+            )
+        elif doc['kind'] == 'Job':
+            api_instance_batch.delete_namespaced_job(
+                name=doc['metadata']['name'], namespace=namespace,
+                body=kubernetes.client.V1DeleteOptions(propagation_policy='Foreground')
+            )
+        elif doc['kind'] == 'Service':
+            api_instance_core.delete_namespaced_service(
+                name=doc['metadata']['name'], namespace=namespace
+            )
+        elif doc['kind'] == 'Namespace':
+            api_instance_core.delete_namespace(
+                name=doc['metadata']['name'], body=kubernetes.client.V1DeleteOptions(propagation_policy='Foreground')
+            )
+        else:
+            logging.warning(f"Unknown resource type: {doc['kind']}")
+
+
+def process_helm(command):
+    subprocess.run(command, check=True, shell=True)
 
 
 if __name__ == '__main__':

@@ -18,14 +18,18 @@
 <div class="main-container">
     <div id="left-panel" class="left-panel">
         <div class="left-title"><h3>Deployment Portal</h3></div>
+        <p>Welcome, <i>{{ current_user.username }}!</i></p>
         <p>Select any of the given options:</p>
         <div class="menu-item" onclick="showSection('addWorkloadType')">Add New Workload Type</div>
-        <div class="menu-item" onclick="showSection('createWorkload')">Deploy Workload</div>
+        <div class="menu-item" onclick="showSection('createWorkload')">Deploy New Workload</div>
+        <div class="menu-item" onclick="showSection('listWorkload')">List Deployed Workloads</div>
         <div class="menu-item" onclick="showSection('deployMonitoring')">Deploy Monitoring System</div>
+        {% if current_user.role == 'admin' %}
+        <div class="menu-item" onclick="showSection('registerUser')">Register New User</div>
+        {% endif %}
+        <div class="menu-item" ><a class="menu-item" href="{{ url_for('logout') }}">Logout</a></div>
     </div>
     <div id="right-panel" class="right-panel">
-        <!--<div class="panel-title right-title">Dashboard</div>
-        <p>Select an option from the menu to get started.</p>-->
         <div id="alert-success" class="alert alert-success" style="display: none;"></div>
         <div id="alert-error" class="alert alert-error" style="display: none;"></div>
 
@@ -95,6 +99,14 @@
                 </form>
             </div>
         </div>
+        <div id="listWorkload" class="section">
+            <div class="upper-inner-div">
+                <h3 style="color: white">Previously Deployed Workload(s) in the Kubernetes Cluster</h3>
+            </div>
+            <div class="lower-inner-div">
+                <div id="workload-list"></div>
+            </div>
+        </div>
         <div id="deployMonitoring" class="section" style="display: none;">
             <div class="upper-inner-div">
                 <h3 style="color: white">Deploy Monitoring System in the Cluster</h3>
@@ -121,6 +133,31 @@
                     </label>
                     <br><br>
                     <input type="submit" value="Submit" class="btn btn-success">
+                </form>
+            </div>
+        </div>
+        <div id="registerUser" class="section" style="display: none;">
+            <div class="upper-inner-div">
+                <h3 style="color: white">Register New User</h3>
+            </div>
+            <div class="lower-inner-div">
+                <form id="user-registration-form"> <!--method="POST" action="{{ url_for('register') }}">-->
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="role">Role</label>
+                        <select class="form-control" id="role" name="role" required>
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                    </div>
+                    <input type="submit" class="btn btn-primary" value="Register">
                 </form>
             </div>
         </div>
