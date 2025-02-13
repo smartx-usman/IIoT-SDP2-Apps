@@ -5,43 +5,83 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 0;
+    overflow-x: hidden;
 }
 
 header {
     /*background-color: #f2f2f2; *//* Main orange color *//*
     color: black;*/
-    background-color: #404040;
+    /*background-color: #404040;*/
+    background-color: #4d94ff;
     color: white;
-    padding: 10px 0;
+    padding: 5px 0 5px 0;
     text-align: center;
-    font-size: 24px;
-    border-bottom: 2px solid #8c8c8c;
-    height: 5%;
+    font-size: 16px;
+    /*border-bottom: 2px solid #8c8c8c;*/
+    /*border-bottom: 2px solid #0047b3;*/
+    height: auto;
     flex-shrink: 0;
 }
 
 .main-container {
     display: flex;
-    height: 95%;
-    flex-grow: 1;
+    flex-direction: column;
+    height: auto;
+    min-height: calc(100vh - 120px); /* Account for header/footer */
+    overflow: auto;
+    /*flex-grow: 1;*/
 }
 
 #left-panel {
-    width: 20%;
-    background-color: #e6e6e6;
-    padding: 20px;
+    width: 100%;
+    background-color: #ffffff;
+    padding: 10px;
     /*border-right: 1px solid #dee2e6;*/
-    border-right: 2px solid #b3b3b3;
-    color: #333;
+    /*border-right: 2px solid #b3b3b3;*/
+    color: #002966;
     box-sizing: border-box;
 }
 
 #right-panel {
-    width: 80%;
+    width: 100%;
     padding: 10px;
     background-color: #ffffff;
     color: black;
     box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    .main-container {
+        flex-direction: row;
+    }
+    #left-panel {
+        padding: 10px 5px;
+        width: 20%;
+    }
+    #right-panel {
+        padding: 10px 5px;
+        width: 80%;
+    }
+    .dropdown-menu {
+        position: static !important;
+        transform: none !important;
+    }
+
+    .left-panel button {
+        white-space: normal;
+    }
+}
+
+/* Ensure the dropdown menu stays within the left panel */
+.dropdown-menu {
+    width: 100%; /* Make it stretch to the full width of the button */
+    position: relative; /* Prevents it from overlapping other elements */
+    z-index: 1000; /* Ensure it appears above other elements */
+}
+
+.dropdown-toggle::after {
+    float: right;
+    margin-top: 8px;
 }
 
 .left-panel button {
@@ -51,8 +91,8 @@ header {
     padding: 10px;
     cursor: pointer;
     width: 100%;
-    text-align: center;
-    margin-bottom: 10px;
+    text-align: left;
+    margin-bottom: 5px;
 }
 
 .left-panel button:hover {
@@ -62,11 +102,11 @@ header {
 .menu-item {
     cursor: pointer;
     padding: 10px;
-    margin: 10px 0;
-    background-color: #4d4d4d;
-    color: white;
-    text-align: center;
-    border-radius: 5px;
+    margin: 3px 0;
+    /*background-color: #4d4d4d;*/
+    color: black;
+    text-align: left;
+    border-radius: 3px;
     transition: background-color 0.3s ease;
 }
 
@@ -107,8 +147,9 @@ header {
 .upper-inner-div {
     height: 10%;
     color: white;
-    background-color: #85a3e0;
-    border: 2px solid #adc2eb;
+    /*background-color: #85a3e0;*/
+    background-color: #0047b3;
+    border: 2px solid #0047b3;
     text-align: center;
     /*background-color: #4d4d4d;*/
     padding: 8px;
@@ -117,7 +158,8 @@ header {
 .lower-inner-div {
     height: 90%;
     padding: 8px;
-    border: 2px solid #adc2eb;
+    /*border: 2px solid #adc2eb;*/
+    border: 2px solid #0047b3;
     /*display: flex;
     align-items: center;
     justify-content: center;*/
@@ -152,7 +194,7 @@ th, td {
 }
 
 th {
-    background-color: #4CAF50;
+    background-color: #ffcc00;
     color: white;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -164,7 +206,7 @@ tr:nth-child(even) {
 }
 
 tr:hover {
-    background-color: #f1c40f;
+    background-color: #99d6ff;
     color: white;
 }
 
@@ -173,4 +215,17 @@ caption {
     margin: 15px;
     font-weight: bold;
     color: #333;
+}
+
+.footer {
+    background-color: #f8f9fa; /* Light gray */
+    text-align: center;
+    padding: 10px;
+    font-size: 14px;
+    color: #333;
+    width: 100%;
+    position: relative;
+    margin-top: auto;
+    bottom: 0;
+    left: 0;
 }

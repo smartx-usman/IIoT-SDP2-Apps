@@ -3,31 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workload Manager</title>
+    <title>Experimental Workloads Manager</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='dropdown.js') }}"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </head>
 <body>
 <header>
-    <h1>Workload Deployment and Cluster Stress Testing Portal</h1>
+    <h1>Experimental Workload Management Dashboard</h1>
 </header>
-<div class="main-container">
+<div class="container-fluid main-container">
     <div id="left-panel" class="left-panel">
-        <div class="left-title"><h3>Deployment Portal</h3></div>
-        <p>Welcome, <i>{{ current_user.username }}!</i></p>
-        <p>Select any of the given options:</p>
-        <div class="menu-item" onclick="showSection('addWorkloadType')">Add New Workload Type</div>
-        <div class="menu-item" onclick="showSection('createWorkload')">Deploy New Workload</div>
-        <div class="menu-item" onclick="showSection('listWorkload')">List Deployed Workloads</div>
-        <div class="menu-item" onclick="showSection('deployMonitoring')">Deploy Monitoring System</div>
-        {% if current_user.role == 'admin' %}
-        <div class="menu-item" onclick="showSection('registerUser')">Register New User</div>
-        {% endif %}
-        <div class="menu-item" ><a class="menu-item" href="{{ url_for('logout') }}">Logout</a></div>
+        <div class="upper-inner-div">
+            <h3 style="color: white">Workload Orchestration</h3>
+        </div>
+        <div class="lower-inner-div">
+            <p>Welcome, <i>{{ current_user.username }}!</i></p>
+            <div class="dropdown show">
+                <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="actionDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                    Select Action
+                </button>
+                <div class="dropdown-menu w-100 show" aria-labelledby="actionDropdown">
+                    <a class="dropdown-item" href="#" onclick="showSection('addWorkloadType')">Add New Workload Type</a>
+                    <a class="dropdown-item" href="#" onclick="showSection('createWorkload')">Deploy New Workload</a>
+                    <a class="dropdown-item" href="#" onclick="showSection('listWorkload')">List Deployed Workloads</a>
+                    <a class="dropdown-item" href="#" onclick="showSection('deployMonitoring')">Deploy Monitoring System</a>
+                    {% if current_user.role == 'admin' %}
+                    <a class="dropdown-item" href="#" onclick="showSection('registerUser')">Register New User</a>
+                    {% endif %}
+                    <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a>
+                </div>
+            </div>
+        </div>
     </div>
     <div id="right-panel" class="right-panel">
         <div id="alert-success" class="alert alert-success" style="display: none;"></div>
@@ -40,11 +51,7 @@
             <div class="lower-inner-div">
                 <form id="workload-type-form">
                     <div class="form-group">
-                        <label for="workloadKey">Workload Key:</label>
-                        <input type="text" id="workloadKey" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="workloadDisplayName">Workload Display Name:</label>
+                        <label for="workloadDisplayName">Workload Name:</label>
                         <input type="text" id="workloadDisplayName" class="form-control" required>
                     </div>
                     <div class="form-group">
@@ -64,7 +71,7 @@
         </div>
         <div id="createWorkload" class="section">
             <div class="upper-inner-div">
-                <h3 style="color: white">Deploy Workload(s) in the Kubernetes Cluster</h3>
+                <h3 style="color: white">Deploy Workload(s) in the Cluster</h3>
             </div>
             <div class="lower-inner-div">
                 <form id="workload-form">
@@ -101,7 +108,7 @@
         </div>
         <div id="listWorkload" class="section">
             <div class="upper-inner-div">
-                <h3 style="color: white">Previously Deployed Workload(s) in the Kubernetes Cluster</h3>
+                <h3 style="color: white">List Deployed Workload(s) in the Cluster</h3>
             </div>
             <div class="lower-inner-div">
                 <div id="workload-list"></div>
@@ -141,7 +148,7 @@
                 <h3 style="color: white">Register New User</h3>
             </div>
             <div class="lower-inner-div">
-                <form id="user-registration-form"> <!--method="POST" action="{{ url_for('register') }}">-->
+                <form id="user-registration-form" method="POST" action="{{ url_for('auth.register') }}">
                     <div class="form-group">
                         <label for="username">Username</label>
                         <input type="text" class="form-control" id="username" name="username" required>
@@ -157,11 +164,23 @@
                             <option value="admin">Admin</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="level">Expertise Level</label>
+                        <select class="form-control" id="level" name="level" required>
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                        </select>
+                    </div>
                     <input type="submit" class="btn btn-primary" value="Register">
                 </form>
             </div>
         </div>
     </div>
 </div>
+<footer class="footer">
+    <p>&copy; 2025 Experimental Workloads Manager. All rights reserved.</p>
+</footer>
+
 </body>
 </html>

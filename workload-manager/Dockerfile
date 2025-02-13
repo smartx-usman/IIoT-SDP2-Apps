@@ -15,10 +15,14 @@ ADD workloads /app/workloads
 ADD monitoring /app/monitoring
 ADD templates /app/templates
 ADD static /app/static
+ADD app /app/app
+
 COPY app.py /app
+COPY config.py /app
+COPY run.py /app
 
 EXPOSE 9000
 
 ENV NAME WorkloadManager
 
-CMD ["python", "app.py"]
+CMD ["python", "run.py"]

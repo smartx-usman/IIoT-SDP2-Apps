@@ -23,10 +23,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const types = data.types;
             const workloadTypeSelects = document.getElementsByClassName('workload_type');
             for (let select of workloadTypeSelects) {
+                select.innerHTML = ''; // Clear existing options
                 for (let type of types) {
                     const option = document.createElement('option');
-                    option.value = type.workload_key;
-                    option.text = type.workload_display_name;
+                    option.value = type.workload_name;
+                    option.text = type.workload_name;
                     select.add(option);
                 }
             }
@@ -149,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle adding workload type form submission
     document.getElementById('workload-type-form').addEventListener('submit', function(event) {
         event.preventDefault();
-        const workloadKey = document.getElementById('workloadKey').value;
+        //const workloadKey = document.getElementById('workloadKey').value;
         const workloadDisplayName = document.getElementById('workloadDisplayName').value;
         const workloadEnabled = document.getElementById('workloadEnabled').value;
         const files = document.getElementById('workloadYaml').files;
@@ -160,8 +161,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         const formData = new FormData();
-        formData.append('workload_key', workloadKey);
-        formData.append('workload_display_name', workloadDisplayName);
+        formData.append('workload_name', workloadDisplayName);
         formData.append('workload_enabled', workloadEnabled);
 
         for (let i = 0; i < files.length; i++) {

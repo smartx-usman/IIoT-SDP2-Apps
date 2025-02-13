@@ -2,7 +2,7 @@
 {% block content %}
 <div class="container mt-5">
     <h2>Deployment Portal: User Login</h2>
-    <form method="POST" action="{{ url_for('login') }}">
+    <form method="POST" action="{{ url_for('auth.login') }}">
         <div class="form-group">
             <label for="username">Username</label>
             <input type="text" class="form-control" id="username" name="username" required>
