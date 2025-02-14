@@ -24,6 +24,7 @@ header {
 }
 
 .main-container {
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
     height: auto;
@@ -35,6 +36,7 @@ header {
 #left-panel {
     width: 100%;
     background-color: #ffffff;
+    font-size: 14px;
     padding: 10px;
     /*border-right: 1px solid #dee2e6;*/
     /*border-right: 2px solid #b3b3b3;*/
@@ -46,6 +48,7 @@ header {
     width: 100%;
     padding: 10px;
     background-color: #ffffff;
+    font-size: 14px;
     color: black;
     box-sizing: border-box;
 }
@@ -149,7 +152,7 @@ header {
     color: white;
     /*background-color: #85a3e0;*/
     background-color: #0047b3;
-    border: 2px solid #0047b3;
+    /*border: 2px solid #0047b3;*/
     text-align: center;
     /*background-color: #4d4d4d;*/
     padding: 8px;
@@ -159,7 +162,7 @@ header {
     height: 90%;
     padding: 8px;
     /*border: 2px solid #adc2eb;*/
-    border: 2px solid #0047b3;
+    /*border: 2px solid #0047b3;*/
     /*display: flex;
     align-items: center;
     justify-content: center;*/
