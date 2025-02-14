@@ -14,14 +14,14 @@
 </head>
 <body>
 <header>
-    <h1>Experimental Workload Management Dashboard</h1>
+    <h2>Experimental Workload Management Dashboard</h2>
 </header>
 <div class="container-fluid main-container">
     <div id="left-panel" class="left-panel">
-        <div class="upper-inner-div">
-            <h3 style="color: white">Workload Orchestration</h3>
+        <div class="left-upper-inner-div">
+            <h4 style="color: white">Workload Orchestration</h4>
         </div>
-        <div class="lower-inner-div">
+        <div class="left-lower-inner-div">
             <p>Welcome, <i>{{ current_user.username }}!</i></p>
             <div class="dropdown show">
                 <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="actionDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
@@ -45,10 +45,10 @@
         <div id="alert-error" class="alert alert-error" style="display: none;"></div>
 
         <div id="addWorkloadType" class="section" style="display: none;">
-            <div class="upper-inner-div">
-                <h3 style="color: white">Create New Workload Type</h3>
+            <div class="right-upper-inner-div">
+                <h4 style="color: white">Create New Workload Type</h4>
             </div>
-            <div class="lower-inner-div">
+            <div class="right-lower-inner-div">
                 <form id="workload-type-form">
                     <div class="form-group">
                         <label for="workloadDisplayName">Workload Name:</label>
@@ -62,18 +62,124 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="workloadYaml">Upload YAML File:</label>
-                        <input type="file" id="workloadYaml" name="workload_yaml" class="form-control-file" accept=".yaml,.yml" multiple required>
+                        <label>Deployment Method:</label>
+                        <select id="deployMethod" class="form-control" onchange="toggleDeployMethod()">
+                            <option value="yaml" selected>YAML</option>
+                            <option value="helm">Helm Chart</option>
+                        </select>
+                    </div>
+
+                    <!-- YAML Section (existing) -->
+                    <div id="yamlSection">
+                        <div class="form-group">
+                            <label>Configuration Method:</label>
+                            <select id="configMethod" class="form-control" onchange="toggleConfigMethod()">
+                                <option value="dynamic">Dynamic Configuration</option>
+                                <option value="upload" selected>Upload YAML</option>
+                            </select>
+                        </div>
+
+                        <div id="dynamicConfig">
+                            <!-- Basic Fields -->
+                            <div class="form-group">
+                                <label>Container Image:</label>
+                                <input type="text" class="form-control" name="image" id="image" value="usman476/coap:latest" placeholder="Enter container info.">
+                            </div>
+                            <div class="form-group">
+                                <label>Command Interpreter:</label>
+                                <input type="text" class="form-control" name="cmd_interpreter" id="cmd_interpreter" value="python3" placeholder="Enter command interpreter (e.g., shell)">
+                            </div>
+                            <div class="form-group">
+                                <label>Arguments:</label>
+                                <input type="text" class="form-control" name="cmd_arguments" id="cmd_arguments" value="coap-server.py" placeholder="Enter command interpreter (e.g., file name to run and any arguments)">
+                            </div>
+
+                            <!-- Intermediate Fields -->
+                            <div class="intermediate-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label>CPU Limit (cores):</label>
+                                    <input type="number" class="form-control" name="cpu_limit" step="0.1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Memory Limit (MB):</label>
+                                    <input type="number" class="form-control" name="memory_limit">
+                                </div>
+                            </div>
+
+                            <!-- Advanced Fields -->
+                            <div class="advanced-fields" style="display: none;">
+                                <div class="form-group">
+                                    <label>Affinity Rules:</label>
+                                    <textarea class="form-control" name="affinity" rows="3"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Tolerations:</label>
+                                    <textarea class="form-control" name="tolerations" rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="uploadConfig" style="display: none;">
+                            <div class="form-group">
+                                <label>Upload YAML File:</label>
+                                <input type="file" class="form-control-file" id="workloadYaml" name="yaml_file" accept=".yaml,.yml" multiple>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Helm Chart Section -->
+                    <div id="helmSection" style="display: none;">
+                        <div class="form-group">
+                            <label>Helm Repository Type:</label>
+                            <select class="form-control" name="helm_repo_type">
+                                <option value="public">Public Repository</option>
+                                <option value="private">Private Repository</option>
+                                <option value="local">Local Chart</option>
+                            </select>
+                        </div>
+
+                        <!-- Beginner Fields -->
+                        <div class="helm-basic-fields">
+                            <div class="form-group">
+                                <label>Chart Name/Path:</label>
+                                <input type="text" class="form-control" name="helm_chart">
+                            </div>
+                            <div class="form-group">
+                                <label>Release Name:</label>
+                                <input type="text" class="form-control" name="helm_release">
+                            </div>
+                        </div>
+
+                        <!-- Advanced Fields -->
+                        <div class="helm-advanced-fields" style="display: none;">
+                            <div class="form-group">
+                                <label>Repository URL:</label>
+                                <input type="url" class="form-control" name="helm_repo_url">
+                            </div>
+                            <div class="form-group">
+                                <label>Chart Version:</label>
+                                <input type="text" class="form-control" name="helm_version">
+                            </div>
+                            <div class="form-group">
+                                <label>Values Files:</label>
+                                <input type="file" class="form-control" name="helm_values" multiple>
+                            </div>
+                            <div class="form-group">
+                                <label>Set Values:</label>
+                                <textarea class="form-control" name="helm_set"
+                                    placeholder="key1=value1\nkey2=value2"></textarea>
+                            </div>
+                        </div>
                     </div>
                     <button type="submit" class="btn btn-primary" value="Submit">Save Workload Type</button>
                 </form>
             </div>
         </div>
         <div id="createWorkload" class="section">
-            <div class="upper-inner-div">
-                <h3 style="color: white">Deploy Workload(s) in the Cluster</h3>
+            <div class="right-upper-inner-div">
+                <h4 style="color: white">Deploy Workload(s) in the Cluster</h4>
             </div>
-            <div class="lower-inner-div">
+            <div class="right-lower-inner-div">
                 <form id="workload-form">
                     <!--<form id="workload-form" method="post" action="/submit">-->
                     <div id="workloads">
@@ -107,18 +213,18 @@
             </div>
         </div>
         <div id="listWorkload" class="section">
-            <div class="upper-inner-div">
-                <h3 style="color: white">List Deployed Workload(s) in the Cluster</h3>
+            <div class="right-upper-inner-div">
+                <h4 style="color: white">List Deployed Workload(s) in the Cluster</h4>
             </div>
-            <div class="lower-inner-div">
+            <div class="right-lower-inner-div">
                 <div id="workload-list"></div>
             </div>
         </div>
         <div id="deployMonitoring" class="section" style="display: none;">
-            <div class="upper-inner-div">
-                <h3 style="color: white">Deploy Monitoring System in the Cluster</h3>
+            <div class="right-upper-inner-div">
+                <h4 style="color: white">Deploy Monitoring System in the Cluster</h4>
             </div>
-            <div class="lower-inner-div">
+            <div class="right-lower-inner-div">
                 <br>
                 <p>A monitoring system with the following tools will be deployed/removed:</p>
                 <ol type="i">
@@ -144,10 +250,10 @@
             </div>
         </div>
         <div id="registerUser" class="section" style="display: none;">
-            <div class="upper-inner-div">
-                <h3 style="color: white">Register New User</h3>
+            <div class="right-upper-inner-div">
+                <h4 style="color: white">Register New User</h4>
             </div>
-            <div class="lower-inner-div">
+            <div class="right-lower-inner-div">
                 <form id="user-registration-form" method="POST" action="{{ url_for('auth.register') }}">
                     <div class="form-group">
                         <label for="username">Username</label>
@@ -179,7 +285,7 @@
     </div>
 </div>
 <footer class="footer">
-    <p>&copy; 2025 Experimental Workloads Manager. All rights reserved.</p>
+    <p>&copy; 2025 Experimental Workload Management Dashboard. All rights reserved.</p>
 </footer>
 
 </body>

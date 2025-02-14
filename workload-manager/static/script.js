@@ -1,4 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Show or hide fields based on user level and content generation method
+    toggleFieldsByUserLevel();
+    toggleConfigMethod();
+
     // Fetch nodes and populate node dropdowns
     fetch('/nodes')
         .then(response => response.json())
@@ -153,19 +157,35 @@ document.addEventListener('DOMContentLoaded', function() {
         //const workloadKey = document.getElementById('workloadKey').value;
         const workloadDisplayName = document.getElementById('workloadDisplayName').value;
         const workloadEnabled = document.getElementById('workloadEnabled').value;
-        const files = document.getElementById('workloadYaml').files;
-
-        if (!files.length > 0) {
-            showAlert('error', 'Please upload a YAML file.');
-            return;
-        }
+        const deploymentMethod = document.getElementById('deployMethod').value;
+        const configurationMethod = document.getElementById('configMethod').value;
 
         const formData = new FormData();
+        formData.append('deploy_method', deploymentMethod);
+        formData.append('config_method', configurationMethod);
         formData.append('workload_name', workloadDisplayName);
         formData.append('workload_enabled', workloadEnabled);
 
-        for (let i = 0; i < files.length; i++) {
-            formData.append('files', files[i]);
+        if (configurationMethod === 'upload') {
+            const files = document.getElementById('workloadYaml').files;
+
+            if (!files.length > 0) {
+                showAlert('error', 'Please upload a YAML file.');
+                return;
+            }
+
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+        }
+
+        if (configurationMethod === 'dynamic') {
+            formData.append('container_image', document.getElementById('image').value);
+            formData.append('cmd_interpreter', document.getElementById('cmd_interpreter').value);
+            formData.append('cmd_arguments', document.getElementById('cmd_arguments').value);
+
+            formData.append('replicas', 1);
+            formData.append('container_port', 3000);
         }
 
         fetch('/add_workload_type', {
@@ -199,6 +219,62 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function removeWorkload(button) {
     button.closest('div').remove();
+}
+
+// Show or hide fields based on user level
+function toggleFieldsByUserLevel() {
+    const userLevel = "{{ current_user.expertise_level }}";
+
+    // Hide all advanced fields initially
+    document.querySelectorAll('.intermediate-fields, .advanced-fields').forEach(el => {
+        el.style.display = 'none';
+    });
+
+    if(userLevel === 'intermediate') {
+        document.querySelectorAll('.intermediate-fields').forEach(el => {
+            el.style.display = 'block';
+        });
+    }
+    else if(userLevel === 'advanced') {
+        document.querySelectorAll('.intermediate-fields, .advanced-fields').forEach(el => {
+            el.style.display = 'block';
+        });
+    }
+}
+
+
+// Show or hide fields based on deployment method
+function toggleDeployMethod() {
+    const method = document.getElementById('deployMethod').value;
+    document.getElementById('yamlSection').style.display = method === 'yaml' ? 'block' : 'none';
+    document.getElementById('helmSection').style.display = method === 'helm' ? 'block' : 'none';
+
+    // Show/hide advanced Helm fields based on user level
+    const userLevel = "{{ current_user.expertise_level }}";
+    document.querySelectorAll('.helm-advanced-fields').forEach(el => {
+        el.style.display = userLevel === 'advanced' ? 'block' : 'none';
+    });
+}
+
+// Show or hide fields static or dynamic configuration method
+function toggleConfigMethod() {
+    const method = document.getElementById('configMethod').value;
+    const yamlFileInput = document.getElementById('workloadYaml');
+    const containerImage = document.getElementById('image');
+    document.getElementById('dynamicConfig').style.display = method === 'dynamic' ? 'block' : 'none';
+    document.getElementById('uploadConfig').style.display = method === 'upload' ? 'block' : 'none';
+
+    if (method === 'dynamic') {
+        yamlFileInput.removeAttribute('required');
+        containerImage.setAttribute('required', 'required');
+        cmd_interpreter.setAttribute('required', 'required');
+        cmd_arguments.setAttribute('required', 'required');
+    } else {
+        containerImage.removeAttribute('required');
+        cmd_interpreter.removeAttribute('required');
+        cmd_arguments.removeAttribute('required');
+        yamlFileInput.setAttribute('required', 'required');
+    }
 }
 
 // Fetch deployed workloads via an AJAX call
