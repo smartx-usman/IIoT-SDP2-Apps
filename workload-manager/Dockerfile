@@ -17,7 +17,6 @@ ADD templates /app/templates
 ADD static /app/static
 ADD app /app/app
 
-COPY app.py /app
 COPY config.py /app
 COPY run.py /app
 

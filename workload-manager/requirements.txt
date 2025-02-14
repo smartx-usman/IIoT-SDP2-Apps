@@ -3,3 +3,4 @@ Flask-Login
 Flask-SQLAlchemy
 kubernetes
 numpy
+ruamel.yaml
