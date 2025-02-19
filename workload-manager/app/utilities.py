@@ -1,6 +1,5 @@
 import logging
-import json
-import os
+
 from app import db
 from app.models import User
 from app.models import WorkloadType
@@ -10,24 +9,32 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=lo
 
 
 def create_default_admin():
-    if not User.query.filter_by(role='admin').first():
-        hashed_password = generate_password_hash('admin_password', method='pbkdf2:sha256')
-        new_admin = User(username='admin', password=hashed_password, role='admin', user_level='advanced')
-        db.session.add(new_admin)
-        db.session.commit()
-        logging.info(f'Default admin user created. Username: admin, Password: admin_password')
+    # Create default users if they do not exist
+    for user in ('admin', 'beginner', 'intermediate', 'advanced'):
+        if not User.query.filter_by(username=user).first():
+
+            if user == 'admin':
+                hashed_password = generate_password_hash(password='admin_password', method='pbkdf2:sha256')
+                new_user = User(username=user, password=hashed_password, role='admin', user_level='advanced')
+            else:
+                hashed_password = generate_password_hash(password=user, method='pbkdf2:sha256')
+                new_user = User(username=user, password=hashed_password, role='user', user_level=user)
+
+            db.session.add(new_user)
+            db.session.commit()
+            logging.info(f'Default user: "{user}" created.')
 
 
 def initialize_default_workloads():
     default_workloads = [
-        "CoAP-Server-App",
+        "CoAP-Server",
         "CPU-Burner",
         "Disk-Burner",
-        "File-Server-App",
-        "IoT-Sensor-Data-Processing-App",
+        "File-Server",
+        "IoT-Sensor-Pipeline",
         "Memory-Burner",
         "Network-Burner",
-        "Web-Server-App",
+        "Web-Server",
     ]
 
     for name in default_workloads:

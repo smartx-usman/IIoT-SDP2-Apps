@@ -1,15 +1,13 @@
 import logging
-import os
-
-from flask import Blueprint, jsonify, render_template, request, url_for
-from flask_login import login_user, login_required, logout_user, current_user
-from app import db
-from app.models import DeployedWorkload, User, WorkloadType
-from app.kubernetes_utils import load_kube_config, handle_workloads
-import kubernetes
 import threading
-from config import Config
 
+import kubernetes
+from app.helm_utils import handle_helm_deployment
+from app.kubernetes_utils import load_kube_config, handle_workloads
+from app.models import DeployedWorkload, WorkloadType
+from app.yaml_utils import handle_yaml_deployment
+from flask import Blueprint, jsonify, render_template, request, url_for
+from flask_login import login_required, current_user
 from werkzeug.utils import redirect
 
 workload_bp = Blueprint('workload', __name__)
@@ -80,40 +78,14 @@ def get_workload_types():
 @login_required
 def add_workload_type():
     try:
-        workload_name = request.form.get('workload_name')
-        workload_enabled = request.form.get('workload_enabled', 'true').lower() == 'true'
-        files = request.files.getlist('files')
+        deploy_method = request.form.get('deploy_method')
+        logging.info(f"Deploy method: {deploy_method}")
 
-        # Check if workload type already exists
-        if WorkloadType.query.filter_by(workload_name=workload_name).first():
-            return jsonify(status='error', message='Workload with same name already exists'), 400
-
-        # Create new workload type
-        new_workload = WorkloadType(
-            workload_name=workload_name,
-            workload_enabled=workload_enabled
-        )
-        db.session.add(new_workload)
-        db.session.commit()
-
-        # Create directory using ID
-        upload_dir = os.path.join(Config.UPLOAD_FOLDER, str(new_workload.workload_name))
-        os.makedirs(upload_dir, exist_ok=True)
-        #if not os.path.exists(f'{Config.UPLOAD_FOLDER / workload_key}'):
-        #    os.makedirs(f'{Config.UPLOAD_FOLDER / workload_key}')
-
-        for file in files:
-            if file and file.filename.endswith(('.yaml', '.yml')):
-                file.save(os.path.join(upload_dir, file.filename))
-                #file_path = os.path.join(
-                #    f'{Config.UPLOAD_FOLDER / workload_key}',
-                #    file.filename
-                #)
-                #file.save(file_path)
-
-        return jsonify({"status": "success", "message": "Workload type added successfully."})
+        if deploy_method == 'helm':
+            return handle_helm_deployment(request, current_user)
+        else:
+            return handle_yaml_deployment(request, current_user)
     except Exception as e:
-        db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
 
 

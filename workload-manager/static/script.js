@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Show active menu item
+    const defaultSection = document.querySelector('.section:not([style*="none"])');
+    if(defaultSection) {
+        setActiveMenuItem(defaultSection.id);
+    }
+
     // Show or hide fields based on user level and content generation method
     toggleFieldsByUserLevel();
     toggleConfigMethod();
@@ -325,16 +331,30 @@ function showSection(sectionId) {
         section.style.display = 'none';
     });
 
-    const section = document.getElementById(sectionId);
-    if (section) {
+    // Show selected section
+    const activeSection = document.getElementById(sectionId);
+    if(activeSection) {
         if (sectionId === 'listWorkload') {
             fetchDeployedWorkloads();
         }
-        section.style.display = 'block';
-    } else {
-        console.error(`No section found with id: ${sectionId}`);
+        activeSection.style.display = 'block';
     }
 
+    // Update menu state
+    setActiveMenuItem(sectionId);
+}
+
+function setActiveMenuItem(targetId) {
+    // Remove active class from all items
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
+
+    // Add active class to clicked item
+    const activeItem = document.querySelector(`[onclick*="${targetId}"]`);
+    if(activeItem) {
+        activeItem.classList.add('active');
+    }
 }
 
 function showAlert(type, message) {

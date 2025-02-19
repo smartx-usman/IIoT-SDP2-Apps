@@ -209,3 +209,25 @@ def get_cluster_nodes():
     worker_nodes = [node.metadata.name for node in nodes.items if
                     "node-role.kubernetes.io/control-plane" not in node.metadata.labels]
     return worker_nodes
+
+
+def process_helm_deployment(command):
+    """Secure Helm deployment handler with namespace support"""
+    full_cmd = command + [
+        '--namespace', Config.WORKLOADS_NAMESPACE,
+        '--kubeconfig', Config.KUBECONFIG_PATH
+    ]
+
+    try:
+        result = subprocess.run(
+            full_cmd,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            timeout=300
+        )
+        return True, result.stdout
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Helm deployment failed: {e.stderr}")
+        return False, e.stderr

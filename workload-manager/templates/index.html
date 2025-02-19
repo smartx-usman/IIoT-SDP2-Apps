@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="{{ url_for('static', filename='script.js') }}"></script>
-    <script src="{{ url_for('static', filename='dropdown.js') }}"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
@@ -22,22 +21,35 @@
             <h4 style="color: white">Workload Orchestration</h4>
         </div>
         <div class="left-lower-inner-div">
-            <p>Welcome, <i>{{ current_user.username }}!</i></p>
-            <div class="dropdown show">
-                <button class="btn btn-secondary dropdown-toggle w-100" type="button" id="actionDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                    Select Action
-                </button>
-                <div class="dropdown-menu w-100 show" aria-labelledby="actionDropdown">
-                    <a class="dropdown-item" href="#" onclick="showSection('addWorkloadType')">Add New Workload Type</a>
-                    <a class="dropdown-item" href="#" onclick="showSection('createWorkload')">Deploy New Workload</a>
-                    <a class="dropdown-item" href="#" onclick="showSection('listWorkload')">List Deployed Workloads</a>
-                    <a class="dropdown-item" href="#" onclick="showSection('deployMonitoring')">Deploy Monitoring System</a>
-                    {% if current_user.role == 'admin' %}
-                    <a class="dropdown-item" href="#" onclick="showSection('registerUser')">Register New User</a>
-                    {% endif %}
-                    <a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a>
-                </div>
-            </div>
+            <p>Logged in user: <i>{{ current_user.username }}</i></p>
+            <ul class="side-menu">
+                <li class="menu-item" onclick="showSection('addWorkloadType')">
+                    <svg class="menu-icon" ...><!-- Add workload icon --></svg>
+                    Add Workload Type
+                </li>
+                <li class="menu-item" onclick="showSection('createWorkload')">
+                    <svg class="menu-icon" ...><!-- Deploy icon --></svg>
+                    Deploy Workload
+                </li>
+                <li class="menu-item" onclick="showSection('listWorkload')">
+                    <svg class="menu-icon" ...><!-- List icon --></svg>
+                    List Workloads
+                </li>
+                <li class="menu-item" onclick="showSection('deployMonitoring')">
+                    <svg class="menu-icon" ...><!-- Monitoring icon --></svg>
+                    Monitoring System
+                </li>
+                {% if current_user.role == 'admin' %}
+                <li class="menu-item" onclick="showSection('registerUser')">
+                    <svg class="menu-icon" ...><!-- User icon --></svg>
+                    Register User
+                </li>
+                {% endif %}
+                <li class="menu-item" onclick="location.href='{{ url_for('auth.logout') }}'">
+                    <svg class="menu-icon" ...><!-- Logout icon --></svg>
+                    Logout
+                </li>
+            </ul>
         </div>
     </div>
     <div id="right-panel" class="right-panel">
