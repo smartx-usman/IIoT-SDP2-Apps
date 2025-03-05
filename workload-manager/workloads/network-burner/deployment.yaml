@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: network-burner-ss
+  labels:
+    environment: production
+    app: network-burner-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: network-burner-deployment
+  template:
+    metadata:
+      labels:
+        app: network-burner-deployment
+    spec:
+      containers:
+      - name: network-burner-container
+        image: usman476/resource-burner:latest
+        env:
+        - name: WORKLOAD_TYPE
+          value: "network-burner"
+        command: ["python3"]
+        args: ["burner.py"]
+        imagePullPolicy: "Always"
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 1024Mi
+      restartPolicy: Always

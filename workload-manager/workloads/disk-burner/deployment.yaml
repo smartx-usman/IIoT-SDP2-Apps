@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: disk-burner-ss
+  labels:
+    environment: production
+    app: disk-burner-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: disk-burner-deployment
+  template:
+    metadata:
+      labels:
+        app: disk-burner-deployment
+    spec:
+      containers:
+      - name: disk-burner-container
+        image: usman476/resource-burner:latest
+        env:
+        - name: WORKLOAD_TYPE
+          value: "disk-burner"
+        command: ["python3"]
+        args: ["burner.py"]
+        imagePullPolicy: "Always"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+      restartPolicy: Always
