@@ -5,13 +5,14 @@ import time
 import yaml
 from flask import Blueprint, jsonify, request
 from flask_login import login_required
-from app.kubernetes_utils import load_kube_config, process_helm, process_object
+from app.kubernetes_utils import load_kube_config, process_helm, create_kubernetes_objects
 import kubernetes
 from kubernetes.client.rest import ApiException
 from app.kubernetes_utils import create_namespace
 from config import Config
 
 monitoring_bp = Blueprint('monitoring', __name__)
+
 
 @monitoring_bp.route('/monitoring', methods=['POST'])
 @login_required
@@ -57,9 +58,11 @@ def deploy_monitoring_system():
                 with open(os.path.join(deployment_dir, filename), 'r') as file:
                     documents = yaml.safe_load_all(file)
                     for doc in documents:
-                        process_object(namespace=namespace, doc=doc, option='install',
-                                       api_instance_apps=api_instance_apps,
-                                       api_instance_core=api_instance_core, api_instance_rbac=api_instance_rbac)
+                        create_kubernetes_objects(namespace=namespace,
+                                                  doc=doc,
+                                                  api_instance_apps=api_instance_apps,
+                                                  api_instance_core=api_instance_core,
+                                                  api_instance_rbac=api_instance_rbac)
 
         else:
             try:
