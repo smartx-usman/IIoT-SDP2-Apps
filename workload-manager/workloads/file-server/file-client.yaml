@@ -27,5 +27,9 @@ spec:
           value: "True"
         - name: TOTAL_REQUESTS
           value: "3"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
       #nodeSelector:
       #  kubernetes.io/hostname: k8s-worker-4

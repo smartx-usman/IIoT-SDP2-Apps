@@ -29,6 +29,10 @@ spec:
         volumeMounts:
         - name: files-volume
           mountPath: /files
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
 
       #nodeSelector:
       #  kubernetes.io/hostname: k8s-worker-1

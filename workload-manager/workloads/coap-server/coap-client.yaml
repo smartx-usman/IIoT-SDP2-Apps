@@ -24,4 +24,8 @@ spec:
         command: [ "python3" ]
         args: [ "coap-client.py" ]
         imagePullPolicy: "Always"
+        resources:
+          requests:
+            cpu: 200m
+            memory: 500Mi
 
