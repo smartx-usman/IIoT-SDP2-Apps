@@ -3,12 +3,13 @@ import threading
 
 import kubernetes
 from app.helm_utils import handle_helm_deployment
-from app.kubernetes_utils import load_kube_config, handle_workloads
+from app.kubernetes_utils import load_kube_config, handle_workloads, ensure_user_namespace, delete_resources
 from app.models import DeployedWorkload, WorkloadType
 from app.yaml_utils import handle_yaml_deployment
 from flask import Blueprint, jsonify, render_template, request, url_for
 from flask_login import login_required, current_user
 from werkzeug.utils import redirect
+from sqlalchemy import or_
 
 workload_bp = Blueprint('workload', __name__)
 
@@ -55,9 +56,10 @@ def submit():
                 'node_name': node_names[i]
             })
 
-        threading.Thread(target=handle_workloads, args=(workloads, chained, current_user.username)).start()
+        threading.Thread(target=handle_workloads,
+                         args=(workloads, chained, current_user.username, request.form.get('namespace'))).start()
 
-        return jsonify({"status": "success", "message": "Workload submitted successfully."})
+        return jsonify({"status": "success", "message": "Workload(s) submitted successfully."})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
@@ -65,7 +67,19 @@ def submit():
 @workload_bp.route('/workload_types', methods=['GET'])
 @login_required
 def get_workload_types():
-    types = WorkloadType.query.filter_by(workload_enabled=True).all()
+    if current_user.role == 'admin':
+        query = WorkloadType.query.filter_by(workload_enabled=True)
+    else:
+        query = WorkloadType.query.filter(
+            WorkloadType.workload_enabled == True,
+            or_(
+                WorkloadType.created_by == current_user.username,
+                WorkloadType.created_by == 'admin'
+            )
+        )
+
+    types = query.all()
+
     return jsonify({
         "types": [{
             "id": wt.id,
@@ -78,12 +92,14 @@ def get_workload_types():
 @login_required
 def add_workload_type():
     try:
-        deploy_method = request.form.get('deploy_method')
-        logging.info(f"Deploy method: {deploy_method}")
+        deploy_method = request.form.get('deployMethod')
 
         if deploy_method == 'helm':
             return handle_helm_deployment(request, current_user)
         else:
+            #  logging.info("Received form data:")
+            #  for key, value in request.form.items():
+            #    logging.info(f"{key}: {value}")
             return handle_yaml_deployment(request, current_user)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -102,8 +118,6 @@ def deployed_workloads():
         else:
             workloads = DeployedWorkload.query.filter_by(username=current_user.username).all()
 
-        logging.info(f"Workloads fetched successfully for user '{current_user.username}'.")
-
         workload_data = []
         for workload in workloads:
             workload_data.append({
@@ -120,3 +134,60 @@ def deployed_workloads():
     except Exception as e:
         logging.error(f"Error fetching workloads: {str(e)}")
         return jsonify({'error': 'Failed to fetch workloads for user ' + current_user.username}), 500
+
+
+@workload_bp.route('/running_workloads', methods=['GET'])
+@login_required
+def running_workloads():
+    if not current_user.is_authenticated:
+        logging.warning('User is not authenticated.')
+        return redirect(url_for('login'))
+
+    try:
+        if current_user.role == 'admin':
+            workloads = DeployedWorkload.query.all()
+        else:
+            workloads = DeployedWorkload.query.filter(
+                DeployedWorkload.username == current_user.username,
+                DeployedWorkload.completed.is_(False)
+            ).all()
+
+        workload_data = []
+        for workload in workloads:
+            workload_data.append({
+                'workload_name': workload.workload_name,
+                'duration': workload.duration,
+                'replicas': workload.replicas,
+                'node_name': workload.node_name,
+                'status': workload.status,
+                'completed': workload.completed,
+                'username': workload.user.username,
+                'created_at': workload.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+
+        return workload_data
+    except Exception as e:
+        logging.error(f"Error fetching workloads: {str(e)}")
+        return jsonify({'error': 'Failed to fetch workloads for user ' + current_user.username}), 500
+
+
+@workload_bp.route('/delete_running_workloads', methods=['POST'])
+@login_required
+def delete_running_workloads():
+    if not current_user.is_authenticated:
+        logging.warning('User is not authenticated.')
+        return redirect(url_for('login'))
+
+    try:
+        workload = request.get_json()
+
+        if not workload:
+            return jsonify({"error": "No JSON received"}), 400  # Bad Request
+
+        delete_resources(workload, current_user.namespace)
+
+        logging.info(f"Workload deleted successfully for user '{current_user.username}'.")
+        return jsonify({"status": "success", "message": "Backend workload deleted successfully."})
+    except Exception as e:
+        logging.error(f"Error deleting workload: {str(e)}")
+        return jsonify({'error': 'Failed to delete workload for user ' + current_user.username}), 500
