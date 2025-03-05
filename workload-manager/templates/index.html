@@ -6,12 +6,13 @@
     <title>Experimental Workloads Manager</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="{{ url_for('static', filename='config.js') }}"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </head>
-<body>
+<body data-user-level="{{ current_user.user_level }}" data-namespace="{{ current_user.namespace }}">
 <header>
     <h2>Experimental Workload Management Dashboard</h2>
 </header>
@@ -21,11 +22,11 @@
             <h4 style="color: white">Workload Orchestration</h4>
         </div>
         <div class="left-lower-inner-div">
-            <p>Logged in user: <i>{{ current_user.username }}</i></p>
+            <p style="background-color: #ccebff; color: black">Logged in user: <i>{{ current_user.username }}</i></p>
             <ul class="side-menu">
                 <li class="menu-item" onclick="showSection('addWorkloadType')">
                     <svg class="menu-icon" ...><!-- Add workload icon --></svg>
-                    Add Workload Type
+                    Create Workload Type
                 </li>
                 <li class="menu-item" onclick="showSection('createWorkload')">
                     <svg class="menu-icon" ...><!-- Deploy icon --></svg>
@@ -33,11 +34,15 @@
                 </li>
                 <li class="menu-item" onclick="showSection('listWorkload')">
                     <svg class="menu-icon" ...><!-- List icon --></svg>
-                    List Workloads
+                    List Deployed Workloads
+                </li>
+                <li class="menu-item" onclick="showSection('deleteWorkload')">
+                    <svg class="menu-icon" ...><!-- List icon --></svg>
+                    Delete Running Workloads
                 </li>
                 <li class="menu-item" onclick="showSection('deployMonitoring')">
                     <svg class="menu-icon" ...><!-- Monitoring icon --></svg>
-                    Monitoring System
+                    Deploy Monitoring System
                 </li>
                 {% if current_user.role == 'admin' %}
                 <li class="menu-item" onclick="showSection('registerUser')">
@@ -61,18 +66,19 @@
                 <h4 style="color: white">Create New Workload Type</h4>
             </div>
             <div class="right-lower-inner-div">
-                <form id="workload-type-form">
+                <form id="workload-type-form" enctype="multipart/form-data">
                     <div class="form-group">
                         <label for="workloadDisplayName">Workload Name:</label>
-                        <input type="text" id="workloadDisplayName" class="form-control" required>
+                        <input type="text" id="workloadDisplayName" class="form-control" pattern="[A-Za-z0-9][A-Za-z0-9_-]*" title="Name can only contain letters, numbers, underscores (_), and hyphens (-)." required>
                     </div>
                     <div class="form-group">
-                        <label for="workloadEnabled">Workload Enabled:</label>
-                        <select id="workloadEnabled" class="form-control" required>
+                        <label for="workloadEnabled" hidden="">Workload Enabled:</label>
+                        <select id="workloadEnabled" class="form-control" required hidden="">
                             <option value="true" selected>True</option>
                             <option value="false">False</option>
                         </select>
                     </div>
+
                     <div class="form-group">
                         <label>Deployment Method:</label>
                         <select id="deployMethod" class="form-control" onchange="toggleDeployMethod()">
@@ -81,7 +87,6 @@
                         </select>
                     </div>
 
-                    <!-- YAML Section (existing) -->
                     <div id="yamlSection">
                         <div class="form-group">
                             <label>Configuration Method:</label>
@@ -92,68 +97,169 @@
                         </div>
 
                         <div id="dynamicConfig">
-                            <!-- Basic Fields -->
                             <div class="form-group">
-                                <label>Container Image:</label>
-                                <input type="text" class="form-control" name="image" id="image" value="usman476/coap:latest" placeholder="Enter container info.">
-                            </div>
-                            <div class="form-group">
-                                <label>Command Interpreter:</label>
-                                <input type="text" class="form-control" name="cmd_interpreter" id="cmd_interpreter" value="python3" placeholder="Enter command interpreter (e.g., shell)">
-                            </div>
-                            <div class="form-group">
-                                <label>Arguments:</label>
-                                <input type="text" class="form-control" name="cmd_arguments" id="cmd_arguments" value="coap-server.py" placeholder="Enter command interpreter (e.g., file name to run and any arguments)">
+                                <label>Resource Type:</label>
+                                <select id="resourceType" class="form-control" onchange="updateFormFields()">
+                                    <option value="Pod" selected>Pod</option>
+                                    <option value="Deployment">Deployment</option>
+                                    <!--<option value="StatefulSet">StatefulSet</option>
+                                    <option value="DaemonSet">DaemonSet</option>
+                                    <option value="Job">Job</option>-->
+                                </select>
                             </div>
 
-                            <!-- Intermediate Fields -->
-                            <div class="intermediate-fields" style="display: none;">
-                                <div class="form-group">
-                                    <label>CPU Limit (cores):</label>
-                                    <input type="number" class="form-control" name="cpu_limit" step="0.1">
+                            <div id="dynamicFields">
+                                {% if current_user.user_level == 'beginner' or current_user.user_level == 'intermediate' or current_user.user_level == 'advanced' %}
+                                <div class="beginner-section form-group">
+                                    <div class="form-group" id="div_container_image">
+                                        <label>Container Image:</label>
+                                        <input type="text" class="form-control" name="image" id="image"
+                                               value="usman476/coap:latest" placeholder="Enter container info.">
+                                    </div>
+                                    <div class="form-group" id="div_container_interpreter">
+                                        <label>Command Interpreter:</label>
+                                        <input type="text" class="form-control" name="cmd_interpreter" id="cmd_interpreter"
+                                               value="python3" placeholder="Enter command interpreter (e.g., shell)">
+                                    </div>
+                                    <div class="form-group" id="div_container_arguments">
+                                        <label>Command Arguments (space-separated):</label>
+                                        <input type="text" class="form-control" name="cmd_arguments" id="cmd_arguments"
+                                               value="coap-server.py" placeholder="arg1 arg2 arg3">
+                                    </div>
+                                    <div class="form-group" id="div_container_port">
+                                        <label>Container Port:</label>
+                                        <input type="number" class="form-control" name="container_port" id="container_port"
+                                               value="5683" placeholder="Enter container port number">
+                                    </div>
                                 </div>
-                                <div class="form-group">
-                                    <label>Memory Limit (MB):</label>
-                                    <input type="number" class="form-control" name="memory_limit">
+                                {% endif %}
+                                {% if current_user.user_level == 'intermediate' or current_user.user_level == 'advanced' %}
+                                <div class="intermediate-section form-group">
+                                    <div class="form-group" id="div_image_pull_policy">
+                                        <label>Image Pull Policy:</label>
+                                        <select name="imagePullPolicy" id="pull_policy" class="form-control">
+                                            <option value="Always">Always</option>
+                                            <option value="IfNotPresent" selected>IfNotPresent</option>
+                                            <option value="Never">Never</option>
+                                          </select>
+                                    </div>
+                                    <div class="form-group" id="envVars">
+                                        <div class="form-group env-entry">
+                                            <label>Environment Variables:</label>
+                                            <input type="text" class="form-control" name="envName[]" placeholder="ENV_NAME">
+                                            <input type="text" class="form-control" name="envValue[]"
+                                                   placeholder="ENV_VALUE">
+                                            <button type="button" class="btn btn-danger" onclick="removeEntry(this)">
+                                                Remove
+                                            </button>
+                                            <button type="button" class="btn btn-primary" onclick="addEnvVar()">Add More</button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" id="volumes">
+                                        <div class="form-group volume-entry">
+                                            <label>Volumes and Mounts:</label>
+                                            <input type="text" class="form-control" name="volumeName[]"
+                                                   placeholder="Volume Name (e.g., shared-data)">
+                                            <select class="form-control" name="volumeType[]">
+                                              <option value="emptyDir">emptyDir</option>
+                                              <option value="hostPath" selected>hostPath</option>
+                                              <option value="configMap">configMap</option>
+                                            </select>
+                                            <input type="text" class="form-control" name="volumeSource[]"
+                                                   placeholder="Source (e.g., /host/path)">
+                                            <input type="text" class="form-control" name="mountPath[]"
+                                                   placeholder="Mount Path (e.g., /container/path)">
+                                            <button type="button" class="btn btn-danger" onclick="removeVolume(this)">
+                                                Remove
+                                            </button>
+                                            <button type="button" id="addVolumeBtn" class="btn btn-primary"  onclick="addVolume()">Add More</button>
+                                        </div>
+                                    </div>
+                                    <div class="resource-section form-group">
+                                      <label>Requests:</label>
+                                      <input class="form-control" type="text" name="cpuRequest" placeholder="CPU (e.g., 100m)">
+                                      <input class="form-control" type="text" name="memoryRequest" placeholder="Memory (e.g., 256Mi)">
+
+                                      <label>Limits:</label>
+                                      <input class="form-control" type="text" name="cpuLimit" placeholder="CPU Limit">
+                                      <input class="form-control" type="text" name="memoryLimit" placeholder="Memory Limit">
+                                    </div>
                                 </div>
+                                {% endif %}
+                                {% if current_user.user_level == 'advanced' %}
+                                <div class="advanced-section form-group">
+                                  <div class="restart-section form-group">
+                                    <label>Restart Policy:</label>
+                                      <select class="form-control" name="restartPolicy">
+                                        <option value="Always">Always</option>
+                                        <option value="OnFailure">OnFailure</option>
+                                        <option value="Never">Never</option>
+                                      </select>
+                                  </div>
+                                  <div class="affinity-section form-group">
+                                    <label>Affinity Rule:</label>
+                                    <input class="form-control" type="text" name="nodeAffinityKey" placeholder="Node label key">
+                                    <input class="form-control" type="text" name="nodeAffinityValue" placeholder="Node label value">
+                                  </div>
+                                  <div class="toleration-section form-group">
+                                    <label>Toleration:</label>
+                                    <input type="text" class="form-control" name="tolerationKey" placeholder="Toleration key">
+                                    <input type="text" class="form-control" name="tolerationValue" placeholder="Toleration value">
+                                    <select class="form-control" name="tolerationEffect">
+                                      <option class="form-control" value="NoSchedule">NoSchedule</option>
+                                      <option class="form-control" value="PreferNoSchedule">PreferNoSchedule</option>
+                                      <option class="form-control" value="NoExecute">NoExecute</option>
+                                    </select>
+                                  </div>
+                                  <div class="security-context form-group">
+                                    <label>Security Context:</label>
+                                    <input type="number" class="form-control" name="runAsUser" placeholder="Run as User ID">
+                                    <input type="number" class="form-control" name="runAsGroup" placeholder="Run as Group ID">
+                                    <input type="checkbox" name="privileged"> Privileged
+                                  </div>
+                                  <div class="probe-section form-group">
+                                    <label>Liveness Probe</label>
+                                    <input type="text" class="form-control" name="livenessPath" placeholder="Path (e.g., /healthz)">
+                                    <input type="number" class="form-control" name="livenessPort" placeholder="Port">
+                                    <input type="number" class="form-control" name="livenessInitialDelay" placeholder="Initial Delay (s)">
+
+                                    <label>Readiness Probe</label>
+                                    <input type="text" class="form-control" name="readinessPath" placeholder="Path">
+                                    <input type="number" class="form-control" name="readinessPort" placeholder="Port">
+                                    <input type="number" class="form-control" name="readinessInitialDelay" placeholder="Initial Delay (s)">
+                                  </div>
+                                </div>
+                                {% endif %}
                             </div>
 
-                            <!-- Advanced Fields -->
-                            <div class="advanced-fields" style="display: none;">
-                                <div class="form-group">
-                                    <label>Affinity Rules:</label>
-                                    <textarea class="form-control" name="affinity" rows="3"></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label>Tolerations:</label>
-                                    <textarea class="form-control" name="tolerations" rows="3"></textarea>
-                                </div>
+                            <div class="form-group service-section" style="display: none;" onchange="updateServiceFields()">
+                                <label>Create Service:</label>
+                                <select class="form-control" name="service_type">
+                                    <option value="" selected>None</option>
+                                    <option value="ClusterIP">ClusterIP</option>
+                                    <option value="NodePort">NodePort</option>
+                                </select>
                             </div>
+                            <div class="form-group service-section" id="serviceOptions" style="display: none;">
+                            </div>
+
                         </div>
 
                         <div id="uploadConfig" style="display: none;">
                             <div class="form-group">
                                 <label>Upload YAML File:</label>
-                                <input type="file" class="form-control-file" id="workloadYaml" name="yaml_file" accept=".yaml,.yml" multiple>
+                                <input type="file" class="form-control-file" id="workloadYaml" name="yaml_file"
+                                       accept=".yaml,.yml" multiple>
                             </div>
                         </div>
                     </div>
 
                     <!-- Helm Chart Section -->
                     <div id="helmSection" style="display: none;">
-                        <div class="form-group">
-                            <label>Helm Repository Type:</label>
-                            <select class="form-control" name="helm_repo_type">
-                                <option value="public">Public Repository</option>
-                                <option value="private">Private Repository</option>
-                                <option value="local">Local Chart</option>
-                            </select>
-                        </div>
-
-                        <!-- Beginner Fields -->
-                        <div class="helm-basic-fields">
+                        <!-- Common Fields -->
+                        <div class="helm-basic-fields" id="helm_beginner_div" style="display: none;">
                             <div class="form-group">
-                                <label>Chart Name/Path:</label>
+                                <label>Repository URL:</label>
                                 <input type="text" class="form-control" name="helm_chart">
                             </div>
                             <div class="form-group">
@@ -162,26 +268,37 @@
                             </div>
                         </div>
 
-                        <!-- Advanced Fields -->
-                        <div class="helm-advanced-fields" style="display: none;">
-                            <div class="form-group">
-                                <label>Repository URL:</label>
-                                <input type="url" class="form-control" name="helm_repo_url">
-                            </div>
+                        {% if current_user.user_level == 'intermediate' or current_user.user_level == 'advanced' %}
+                        <div class="helm-intermediate-fields" id="helm_intermediate_div" style="display: none;">
                             <div class="form-group">
                                 <label>Chart Version:</label>
                                 <input type="text" class="form-control" name="helm_version">
                             </div>
                             <div class="form-group">
-                                <label>Values Files:</label>
-                                <input type="file" class="form-control" name="helm_values" multiple>
+                                <label>Helm Repository Type:</label>
+                                <select class="form-control" name="helm_repo_type">
+                                    <option value="public" selected>Public Repository</option>
+                                    <option value="private">Private Repository</option>
+                                    <option value="local">Local Chart</option>
+                                </select>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Advanced Fields -->
+                        {% if current_user.user_level == 'advanced' %}
+                        <div class="helm-advanced-fields" id="helm_advanced_div" style="display: none;">
+                            <div class="form-group">
+                                <label>Values File:</label>
+                                <input type="file" class="form-control-file" id="helm_values" name="helm_values">
                             </div>
                             <div class="form-group">
                                 <label>Set Values:</label>
                                 <textarea class="form-control" name="helm_set"
-                                    placeholder="key1=value1\nkey2=value2"></textarea>
+                                          placeholder="key1=value1\nkey2=value2"></textarea>
                             </div>
                         </div>
+                        {% endif %}
                     </div>
                     <button type="submit" class="btn btn-primary" value="Submit">Save Workload Type</button>
                 </form>
@@ -193,7 +310,6 @@
             </div>
             <div class="right-lower-inner-div">
                 <form id="workload-form">
-                    <!--<form id="workload-form" method="post" action="/submit">-->
                     <div id="workloads">
                         <div>
                             <div class="form-group">
@@ -202,11 +318,13 @@
                             </div>
                             <div class="form-group">
                                 <label for="duration">Run Duration (seconds):</label>
-                                <input type="number" name="duration[]" class="form-control duration" min="1" value="120" required>
+                                <input type="number" name="duration[]" class="form-control duration" min="1" value="120"
+                                       required>
                             </div>
                             <div class="form-group">
-                                <label for="replicas">No. of Replicas:</label>
-                                <input type="number" name="replicas[]" class="form-control replicas" min="1" value="1" required>
+                                <label for="replicas">No. of Replicas (Deployment only):</label>
+                                <input type="number" name="replicas[]" class="form-control replicas" min="1" value="1"
+                                       required>
                             </div>
                             <div class="form-group">
                                 <label for="node_name">Cluster Node for Deployment:</label>
@@ -215,11 +333,11 @@
                                 </select>
                             </div>
                             <button type="button" class="btn btn-danger" onclick="removeWorkload(this)">Remove</button>
+                            <button type="button" id="addWorkloadBtn" class="btn btn-primary">Add More Workload</button>
                             <hr>
                         </div>
                     </div>
-                    <button type="button" id="addWorkloadBtn" class="btn btn-primary">Add Workload</button>
-                    <br><br>
+                    <br>
                     <input type="submit" value="Submit" class="btn btn-success">
                 </form>
             </div>
@@ -232,6 +350,20 @@
                 <div id="workload-list"></div>
             </div>
         </div>
+        <div id="deleteWorkload" class="section">
+            <div class="right-upper-inner-div">
+                <h4 style="color: white">Delete Running Workload(s) from the Cluster</h4>
+            </div>
+            <div class="right-lower-inner-div">
+                <!-- Loading Spinner -->
+                <div id="loading-spinner" style="display: none;">
+                  <div class="spinner"></div>
+                  <p>Checking running workloads...</p>
+                </div>
+                <div id="workload-list-delete"></div>
+            </div>
+        </div>
+
         <div id="deployMonitoring" class="section" style="display: none;">
             <div class="right-upper-inner-div">
                 <h4 style="color: white">Deploy Monitoring System in the Cluster</h4>
@@ -261,6 +393,7 @@
                 </form>
             </div>
         </div>
+
         <div id="registerUser" class="section" style="display: none;">
             <div class="right-upper-inner-div">
                 <h4 style="color: white">Register New User</h4>
@@ -290,6 +423,24 @@
                             <option value="advanced">Advanced</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label for="quota_pods">Maximum pods allowed</label>
+                        <input class="form-control" type="number" name="quota_pods" id="quota_pods"
+                               value="4" min="1" max="20" placeholder="Maximum pods allowed">
+                    </div>
+                    <div class="form-group">
+                        <label for="quota_cpu">CPU limit</label>
+                        <input class="form-control" type="text" name="quota_cpu" id="quota_cpu"
+                               value="1000m" pattern="^\d+m$"
+                               placeholder="CPU limit (e.g., 500m, 2)">
+                    </div>
+                    <div class="form-group">
+                        <label for="quota_memory">Memory limit</label>
+                        <input class="form-control" type="text" name="quota_memory" id="quota_memory"
+                               value="2Gi" pattern="^\d+[MG]i$"
+                               placeholder="Memory limit (e.g., 512Mi, 2Gi)">
+                    </div>
+
                     <input type="submit" class="btn btn-primary" value="Register">
                 </form>
             </div>
