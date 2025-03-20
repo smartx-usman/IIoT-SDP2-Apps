@@ -11,7 +11,6 @@ from flask import jsonify
 def handle_yaml_deployment(request, user):
     try:
         config_method = request.form.get('configMethod')
-        #logging.info(f"Config method: {config_method}")
 
         if config_method == 'upload':
             return handle_static_yaml(request, user.username)
@@ -23,7 +22,6 @@ def handle_yaml_deployment(request, user):
 
             if resource_type == 'Deployment':
                 service_type = request.form.get('service_type')
-                #  logging.info(f"Service type: {service_type}")
 
                 if service_type in ['NodePort', 'ClusterIP']:
                     service_spec = generate_service_yaml(request.form, service_type, user.namespace)
