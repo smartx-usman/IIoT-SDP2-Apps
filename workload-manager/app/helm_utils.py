@@ -98,3 +98,8 @@ def restrict_helm_command(cmd, user_level):
         safe_cmd.append(part)
 
     return safe_cmd
+
+
+def update_helm_repos():
+    """Periodically refresh Helm repositories"""
+    subprocess.run(['helm', 'repo', 'update'], check=False)
