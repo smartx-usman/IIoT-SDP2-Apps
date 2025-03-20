@@ -1,6 +1,8 @@
-from flask import Flask
+from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+from flask_cors import CORS
+
 from config import Config
 
 import logging
@@ -17,6 +19,8 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=lo
 def create_app(config_class=Config):
     app = Flask(__name__, template_folder="../templates", static_folder="../static")
     app.config.from_object(config_class)
+    app.secret_key = "my_secret_key"
+    CORS(app)
 
     db.init_app(app)
     login_manager.init_app(app)
