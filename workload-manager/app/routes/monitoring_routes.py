@@ -110,5 +110,4 @@ def deploy_monitoring_system():
     #logging.info(f"Grafana session cookies: {grafana_session}")
     #logging.info(f"Request Client IP: {request.remote_addr} - Request Host: {request.host} - User-Agent: {request.headers.get('User-Agent')}")
 
-    #token = "glsa_vNUEDceL1smnFuW1hrZosFXbANyEsnwk_037fc4c4"
 
