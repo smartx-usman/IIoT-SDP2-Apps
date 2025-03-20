@@ -661,6 +661,17 @@ function showSection(sectionId) {
         if (sectionId === 'deleteWorkload') {
             fetchRunningWorkloads();
         }
+        if (sectionId === 'showMonitoring') {
+            var serverUrl = window.grafanaServerUrl
+            var namespace = document.body.dataset.namespace;
+            var username = document.body.dataset.namespace;
+            var grafanaUrl = `${serverUrl}/d/${namespace}/user-dashboard-${username}`;
+            //var grafanaUrl = `/grafana/d/${namespace}/user-dashboard-${username}`;
+            var iframe = document.getElementById("grafana-iframe");
+            iframe.src = grafanaUrl;
+            //iframe.src = "/grafana_proxy/d/"+namespace+"/user-dashboard-"+username;  // Proxy request to Grafana
+            iframe.style.display = "block";
+        }
         activeSection.style.display = 'block';
     }
 
