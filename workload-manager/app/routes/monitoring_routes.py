@@ -3,8 +3,8 @@ import os
 import time
 
 import yaml
-from flask import Blueprint, jsonify, request
-from flask_login import login_required
+from flask import Blueprint, jsonify, request, make_response, Response, session, render_template, stream_with_context
+from flask_login import login_required, current_user
 from app.kubernetes_utils import load_kube_config, process_helm, create_kubernetes_objects
 import kubernetes
 from kubernetes.client.rest import ApiException
@@ -96,3 +96,19 @@ def deploy_monitoring_system():
     except Exception as e:
         logging.error(str(e))
         return jsonify({"status": "error", "message": str(e)})
+
+
+#@monitoring_bp.route('/grafana_proxy/<path:subpath>')
+#@login_required
+#def grafana_proxy(subpath):
+    ##full_url = f"{Config.GRAFANA_URL}/d/{current_user.namespace}/user-dashboard-{current_user.username}"
+    #full_url = f"{Config.GRAFANA_URL}/{subpath}"
+
+    #logging.info(f"Proxying request to Grafana: {full_url}")
+
+    #grafana_session = session.get("grafana_cookies")
+    #logging.info(f"Grafana session cookies: {grafana_session}")
+    #logging.info(f"Request Client IP: {request.remote_addr} - Request Host: {request.host} - User-Agent: {request.headers.get('User-Agent')}")
+
+    #token = "glsa_vNUEDceL1smnFuW1hrZosFXbANyEsnwk_037fc4c4"
+
