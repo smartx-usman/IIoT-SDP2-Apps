@@ -10,6 +10,7 @@ from flask import Blueprint, jsonify, render_template, request, url_for
 from flask_login import login_required, current_user
 from werkzeug.utils import redirect
 from sqlalchemy import or_
+from config import Config
 
 workload_bp = Blueprint('workload', __name__)
 
@@ -17,7 +18,8 @@ workload_bp = Blueprint('workload', __name__)
 @workload_bp.route('/')
 @login_required
 def index():
-    return render_template('index.html')
+    grafana_url = f"{Config.GRAFANA_URL}"
+    return render_template('index.html', grafana_server_url=grafana_url)
 
 
 @workload_bp.route('/nodes', methods=['GET'])
