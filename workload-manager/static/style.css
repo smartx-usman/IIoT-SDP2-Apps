@@ -274,3 +274,11 @@ caption {
   text-align: center;
   padding: 20px;
 }
+
+/* Make iframe fill container */
+#grafana-iframe {
+    width: 100%;
+    height: 800;
+    border: none;
+    background: transparent;
+}
