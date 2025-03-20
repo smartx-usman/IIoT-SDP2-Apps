@@ -1,12 +1,15 @@
 import logging
 import re
 
-from flask import Blueprint, jsonify, request, render_template, redirect, url_for, flash
+import requests
+from flask import Blueprint, jsonify, request, render_template, redirect, url_for, flash, session
 from flask_login import login_user, logout_user, current_user
 from app import db, login_manager
 from app.models import User
 from app.kubernetes_utils import ensure_user_namespace
+from app.grafana_manager import GrafanaManager
 from werkzeug.security import check_password_hash, generate_password_hash
+from config import Config
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -25,6 +28,27 @@ def login():
         if user and check_password_hash(user.password, password):
             logging.info(f'Login successful. Username: {username}')
             login_user(user)
+
+            # Create a session for Grafana
+            payload = {
+                "user": username,
+                "password": password
+            }
+            grafana_session = requests.Session()
+
+            response = grafana_session.post(f"{Config.GRAFANA_URL}/login", json=payload)
+
+            # Check if login was successful
+            if response.status_code == 200:
+                logging.info("Grafana Login successful!")
+
+            else:
+                logging.info(f"Login failed: {response.status_code} - {response.text}")
+
+            # Store session in user context
+            session["grafana_cookies"] = response.cookies.get_dict()
+            current_user.grafana_session = grafana_session
+
             return redirect(url_for('workload.index'))
         else:
             logging.warning(f'Login failed. Username: {username}')
@@ -58,11 +82,20 @@ def register():
             new_user = User(username=username, password=hashed_password, role=role, user_level=level,
                             namespace=namespace, quota_pods=quota_pods, quota_cpu=quota_cpu, quota_memory=quota_memory)
 
-            db.session.add(new_user)
-            db.session.commit()
-
             ensure_user_namespace(username=username, namespace=namespace, quota_pods=quota_pods, quota_cpu=quota_cpu,
                                   quota_memory=quota_memory)
+
+            grafana_mgr = GrafanaManager(
+                Config.GRAFANA_URL,
+                Config.GRAFANA_ADMIN_USER,
+                Config.GRAFANA_ADMIN_PASSWORD
+            )
+            if not grafana_mgr.user_exists(username):
+                grafana_mgr.create_grafana_user(username=username)
+                grafana_mgr.create_user_dashboard(username, namespace)
+
+            db.session.add(new_user)
+            db.session.commit()
 
             logging.info(f'User registered: Username: {username}, Role: {role}, Expertise-level: {level}')
             return jsonify({"status": "success", "message": "New user registered successfully."})
