@@ -6,6 +6,8 @@ from app.models import User
 from app.models import WorkloadType
 from werkzeug.security import generate_password_hash
 from app.kubernetes_utils import ensure_user_namespace
+from app.grafana_manager import GrafanaManager
+from config import Config
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
@@ -22,6 +24,17 @@ def create_default_users():
 
                 namespace = f"user-{re.sub(r'[^a-z0-9-]', '', user.lower())[:45]}"
                 ensure_user_namespace(username=user, namespace=namespace, quota_pods=10, quota_cpu='2000m', quota_memory='4Gi')
+
+                grafana_mgr = GrafanaManager(
+                    Config.GRAFANA_URL,
+                    Config.GRAFANA_ADMIN_USER,
+                    Config.GRAFANA_ADMIN_PASSWORD
+                )
+                if not grafana_mgr.user_exists(user):
+                    grafana_mgr.create_grafana_user(username=user)
+                    #account_id, grafana_api_token = grafana_mgr.create_service_account(username=user)
+                    #logging.info(f"Grafana Response: {account_id} - {grafana_api_token}")
+                    grafana_mgr.create_user_dashboard(user, namespace)
 
             db.session.add(new_user)
             db.session.commit()
