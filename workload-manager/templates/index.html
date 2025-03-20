@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="{{ url_for('static', filename='config.js') }}"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        window.grafanaServerUrl = {{ grafana_server_url|tojson|safe }};
+    </script>
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
@@ -18,44 +21,7 @@
 </header>
 <div class="container-fluid main-container">
     <div id="left-panel" class="left-panel">
-        <div class="left-upper-inner-div">
-            <h4 style="color: white">Workload Orchestration</h4>
-        </div>
-        <div class="left-lower-inner-div">
-            <p style="background-color: #ccebff; color: black">Logged in user: <i>{{ current_user.username }}</i></p>
-            <ul class="side-menu">
-                <li class="menu-item" onclick="showSection('addWorkloadType')">
-                    <svg class="menu-icon" ...><!-- Add workload icon --></svg>
-                    Create Workload Type
-                </li>
-                <li class="menu-item" onclick="showSection('createWorkload')">
-                    <svg class="menu-icon" ...><!-- Deploy icon --></svg>
-                    Deploy Workload
-                </li>
-                <li class="menu-item" onclick="showSection('listWorkload')">
-                    <svg class="menu-icon" ...><!-- List icon --></svg>
-                    List Deployed Workloads
-                </li>
-                <li class="menu-item" onclick="showSection('deleteWorkload')">
-                    <svg class="menu-icon" ...><!-- List icon --></svg>
-                    Delete Running Workloads
-                </li>
-                <li class="menu-item" onclick="showSection('deployMonitoring')">
-                    <svg class="menu-icon" ...><!-- Monitoring icon --></svg>
-                    Deploy Monitoring System
-                </li>
-                {% if current_user.role == 'admin' %}
-                <li class="menu-item" onclick="showSection('registerUser')">
-                    <svg class="menu-icon" ...><!-- User icon --></svg>
-                    Register User
-                </li>
-                {% endif %}
-                <li class="menu-item" onclick="location.href='{{ url_for('auth.logout') }}'">
-                    <svg class="menu-icon" ...><!-- Logout icon --></svg>
-                    Logout
-                </li>
-            </ul>
-        </div>
+        {% include 'menu.html' %}
     </div>
     <div id="right-panel" class="right-panel">
         <div id="alert-success" class="alert alert-success" style="display: none;"></div>
@@ -364,35 +330,7 @@
             </div>
         </div>
 
-        <div id="deployMonitoring" class="section" style="display: none;">
-            <div class="right-upper-inner-div">
-                <h4 style="color: white">Deploy Monitoring System in the Cluster</h4>
-            </div>
-            <div class="right-lower-inner-div">
-                <br>
-                <p>A monitoring system with the following tools will be deployed/removed:</p>
-                <ol type="i">
-                    <li>Telegraf - Monitoring Agent</li>
-                    <li>Prometheus - Monitoring Backend Storage</li>
-                    <li>Grafana - Metrics Visualization</li>
-                </ol>
-                <form id="monitoring-form">
-                    <!--<button class="btn btn-primary">Deploy</button>-->
-                    <p>Select an option:</p>
-                    <label for="deploy">
-                        <input type="radio" id="deploy" name="options" value="deploy" class="btn btn-primary" checked>
-                        Deploy Monitoring System
-                    </label>
-
-                    <label for="delete">
-                        <input type="radio" id="delete" name="options" value="delete" class="btn btn-primary">
-                        Delete Monitoring System
-                    </label>
-                    <br><br>
-                    <input type="submit" value="Submit" class="btn btn-success">
-                </form>
-            </div>
-        </div>
+        {% include 'monitoring.html' %}
 
         <div id="registerUser" class="section" style="display: none;">
             <div class="right-upper-inner-div">

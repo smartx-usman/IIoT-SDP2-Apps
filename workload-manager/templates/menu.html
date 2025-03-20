@@ -1,0 +1,42 @@
+<div class="left-upper-inner-div">
+    <h4 style="color: white">Workload Orchestration</h4>
+</div>
+<div class="left-lower-inner-div">
+    <p style="background-color: #ccebff; color: black">Logged in user: <i>{{ current_user.username }}</i></p>
+    <ul class="side-menu">
+        <li class="menu-item" onclick="showSection('addWorkloadType')">
+            <svg class="menu-icon" ...><!-- Add workload icon --></svg>
+            Create Workload Type
+        </li>
+        <li class="menu-item" onclick="showSection('createWorkload')">
+            <svg class="menu-icon" ...><!-- Deploy icon --></svg>
+            Deploy Workload
+        </li>
+        <li class="menu-item" onclick="showSection('listWorkload')">
+            <svg class="menu-icon" ...><!-- List icon --></svg>
+            List Deployed Workloads
+        </li>
+        <li class="menu-item" onclick="showSection('deleteWorkload')">
+            <svg class="menu-icon" ...><!-- List icon --></svg>
+            Delete Running Workloads
+        </li>
+        <li class="menu-item" onclick="showSection('showMonitoring')">
+            <svg class="menu-icon" ...><!-- Monitoring icon --></svg>
+            Monitor Workloads
+        </li>
+        {% if current_user.role == 'admin' %}
+        <li class="menu-item" onclick="showSection('deployMonitoring')">
+            <svg class="menu-icon" ...><!-- Monitoring icon --></svg>
+            Deploy Monitoring System
+        </li>
+        <li class="menu-item" onclick="showSection('registerUser')">
+            <svg class="menu-icon" ...><!-- User icon --></svg>
+            Register User
+        </li>
+        {% endif %}
+        <li class="menu-item" onclick="location.href='{{ url_for('auth.logout') }}'">
+            <svg class="menu-icon" ...><!-- Logout icon --></svg>
+            Logout
+        </li>
+    </ul>
+</div>
