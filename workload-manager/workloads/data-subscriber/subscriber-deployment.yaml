@@ -19,8 +19,12 @@ spec:
       - name: mqtt-to-kafka-container
         image: usman476/mqtt-kafka-faust:latest
         env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         - name: MQTT_BROKER
-          value: "mqtt-mosquitto.workloads.svc.cluster.local"
+          value: "mqtt-broker-mosquitto"
         - name: MQTT_BROKER_PORT
           value: "1883"
         - name: MQTT_TOPIC
@@ -28,7 +32,7 @@ spec:
         - name: THINGSBOARD_DEVICE_TOKEN
           value: "3CvCfOphVy9DnnpqVTzT"
         - name: KAFKA_BROKER
-          value: "kafka-broker-headless.workloads.svc.cluster.local:9092"
+          value: "kafka-broker"
         - name: KAFKA_TOPIC
           value: "temperature-readings"
         - name: KAFKA_NUM_PARTITIONS
@@ -38,6 +42,13 @@ spec:
         command: ["python3"]
         args: ["subscriber/subscriber.py"]
         imagePullPolicy: "Always"
+        resources:
+          limits:
+            cpu: 250m
+            memory: 250Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
       restartPolicy: Always
       #nodeSelector:
       #  kubernetes.io/hostname: k8s-worker-4

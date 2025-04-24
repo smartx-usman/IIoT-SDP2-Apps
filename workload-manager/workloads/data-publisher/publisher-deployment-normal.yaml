@@ -41,11 +41,15 @@ spec:
           value: "30"
         - name: STRESS_INIT_DELAY
           value: "30"
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
         command: ["python3"]
         args: ["publisher/publisher.py",
                "--value_type", "normal",
                "--data_type", "both",
-               "--mqtt_broker", "mqtt-mosquitto.workloads.svc.cluster.local",
+               "--mqtt_broker", "mqtt-broker-mosquitto",
                "--mqtt_broker_port", "1883",
                "--thingsboard_token", "sensor-normal-token",
                "--mqtt_topic", "mqtt/temperature/data",
