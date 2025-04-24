@@ -15,11 +15,15 @@ from kafka.admin import KafkaAdminClient, NewTopic
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-mqtt_broker = os.environ['MQTT_BROKER']
+mqtt = os.environ['MQTT_BROKER']
+kafka = os.environ['KAFKA_BROKER']
+namespace = os.environ['POD_NAMESPACE']
+
+mqtt_broker = f'{mqtt}.{namespace}.svc.cluster.local'
 mqtt_port = int(os.environ['MQTT_BROKER_PORT'])
 mqtt_topic = os.environ['MQTT_TOPIC']
 thingsboard_device_token = os.environ['THINGSBOARD_DEVICE_TOKEN']
-kafka_broker = os.environ['KAFKA_BROKER']
+kafka_broker = f'{kafka}.{namespace}.svc.cluster.local:9092'
 kafka_topic = os.environ['KAFKA_TOPIC']
 num_partitions = int(os.environ['KAFKA_NUM_PARTITIONS'])
 replication_factor = int(os.environ['KAFKA_REPLICATION_FACTOR'])
