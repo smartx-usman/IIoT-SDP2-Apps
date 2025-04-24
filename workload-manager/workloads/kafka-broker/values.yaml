@@ -126,7 +126,7 @@ existingConfigmap: ""
 extraConfig: |-
   log.retention.hours: 3
   auto.create.topics.enable: true
-  offsets.topic.replication.factor=1
+  offsets.topic.replication.factor: 1
   transaction.state.log.replication.factor: 1
 
 ## @param extraConfigYaml Additional configuration in yaml format to be appended at the end of the generated Kafka configuration file.
