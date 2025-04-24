@@ -70,7 +70,7 @@ def connect_mqtt(client_id):
     if arguments.thingsboard_publisher[0]:
         client.username_pw_set(arguments.thingsboard_token[0])
 
-    client.connect(arguments.mqtt_broker[0], int(arguments.mqtt_broker_port[0]))
+    client.connect(f'{arguments.mqtt_broker[0]}.{pod_namespace}.svc.cluster.local', int(arguments.mqtt_broker_port[0]))
     client.loop_start()
 
     return client
@@ -125,5 +125,6 @@ def run():
 
 arguments = parse_arguments()
 pod_name = os.environ['POD_NAME']
+pod_namespace = os.environ['POD_NAMESPACE']
 
 run()
