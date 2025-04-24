@@ -13,7 +13,9 @@ import paho.mqtt.client as mqtt_client
 
 class MQTTPublish():
     def __init__(self, tracer):
-        self.broker = os.environ['MQTT_BROKER']
+        mqtt = os.environ['MQTT_BROKER']
+        namespace = os.environ['POD_NAMESPACE']
+        self.broker = f'{mqtt}.{namespace}.svc.cluster.local'
         self.port = int(os.environ['MQTT_BROKER_PORT'])
         self.topic = os.environ['MQTT_ACTUATOR_TOPIC']
         self.client_id = f'mqtt-faust-analyzer'
