@@ -18,11 +18,12 @@ class ActionGenerator:
         """Parse message for MQTT"""
         with self.tracer.start_as_current_span("parser") as child_level2_span1:
             message = f"reading_ts:{ts} actuator_id:{self.actuator_id} sensor:{sensor} action:{action}"
-            self.mqtt_client.publish_message(message=message)
+            with self.tracer.start_as_current_span("mqtt-action-publisher") as child_level3_span1:
+                self.mqtt_client.publish_message(message=message)
 
-    def get_actuator_action(self, sensor, value, ts):
+    def get_actuator_action(self, tracer, sensor, value, ts):
         """Find action for the actuator"""
-        with self.tracer.start_as_current_span("ruler") as child_level1_span1:
+        with tracer.start_as_current_span("ruler") as child_level1_span1:
             if value < self.min_threshold_value:
                 self.parse_message_for_actuator(sensor, ts, self.actuator_actions[0])
             elif value > self.max_threshold_value:
