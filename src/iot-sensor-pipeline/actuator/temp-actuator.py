@@ -6,7 +6,10 @@ import paho.mqtt.client as mqtt_client
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-mqtt_broker = os.environ['MQTT_BROKER']
+mqtt = os.environ['MQTT_BROKER']
+namespace = os.environ['POD_NAMESPACE']
+
+mqtt_broker = f'{mqtt}.{namespace}.svc.cluster.local'
 mqtt_port = int(os.environ['MQTT_BROKER_PORT'])
 mqtt_topic = os.environ['MQTT_ACTUATOR_TOPIC']
 clientID = f'python-mqtt-actuator'
