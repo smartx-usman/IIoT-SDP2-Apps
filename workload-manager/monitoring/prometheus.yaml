@@ -787,6 +787,11 @@ serverFiles:
             regex: 'telegraf-exporter-mon'
             action: keep
 
+      - job_name: 'pod-label-exporter'
+        scrape_interval: 10s
+        static_configs:
+          - targets: [ 'pod-label-exporter.simulation.svc.cluster.local:9128' ]
+
       - job_name: 'pushgateway'
         scrape_interval: 10s
         honor_labels: true
