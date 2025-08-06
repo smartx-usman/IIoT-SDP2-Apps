@@ -1,8 +1,8 @@
-FROM python:3.9-slim-buster
+FROM python:3.13-slim
 
 WORKDIR /app
 
-RUN apt -y update && apt -y install wget
+RUN apt update && apt -y install wget
 RUN pip3 install requests
 
 COPY file-server.py .
