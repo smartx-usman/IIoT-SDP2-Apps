@@ -26,22 +26,19 @@ spec:
         imagePullPolicy: "Always"
         command: [ "python3" ]
         args: [ "file-server.py" ]
-        volumeMounts:
-        - name: files-volume
-          mountPath: /files
+        #volumeMounts:
+        #- name: files-volume
+        #  mountPath: /files
         resources:
           requests:
             cpu: 500m
             memory: 512Mi
-
-      #nodeSelector:
-      #  kubernetes.io/hostname: k8s-worker-1
       restartPolicy: Always
-      volumes:
-        - name: files-volume
-          hostPath:
-            path: /home/aida/files
-            type: Directory
+      #volumes:
+      #  - name: files-volume
+      #    hostPath:
+      #      path: /home/aida/files
+      #      type: Directory
 
 ---
 apiVersion: v1
