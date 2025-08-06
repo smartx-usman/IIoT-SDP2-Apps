@@ -108,6 +108,24 @@ class GrafanaManager:
                                 },
                                 "query": namespace,
                                 "hide": 2
+                            },
+                            {
+                                "definition": "label_values(label_workload_id)",
+                                "label": "workload_id",
+                                "name": "workload_id",
+                                "includeAll": True,
+                                "multi": True,
+                                "options": [],
+                                "query": {
+                                    "qryType": 1,
+                                    "query": "label_values(label_workload_id)",
+                                    "datasource": {
+                                        "type": "prometheus"
+                                    }
+                                },
+                                "refresh": 1,
+                                "regex": "",
+                                "type": "query"
                             }
                         ]
                     },
