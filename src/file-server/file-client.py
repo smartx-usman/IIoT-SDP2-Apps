@@ -8,7 +8,11 @@ import requests
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-server_url = os.getenv('FILE_SERVER_URL')
+
+server_url=os.environ['FILE_SERVER_URL'] + '.' + os.environ['POD_NAMESPACE'] + '.svc.cluster.local'
+logging.info(server_url)
+
+#server_url = os.getenv('FILE_SERVER_URL')
 server_port = os.getenv('FILE_SERVER_PORT')
 seasonality = os.getenv('SEASONALITY')
 total_requests = int(os.getenv('TOTAL_REQUESTS'))
