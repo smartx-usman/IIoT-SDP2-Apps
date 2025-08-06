@@ -119,7 +119,7 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "kubernetes_pod_container_cpu_usage_nanocores{namespace=~\"_namespace\"}\n * on(namespace, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
+          "expr": "kubernetes_pod_container_cpu_usage_nanocores{namespace=~\"_namespace\"}\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
           "legendFormat": "{{pod_name}}",
           "range": true,
@@ -213,7 +213,7 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "kubernetes_pod_container_memory_usage_bytes{namespace=\"_namespace\"}\n * on(namespace, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
+          "expr": "kubernetes_pod_container_memory_usage_bytes{namespace=\"_namespace\"}\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
           "legendFormat": "{{pod_name}}",
           "range": true,
@@ -307,7 +307,7 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(kubernetes_pod_network_tx_bytes{namespace=~\"_namespace\"}[$__rate_interval])\n * on(namespace, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
+          "expr": "rate(kubernetes_pod_network_tx_bytes{namespace=~\"_namespace\"}[$__rate_interval])\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
           "interval": "60s",
           "legendFormat": "{{pod_name}}",
@@ -319,7 +319,7 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "- rate(kubernetes_pod_network_rx_bytes{namespace=~\"_namespace\"}[$__rate_interval])\n * on(namespace, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
+          "expr": "- rate(kubernetes_pod_network_rx_bytes{namespace=~\"_namespace\"}[$__rate_interval])\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
           "interval": "60s",
           "legendFormat": "{{pod_name}}",
