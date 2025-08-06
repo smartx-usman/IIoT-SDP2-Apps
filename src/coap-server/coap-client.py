@@ -6,7 +6,8 @@ from aiocoap import *
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-coap_uri = os.environ['COAP_SERVER_URI']
+coap_uri=os.environ['COAP_SERVER_URI'] + '.' + os.environ['POD_NAMESPACE'] + '.svc.cluster.local'
+logging.info(coap_uri)
 coap_clients = int(os.environ['COAP_CLIENTS'])
 
 
