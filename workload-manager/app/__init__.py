@@ -37,8 +37,9 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
-        from app.utilities import create_default_users, initialize_default_workloads
+        from app.utilities import create_default_users, create_experiment_users, initialize_default_workloads
         create_default_users()
+        #create_experiment_users()
         initialize_default_workloads()
 
     return app
