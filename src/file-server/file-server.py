@@ -10,6 +10,10 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=lo
 PORT = 8000
 DIRECTORY = "/files"
 
+# Ensure the directory exists
+if not os.path.exists(DIRECTORY):
+    os.makedirs(DIRECTORY)
+    logging.info(f"Files directory {DIRECTORY} created")
 
 def create_file(filename, size_in_bytes):
     if not os.path.exists(filename):
