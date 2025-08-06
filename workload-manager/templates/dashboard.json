@@ -13,6 +13,24 @@
         "type": "constant",
         "hide": 2,
         "current": {"text": "", "value": ""}
+      },
+      {
+        "definition": "label_values(label_workload_id)",
+        "label": "workload_id",
+        "name": "workload_id",
+        "includeAll": true,
+        "multi": true,
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(label_workload_id)",
+          "datasource": {
+              "type": "prometheus"
+          }
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
       }
     ]
   },
@@ -77,8 +95,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 11,
+        "h": 8,
+        "w": 30,
         "x": 0,
         "y": 0
       },
@@ -101,7 +119,7 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "kubernetes_pod_container_cpu_usage_nanocores{namespace=~\"_namespace\"}",
+          "expr": "kubernetes_pod_container_cpu_usage_nanocores{namespace=~\"_namespace\"}\n * on(namespace, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
           "legendFormat": "{{pod_name}}",
           "range": true,
@@ -171,8 +189,8 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 11,
+        "h": 8,
+        "w": 30,
         "x": 0,
         "y": 7
       },
@@ -195,7 +213,7 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "kubernetes_pod_container_memory_usage_bytes{namespace=\"_namespace\"}",
+          "expr": "kubernetes_pod_container_memory_usage_bytes{namespace=\"_namespace\"}\n * on(namespace, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
           "legendFormat": "{{pod_name}}",
           "range": true,
@@ -266,7 +284,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 11,
+        "w": 30,
         "x": 0,
         "y": 13
       },
@@ -289,7 +307,7 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(kubernetes_pod_network_tx_bytes{namespace=~\"_namespace\"}[$__rate_interval])",
+          "expr": "rate(kubernetes_pod_network_tx_bytes{namespace=~\"_namespace\"}[$__rate_interval])\n * on(namespace, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
           "interval": "60s",
           "legendFormat": "{{pod_name}}",
@@ -301,7 +319,7 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "- rate(kubernetes_pod_network_rx_bytes{namespace=~\"_namespace\"}[$__rate_interval])",
+          "expr": "- rate(kubernetes_pod_network_rx_bytes{namespace=~\"_namespace\"}[$__rate_interval])\n * on(namespace, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
           "interval": "60s",
           "legendFormat": "{{pod_name}}",
