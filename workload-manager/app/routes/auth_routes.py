@@ -38,13 +38,6 @@ def login():
 
             response = grafana_session.post(f"{Config.GRAFANA_URL}/login", json=payload)
 
-            # Check if login was successful
-            if response.status_code == 200:
-                logging.info("Grafana Login successful!")
-
-            else:
-                logging.info(f"Login failed: {response.status_code} - {response.text}")
-
             # Store session in user context
             session["grafana_cookies"] = response.cookies.get_dict()
             current_user.grafana_session = grafana_session
