@@ -15,9 +15,13 @@ from sqlalchemy import text
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+service = os.environ.get('MYSQL_SERVICE_NAME', 'mysql')
+pod_namespace = os.environ.get('POD_NAMESPACE', 'default')
+MYSQL_URL = f"mysql://root:root@{service}.{pod_namespace}.svc.cluster.local/iiot"
+
+
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('MYSQL_URL',
-                                                       'mysql+pymysql://username:password@hostname/database_name')
+app.config['SQLALCHEMY_DATABASE_URI'] = MYSQL_URL
 app.config['REFRESH_INTERVAL'] = int(os.environ.get('REFRESH_INTERVAL', 10))  # Default to 10 seconds
 app.config['DATA_RANGE'] = int(os.environ.get('DATA_RANGE', 3600))  # Default to 1 hour
 db = SQLAlchemy(app)
