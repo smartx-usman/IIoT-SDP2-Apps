@@ -42,8 +42,6 @@ spec:
             cpu: 50m
             memory: 50Mi
       restartPolicy: Always
-      #nodeSelector:
-      #  kubernetes.io/hostname: worker1
 
 ---
 apiVersion: v1
