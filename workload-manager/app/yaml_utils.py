@@ -1,14 +1,15 @@
 import logging
 import os
+from datetime import datetime
 
 from ruamel.yaml import YAML
 from app import db
 from app.models import WorkloadType
-from config import Config
 from flask import jsonify
+from app.workload_dir_finder import get_deployment_files_path
 
 
-def handle_yaml_deployment(request, user):
+def add_yaml_type_workload(request, user):
     try:
         config_method = request.form.get('configMethod')
 
@@ -44,7 +45,7 @@ def handle_static_yaml(request, username):
             return jsonify(status='error', message='Workload with same name already exists'), 400
 
         # Create directory
-        upload_dir = os.path.join(Config.UPLOAD_FOLDER, str(workload_name))
+        upload_dir = get_deployment_files_path(str(workload_name), username)
         os.makedirs(upload_dir, exist_ok=True)
 
         for file in files:
@@ -477,7 +478,7 @@ def save_generated_yaml(request, data, username, resource_type):
             return jsonify(status='error', message='Workload with same name already exists'), 400
 
         # Create directory using ID
-        upload_dir = os.path.join(Config.UPLOAD_FOLDER, str(workload_name))
+        upload_dir = get_deployment_files_path(str(workload_name), username)
         os.makedirs(upload_dir, exist_ok=True)
 
         yaml = YAML()
@@ -489,7 +490,7 @@ def save_generated_yaml(request, data, username, resource_type):
 
         save_generated_type_db(workload_name, workload_enabled, username, deploy_method)
 
-        logging.info(f"Workload type added successfully: {workload_name}")
+        logging.info(f"Action:Add Workload:{workload_name} Result:Success")
         return jsonify({"status": "success", "message": f"Workload type {workload_name} added successfully."})
 
     except Exception as e:
@@ -503,7 +504,8 @@ def save_generated_type_db(workload_name, workload_enabled, username, deploy_met
         workload_name=workload_name,
         workload_enabled=workload_enabled,
         deploy_method=deploy_method,
-        created_by=username
+        created_by=username,
+        created_at=datetime.now()
     )
 
     db.session.add(new_workload)
