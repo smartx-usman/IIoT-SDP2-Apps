@@ -1,11 +1,12 @@
 import logging
 import os
+import subprocess
 import time
 
 import yaml
 from flask import Blueprint, jsonify, request, make_response, Response, session, render_template, stream_with_context
 from flask_login import login_required, current_user
-from app.kubernetes_utils import load_kube_config, process_helm, create_kubernetes_objects
+from app.kubernetes_utils import load_kube_config, create_kubernetes_objects
 import kubernetes
 from kubernetes.client.rest import ApiException
 from app.kubernetes_utils import create_namespace
@@ -19,7 +20,7 @@ monitoring_bp = Blueprint('monitoring', __name__)
 def deploy_monitoring_system():
     try:
         selected_option = request.form.get('options')
-        namespace = 'monitoring'
+        namespace = 'experiments-obs'
         deployment_dir = 'monitoring'
 
         load_kube_config()
@@ -42,12 +43,12 @@ def deploy_monitoring_system():
             # Deploy/Delete Prometheus and Grafana
             commands = ['helm repo add prometheus-community https://prometheus-community.github.io/helm-charts',
                         'helm repo add grafana https://grafana.github.io/helm-charts',
-                        f'helm -n {namespace} upgrade --install prometheus --kubeconfig {Config.KUBECONFIG_PATH} -f {deployment_dir}/prometheus.yaml prometheus-community/prometheus'
-                        f'helm -n {namespace} upgrade --install grafana --kubeconfig {Config.KUBECONFIG_PATH} -f {deployment_dir}/grafana.yaml grafana/grafana'
+                        f'helm -n {namespace} upgrade --install prometheus-exp --kubeconfig {Config.KUBECONFIG_PATH} -f {deployment_dir}/prometheus.yaml prometheus-community/prometheus',
+                        f'helm -n {namespace} upgrade --install grafana-exp --kubeconfig {Config.KUBECONFIG_PATH} -f {deployment_dir}/grafana.yaml grafana/grafana'
                         ]
 
             for command in commands:
-                process_helm(command, 'install')
+                subprocess.run(command, check=True, shell=True)
 
             time.sleep(15)
 
