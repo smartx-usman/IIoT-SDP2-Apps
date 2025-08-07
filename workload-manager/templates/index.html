@@ -3,111 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Experimental Workloads Manager</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>Container Workloads Manager</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.43.2/ace.js"></script>
+
     <script src="{{ url_for('static', filename='config.js') }}"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="{{ url_for('static', filename='create_workload_template.js') }}"></script>
+    <script src="{{ url_for('static', filename='validate_inputs.js') }}"></script>
+    <script src="{{ url_for('static', filename='delete_running_workloads.js') }}"></script>
+    <script src="{{ url_for('static', filename='fetch_deployed_workloads.js') }}"></script>
+    <script src="{{ url_for('static', filename='html_content_handling.js') }}"></script>
     <script>
         window.grafanaServerUrl = {{ grafana_server_url|tojson|safe }};
     </script>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
 </head>
-<body data-user-level="{{ current_user.user_level }}" data-namespace="{{ current_user.namespace }}">
+<body data-user-level="{{ current_user.user_level }}" data-namespace="{{ current_user.namespace }}" data-role="{{ current_user.role }}">
 <header>
-    <h2>Experimental Workload Management Dashboard</h2>
+    <h3>Containerized Workload(s) Management Dashboard</h3>
 </header>
 <div class="container-fluid main-container">
     <div id="left-panel" class="left-panel">
         {% include 'menu.html' %}
     </div>
     <div id="right-panel" class="right-panel">
-        <div id="alert-success" class="alert alert-success" style="display: none;"></div>
-        <div id="alert-error" class="alert alert-error" style="display: none;"></div>
-
-        {% include 'add_workload_type.html' %}
-        {% include 'create_workload.html' %}
-        <div id="listWorkload" class="section">
-            <div class="right-upper-inner-div">
-                <h4 style="color: white">List Deployed Workload(s) in the Cluster</h4>
-            </div>
-            <div class="right-lower-inner-div">
-                <div id="workload-list"></div>
-            </div>
-        </div>
-        <div id="deleteWorkload" class="section">
-            <div class="right-upper-inner-div">
-                <h4 style="color: white">Delete Running Workload(s) from the Cluster</h4>
-            </div>
-            <div class="right-lower-inner-div">
-                <!-- Loading Spinner -->
-                <div id="loading-spinner" style="display: none;">
-                  <div class="spinner"></div>
-                  <p>Checking running workloads...</p>
-                </div>
-                <div id="workload-list-delete"></div>
+        <div id="popup-alert-container">
+            <div id="popup-alert" class="alert">
+                <p id="popup-message"></p>
+                <button id="popup-close-button">Close</button>
             </div>
         </div>
 
+        {% include 'create_workload_template.html' %}
+        {% include 'deploy_workload.html' %}
+        {% include 'list_workload.html' %}
         {% include 'monitoring.html' %}
-
-        <div id="registerUser" class="section" style="display: none;">
-            <div class="right-upper-inner-div">
-                <h4 style="color: white">Register New User</h4>
-            </div>
-            <div class="right-lower-inner-div">
-                <form id="user-registration-form" method="POST" action="{{ url_for('auth.register') }}">
-                    <div class="form-group">
-                        <label for="username">Username</label>
-                        <input type="text" class="form-control" id="username" name="username" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="role">Role</label>
-                        <select class="form-control" id="role" name="role" required>
-                            <option value="user">User</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="level">Expertise Level</label>
-                        <select class="form-control" id="level" name="level" required>
-                            <option value="beginner">Beginner</option>
-                            <option value="intermediate">Intermediate</option>
-                            <option value="advanced">Advanced</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="quota_pods">Maximum pods allowed</label>
-                        <input class="form-control" type="number" name="quota_pods" id="quota_pods"
-                               value="4" min="1" max="20" placeholder="Maximum pods allowed">
-                    </div>
-                    <div class="form-group">
-                        <label for="quota_cpu">CPU limit</label>
-                        <input class="form-control" type="text" name="quota_cpu" id="quota_cpu"
-                               value="1000m" pattern="^\d+m$"
-                               placeholder="CPU limit (e.g., 500m, 2)">
-                    </div>
-                    <div class="form-group">
-                        <label for="quota_memory">Memory limit</label>
-                        <input class="form-control" type="text" name="quota_memory" id="quota_memory"
-                               value="2Gi" pattern="^\d+[MG]i$"
-                               placeholder="Memory limit (e.g., 512Mi, 2Gi)">
-                    </div>
-
-                    <input type="submit" class="btn btn-primary" value="Register">
-                </form>
-            </div>
-        </div>
+        {% include 'delete_workload.html' %}
+        {% include 'register_user.html' %}
     </div>
 </div>
 <footer class="footer">
-    <p>&copy; 2025 Experimental Workload Management Dashboard. All rights reserved.</p>
+    <p>&copy; 2025 Containerized Workloads Management Dashboard. All rights reserved.</p>
 </footer>
 
 </body>
