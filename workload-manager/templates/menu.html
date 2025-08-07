@@ -2,27 +2,30 @@
     <h4 style="color: white">Workload Orchestration</h4>
 </div>
 <div class="left-lower-inner-div">
-    <p style="background-color: #ccebff; color: black">Logged in user: <i>{{ current_user.username }}</i></p>
+    <p style="background-color: #ccebff; color: black; padding: 5px;">
+        <b>Logged in User:</b> {{ current_user.username }}<br>
+        <b>Expertise-level:</b> {{ current_user.user_level }}
+    </p>
     <ul class="side-menu">
         <li class="menu-item" onclick="showSection('addWorkloadType')">
             <svg class="menu-icon" ...><!-- Add workload icon --></svg>
-            Create Workload Type
+            Create Workload Template
         </li>
         <li class="menu-item" onclick="showSection('createWorkload')">
             <svg class="menu-icon" ...><!-- Deploy icon --></svg>
-            Deploy Workload
+            Deploy New Workloads
         </li>
         <li class="menu-item" onclick="showSection('listWorkload')">
             <svg class="menu-icon" ...><!-- List icon --></svg>
             List Deployed Workloads
         </li>
+        <li class="menu-item" onclick="showSection('showMonitoring')">
+            <svg class="menu-icon" ...><!-- Monitoring icon --></svg>
+            Monitor Deployed Workloads
+        </li>
         <li class="menu-item" onclick="showSection('deleteWorkload')">
             <svg class="menu-icon" ...><!-- List icon --></svg>
             Delete Running Workloads
-        </li>
-        <li class="menu-item" onclick="showSection('showMonitoring')">
-            <svg class="menu-icon" ...><!-- Monitoring icon --></svg>
-            Monitor Workloads
         </li>
         {% if current_user.role == 'admin' %}
         <li class="menu-item" onclick="showSection('deployMonitoring')">
