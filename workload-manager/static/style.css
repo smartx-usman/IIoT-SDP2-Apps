@@ -15,7 +15,7 @@ body {
 header {
     background-color: #4d94ff;
     color: white;
-    padding: 15px;
+    padding: 10px;
     text-align: center;
     flex-shrink: 0;
 }
@@ -28,21 +28,21 @@ header {
 }
 
 #left-panel {
-    width: 40%;
+    width: 30%;
     background-color: #ffffff;
     display: flex;
     flex-direction: column;
     border-right: 1px solid #dee2e6;
-    padding: 15px;
+    padding: 10px;
     min-height: 600px;
 }
 
 #right-panel {
-    width: 60%;
+    width: 70%;
     background-color: #ffffff;
     display: flex;
     flex-direction: column;
-    padding: 15px;
+    padding: 10px;
     /*overflow: hidden;*/
     min-height: 600px;
 }
@@ -50,31 +50,80 @@ header {
 .left-upper-inner-div {
     background-color: #007acc;
     color: white;
-    padding: 15px;
+    padding: 10px;
     text-align: center;
     flex-shrink: 0;
 }
 
 .left-lower-inner-div {
-    padding: 15px;
+    padding: 10px;
     flex: 1;
     overflow: auto;
     min-height: 500px;
 }
 
 .right-upper-inner-div {
-    background-color: #66c2ff;
+    background-color: #bf4080;
+    border: 3px solid #bf4080;
     color: white;
-    padding: 15px;
+    padding: 10px;
     text-align: center;
     flex-shrink: 0;
 }
 
 .right-lower-inner-div {
-    padding: 15px;
+    background-color: #F8F8F8;
+    padding: 10px;
     flex: 1;
     overflow: auto;
     min-height: 500px;
+    border: 3px solid #bf4080;
+}
+
+.workloadMonitoringDiv {
+    flex: 1;
+    overflow: auto;
+    min-height: 500px;
+    background-color: #F8F8F8;
+    border: 3px solid #bf4080;
+}
+
+h4 {
+    color: white;
+}
+
+h5 {
+    color: white;
+    padding: 10px 15px;
+    text-align: center;
+}
+
+/* Workload File Browser and Editor */
+.fileBrowserEditor {
+    height: 500px;
+    background-color: #F8F8F8;
+    /*border-bottom-left-radius: 10px;
+    border-bottom-right-radius: 10px;*/
+}
+
+#fileList ul {
+  list-style: none;
+  padding-left: 15px;
+}
+
+#fileList li {
+  margin-bottom: 5px;
+  transition: background 0.2s;
+}
+
+#fileList li:hover {
+  background-color: #f1f1f1;
+  border-radius: 5px;
+}
+
+#fileList li.selected {
+  background-color: #e8f0fe;
+  border-radius: 4px;
 }
 
 .footer {
@@ -158,10 +207,111 @@ header {
     margin: 2px;
 }
 
+.btn.btn-danger.processing {
+    background-color: #cc3333;
+    color: #eee;
+    cursor: not-allowed;
+}
+
+/* Fieldset Styles */
+.form-group-section {
+    width: auto;
+    margin-bottom: 25px;
+    /*border: 1px solid #eee*/
+    border-bottom: none;
+    border-radius: 10px;
+    font-size: 1.0em;
+    /*font-weight: bold;*/
+}
+
+.form-group-section-yellow {
+    padding: 5px 10px;
+    /*background-color: #FFFFF0;*/
+    background-color: #f2d9e5;
+    /*border: 4px solid #ffffcc;*/
+    border: 3px solid #dea0be;
+}
+
+.form-group-section-blue {
+    padding: 5px 15px;
+    background-color: #e6f5ff;
+    border: 3px solid #ccebff;
+}
+
+.form-group-section-white {
+    padding: 5px 15px;
+    background-color: white;
+    border: 3px solid #ccc;
+}
+
+.form-group-section-title-main {
+    font-size: 1.1em;
+    color: #003366;
+    margin-top: 0;
+    margin-bottom: 10px; /* Add some space below the title */
+    text-align: center;
+    font-weight: bold;
+}
+
+.form-group-section-title-sub {
+    font-size: 1.1em;
+    color: #005c99;
+    margin-top: 0;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* Alert Elements */
 .alert {
     padding: 10px;
     margin-bottom: 15px;
     border-radius: 4px;
+}
+
+#popup-alert-container {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+#popup-alert {
+    background-color: white;
+    padding: 20px;
+    border-radius: 20px;
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    text-align: center;
+    width: 35vw;
+    height: 25vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#popup-message {
+    margin-bottom: 10px;
+}
+
+#popup-close-button {
+    margin-top: 10px;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+}
+
+#popup-close-button:hover {
+    background-color: #0056b3;
 }
 
 /* Workload Sections */
@@ -191,17 +341,18 @@ th, td {
 }
 
 th {
-    background-color: #f8f9fa;
+    background-color: #a7b2bd;
     text-transform: uppercase;
+    font-weight: bold;
     letter-spacing: 0.1em;
 }
 
 tr:nth-child(even) {
-    background-color: #e1e1ea;
+    background-color: #f9ecf2;
 }
 
 tr:hover {
-    background-color: #8c8cd9;
+    background-color: #ac3971;
     color: white;
 }
 
@@ -252,27 +403,6 @@ caption {
 .menu-item:not(.active):hover {
     background: #f5f5f5;
     border-left-color: #90caf9;
-}
-
-/* Loading Spinner */
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 20px auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-#loading-spinner {
-  text-align: center;
-  padding: 20px;
 }
 
 /* Make iframe fill container */
