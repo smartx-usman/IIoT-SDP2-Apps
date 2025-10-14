@@ -21,11 +21,11 @@
         </li>
         <li class="menu-item" onclick="showSection('showMonitoring')">
             <svg class="menu-icon" ...><!-- Monitoring icon --></svg>
-            Monitor Deployed Workloads
+            Monitor Cluster-wide Resources
         </li>
         <li class="menu-item" onclick="showSection('deleteWorkload')">
             <svg class="menu-icon" ...><!-- List icon --></svg>
-            Delete Running Workloads
+            Manage Running Workloads
         </li>
         {% if current_user.role == 'admin' %}
         <li class="menu-item" onclick="showSection('deployMonitoring')">
@@ -34,7 +34,7 @@
         </li>
         <li class="menu-item" onclick="showSection('registerUser')">
             <svg class="menu-icon" ...><!-- User icon --></svg>
-            Register User
+            Register New User
         </li>
         {% endif %}
         <li class="menu-item" onclick="location.href='{{ url_for('auth.logout') }}'">

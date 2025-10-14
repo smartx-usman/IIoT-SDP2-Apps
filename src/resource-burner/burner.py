@@ -31,7 +31,7 @@ def monte_carlo_simulation(n):
 def memory_intensive():
     data = []
     while True:
-        data.append(pd.DataFrame(np.random.rand(1000, 1000)))
+        data.append(pd.DataFrame(np.random.rand(500, 500)))
     logging.info("Memory intensive workload completed")
 
 

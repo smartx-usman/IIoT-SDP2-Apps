@@ -9,16 +9,16 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.43.2/ace.js"></script>
-
     <script src="{{ url_for('static', filename='config.js') }}"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script src="{{ url_for('static', filename='create_workload_template.js') }}"></script>
     <script src="{{ url_for('static', filename='validate_inputs.js') }}"></script>
-    <script src="{{ url_for('static', filename='delete_running_workloads.js') }}"></script>
+    <script src="{{ url_for('static', filename='manage_running_workloads.js') }}"></script>
     <script src="{{ url_for('static', filename='fetch_deployed_workloads.js') }}"></script>
     <script src="{{ url_for('static', filename='html_content_handling.js') }}"></script>
     <script>
-        window.grafanaServerUrl = {{ grafana_server_url|tojson|safe }};
+        window.grafanaInternalURL = {{ grafana_internal_url|tojson|safe }};
+        window.grafanaServerPublicUrl = {{ grafana_public_url|tojson|safe }};
     </script>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.1/umd/popper.min.js"></script>
@@ -45,7 +45,7 @@
         {% include 'deploy_workload.html' %}
         {% include 'list_workload.html' %}
         {% include 'monitoring.html' %}
-        {% include 'delete_workload.html' %}
+        {% include 'manage_running_workload.html' %}
         {% include 'register_user.html' %}
     </div>
 </div>

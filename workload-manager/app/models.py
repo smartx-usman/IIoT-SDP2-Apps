@@ -25,7 +25,7 @@ class User(UserMixin, db.Model):
         clean_ns = re.sub(r'[^a-z0-9-]', '', self.username.lower())[:45]
         #return f"user-{clean_ns}-{uuid.uuid4().hex[:4]}"
 
-        return f"user-{clean_ns}"
+        return f"{clean_ns}"
 
 
 class WorkloadType(db.Model):

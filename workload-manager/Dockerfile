@@ -6,11 +6,9 @@ COPY requirements.txt /app
 
 RUN pip install --no-cache-dir -r requirements.txt
 RUN apt-get update && apt-get install -y curl gnupg
-RUN curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null \
-    && echo "deb [signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list > /dev/null \
-    && apt-get update \
-    && apt-get install -y helm
-
+RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 \
+    && chmod 700 get_helm.sh \
+    && ./get_helm.sh
 ADD workloads /app/workloads
 ADD monitoring /app/monitoring
 ADD templates /app/templates

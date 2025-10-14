@@ -19,7 +19,7 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 
-@auth_bp.route('/login', methods=['GET', 'POST'])
+@auth_bp.route('/workload-manager/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form.get('username')
@@ -36,7 +36,7 @@ def login():
             }
             grafana_session = requests.Session()
 
-            response = grafana_session.post(f"{Config.GRAFANA_URL}/login", json=payload)
+            response = grafana_session.post(f"{Config.GRAFANA_INTERNAL_URL}/login", json=payload)
 
             # Store session in user context
             session["grafana_cookies"] = response.cookies.get_dict()
@@ -49,13 +49,13 @@ def login():
     return render_template('login.html')
 
 
-@auth_bp.route('/logout')
+@auth_bp.route('/workload-manager/logout')
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))
 
 
-@auth_bp.route('/register', methods=['GET', 'POST'])
+@auth_bp.route('/workload-manager/register', methods=['GET', 'POST'])
 def register():
     try:
         if current_user.role != 'admin':
@@ -79,7 +79,7 @@ def register():
                                   quota_memory=quota_memory)
 
             grafana_mgr = GrafanaManager(
-                Config.GRAFANA_URL,
+                Config.GRAFANA_INTERNAL_URL,
                 Config.GRAFANA_ADMIN_USER,
                 Config.GRAFANA_ADMIN_PASSWORD
             )

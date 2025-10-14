@@ -1,7 +1,8 @@
 name: Build Docker Image
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch.
+# Controls when the action will run.
+# Triggers the workflow on push or pull request events
+# but only for the main branch.
 on:
   push:
     branches: [ main ]
@@ -12,16 +13,40 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        include:
+          - dockerfile_path: src/coap-server/Dockerfile
+            context_path: src/coap-server
+            image_name: coap
+          - dockerfile_path: src/file-server/Dockerfile
+            context_path: src/file-server
+            image_name: file-server
+          - dockerfile_path: src/iot-sensor-pipeline/Dockerfile
+            context_path: src/iot-sensor-pipeline
+            image_name: mqtt-kafka-faust
+          - dockerfile_path: src/resource-burner/Dockerfile
+            context_path: src/resource-burner
+            image_name: resource-burner
+          - dockerfile_path: src/web-server/Dockerfile
+            context_path: src/web-server
+            image_name: demo-flask-app
+          - dockerfile_path: workload-manager/Dockerfile
+            context_path: workload-manager
+            image_name: workload-manager
+
     steps:
       - uses: actions/checkout@v2
         name: Check out code
 
       - uses: mr-smithers-excellent/docker-build-push@v5
-        name: Build the Docker image
+        name: Build and Push Docker Image for ${{ matrix.image_name }}
         with:
-          image: usman476/mqtt-kafka-faust
-          dockerfile: src/iot-sensor-pipeline/Dockerfile
-          directory: iot-sensor-pipeline
+          image: usman476/${{ matrix.image_name }}
+
+          dockerfile: ${{ matrix.dockerfile_path }}
+          directory: ${{ matrix.context_path }}
+
           tags: latest
           registry: docker.io
           username: ${{ secrets.DOCKER_USERNAME }}
