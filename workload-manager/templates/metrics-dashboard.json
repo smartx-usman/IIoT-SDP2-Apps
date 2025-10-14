@@ -9,10 +9,19 @@
   "templating": {
     "list": [
       {
+        "definition": "label_values(namespace)",
+        "includeAll": true,
+        "multi": true,
         "name": "namespace",
-        "type": "constant",
-        "hide": 2,
-        "current": {"text": "", "value": ""}
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(namespace)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "type": "query"
       },
       {
         "definition": "label_values(label_workload_id)",
@@ -119,7 +128,7 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "kubernetes_pod_container_cpu_usage_nanocores{namespace=~\"_namespace\"}\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
+          "expr": "kubernetes_pod_container_cpu_usage_nanocores{namespace=~\"$namespace\"}\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
           "legendFormat": "{{pod_name}}",
           "range": true,
@@ -213,7 +222,7 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "kubernetes_pod_container_memory_usage_bytes{namespace=\"_namespace\"}\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
+          "expr": "kubernetes_pod_container_memory_usage_bytes{namespace=\"$namespace\"}\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
           "legendFormat": "{{pod_name}}",
           "range": true,
@@ -307,9 +316,9 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(kubernetes_pod_network_tx_bytes{namespace=~\"_namespace\"}[$__rate_interval])\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
+          "expr": "rate(kubernetes_pod_network_tx_bytes{namespace=~\"$namespace\"}[$__rate_interval])\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
-          "interval": "60s",
+          "interval": "30s",
           "legendFormat": "{{pod_name}}",
           "range": true,
           "refId": "A"
@@ -319,9 +328,9 @@
             "type": "prometheus"
           },
           "editorMode": "code",
-          "expr": "- rate(kubernetes_pod_network_rx_bytes{namespace=~\"_namespace\"}[$__rate_interval])\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
+          "expr": "- rate(kubernetes_pod_network_rx_bytes{namespace=~\"$namespace\"}[$__rate_interval])\n * on(namespace, host, pod_name)\n group_right(label_workload_id)\n label_pod_info{label_workload_id=~\"$workload_id\"}",
           "format": "time_series",
-          "interval": "60s",
+          "interval": "30s",
           "legendFormat": "{{pod_name}}",
           "range": true,
           "refId": "B"
