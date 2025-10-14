@@ -1484,7 +1484,7 @@
           "expr": "- rate(diskio_read_time{host=~\"^$Node$\", job=\"telegraf\"}[$__interval])",
           "hide": false,
           "interval": "30s",
-          "legendFormat": "{{host}} -writes",
+          "legendFormat": "{{host}} - writes",
           "range": true,
           "refId": "C"
         }
