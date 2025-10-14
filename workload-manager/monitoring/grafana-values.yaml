@@ -228,7 +228,8 @@ gossipPortName: gossip
 ##
 service:
   enabled: true
-  type: NodePort
+  type: ClusterIP
+  #type: NodePort
   # Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)
   ipFamilyPolicy: ""
   # Sets the families that should be supported and the order in which they should be applied to ClusterIP as well. Can be IPv4 and/or IPv6.
@@ -238,7 +239,7 @@ service:
   loadBalancerSourceRanges: []
   port: 3000
   targetPort: 3000
-  nodePort: 30008
+  #nodePort: 30008
     # targetPort: 4181 To be used with a proxy extraContainer
   ## Service annotations. Can be templated.
   annotations: {}
@@ -277,42 +278,22 @@ hostAliases: []
   #     - "my.host.com"
 
 ingress:
-  enabled: false
-  # For Kubernetes >= 1.18 you should specify the ingress-controller via the field ingressClassName
-  # See https://kubernetes.io/blog/2020/04/02/improvements-to-the-ingress-api-in-kubernetes-1.18/#specifying-the-class-of-an-ingress
-  # ingressClassName: nginx
-  # Values can be templated
-  annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
-  labels: {}
+  enabled: true
+  ingressClassName: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+  #labels: {}
   path: /
-
-  # pathType is only for k8s >= 1.1=
   pathType: Prefix
 
   hosts:
-    - chart-example.local
-  ## Extra paths to prepend to every host configuration. This is useful when working with annotation based services.
-  extraPaths: []
-  # - path: /*
-  #   backend:
-  #     serviceName: ssl-redirect
-  #     servicePort: use-annotation
-  ## Or for k8s > 1.19
-  # - path: /*
-  #   pathType: Prefix
-  #   backend:
-  #     service:
-  #       name: ssl-redirect
-  #       port:
-  #         name: use-annotation
+    - master.local
 
-
-  tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+  tls:
+    - secretName: workload-manager-tls
+      hosts:
+        - master.local
 
 # -- BETA: Configure the gateway routes for the chart here.
 # More routes can be added by adding a dictionary key like the 'main' route.
@@ -361,13 +342,17 @@ resources: {}
 ## Node labels for pod assignment
 ## ref: https://kubernetes.io/docs/user-guide/node-selection/
 #
-nodeSelector:  {}
+nodeSelector:
+  kubernetes.io/hostname: master
 #  appstype: observability
 
 ## Tolerations for pod assignment
 ## ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/
 ##
-tolerations: []
+tolerations:
+  - key: "node-role.kubernetes.io/control-plane"
+    operator: "Exists"
+    effect: "NoSchedule"
 
 ## Affinity for pod assignment (evaluated as template)
 ## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
@@ -579,7 +564,12 @@ enableServiceLinks: true
 
 ## Additional grafana server secret mounts
 # Defines additional mounts with secrets. Secrets must be manually created in the namespace.
-extraSecretMounts: []
+extraSecretMounts:
+  - name: grafana-tls
+    secretName: workload-manager-tls
+    defaultMode: 0440
+    mountPath: /etc/grafana/ssl
+    readOnly: true
   # - name: secret-files
   #   mountPath: /etc/secrets
   #   secretName: grafana-secret-files
@@ -662,9 +652,19 @@ datasources:
     datasources:
     - name: Prometheus
       type: prometheus
-      url: http://prometheus-server.observability.svc.cluster.local
+      url: PROMETHEUS_URL
+      #url: http://prometheus-server.observability.svc.cluster.local
       access: proxy
       isDefault: true
+    - name: Loki
+      type: loki
+      access: browser
+      orgId: 1
+      uid: loki
+      url: LOKI_URL
+      #url: http://loki-headless.observability.svc.cluster.local:3100
+      isDefault: false
+      editable: true
 #  - name: Jaeger
 #    type: jaeger
 #    access: browser
@@ -909,8 +909,12 @@ grafana.ini:
     url: https://grafana.net
   server:
     domain: "{{ if (and .Values.ingress.enabled .Values.ingress.hosts) }}{{ tpl (.Values.ingress.hosts | first) . }}{{ else }}''{{ end }}"
-    root_url: "%(protocol)s://%(domain)s/"
+    #domain: 192.168.60.146
+    root_url: "%(protocol)s://%(domain)s"
     serve_from_sub_path: true
+    protocol: http
+    #cert_file: /etc/grafana/ssl/tls.crt
+    #cert_key: /etc/grafana/ssl/tls.key
   #auth.proxy:
   #  enabled: true
   #  header_name: X-WEBAUTH-USER
