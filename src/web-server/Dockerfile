@@ -4,7 +4,7 @@ ENV FLASK_DEBUG=0
 
 ARG Pathdir="/app"
 
-RUN apt -y update && apt -y install --no-install-recommends build-essential stress curl vim default-libmysqlclient-dev
+RUN apt -y update && apt -y install --no-install-recommends build-essential stress curl default-libmysqlclient-dev pkg-config
 RUN mkdir $Pathdir
 
 COPY requirements.txt .
