@@ -190,12 +190,6 @@ def save_data_mysql(data, kind):
         cursor = mysql.connection.cursor()
 
         # Executing SQL Statements
-
-        # try:
-        #    cursor.execute(''' DROP TABLE sorted_data ''')
-        # except Exception as error:
-        #    logging.warning("Table does not exist: {}".format(error))
-
         try:
             cursor.execute(
                 ''' CREATE TABLE sorted_data(
@@ -391,8 +385,6 @@ def stress_task():
         command = command + " --io " + str(io) if int(io) >= 1 else command
 
         command = command + " --timeout " + str(stress_timeout)
-    # command = "stress  --cpu " + str(cpu) + " --vm " + str(vm) + " --vm-bytes " + str(vm_bytes) + " --hdd " + str(
-    #    hdd) + " --io " + str(io) + " --timeout " + str(stress_timeout)
 
     while True:
         logging.info('Stress test Started.')
@@ -410,7 +402,6 @@ def stress_task():
         time.sleep(idle_timeout)
 
 
-# app.run((host="0.0.0.0")
 if __name__ == "__main__":
     hdd = os.environ['STRESS_HDD']
     io = os.environ['STRESS_IO']
@@ -423,14 +414,13 @@ if __name__ == "__main__":
     stress = (os.environ['STRESS_APP']).capitalize()
     total_threads = int(os.environ['FLASK_THREADS'])
 
-    if (stress == "True"):
+    if stress == "True":
         thread = Thread(target=stress_task)
         thread.daemon = True
         thread.start()
 
     serve(app, host="0.0.0.0", port=5000, connection_limit=1024, threads=total_threads)
-    # app.run(host="0.0.0.0", debug=True)
-    # thread.join()
+
 # curl 'http://127.0.0.1:5000/roll?sides=10&rolls=5'
 # curl 'http://127.0.0.1:5000/multispan'
 # curl 'http://127.0.0.1:5000/normal_load?hdd=1&io=1&vm=1&cpu=1&timeout=60'
