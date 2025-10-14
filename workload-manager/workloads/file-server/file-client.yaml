@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: file-clients
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: file-client
+  template:
+    metadata:
+      labels:
+        app: file-client
+    spec:
+      containers:
+      - name: file-server
+        image: usman476/file-server:latest
+        command: [ "python3" ]
+        args: [ "file-client.py" ]
+        env:
+        - name: FILE_SERVER_URL
+          value: "fs-service"
+        - name: FILE_SERVER_PORT
+          value: "80"
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: SEASONALITY
+          value: "True"
+        - name: TOTAL_REQUESTS
+          value: "3"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi

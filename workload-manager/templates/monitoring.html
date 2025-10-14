@@ -1,0 +1,55 @@
+<div id="showMonitoring" class="section" style="display: none;">
+    <div class="right-upper-inner-div">
+        <h4>Display Workloads Monitoring Info</h4>
+    </div>
+    <div class="right-lower-inner-div">
+        <br>
+        <div class="monitoring-wrapper">
+            <div class="row">
+                <div class="col-md-12">
+<!--        src="{{ grafana_server_url }}" -->
+                    <div class="grafana-container">
+                        <iframe
+                            id="grafana-iframe"
+                            width="100%"
+                            height="800"
+                            frameborder="0"
+                            style="border: none; display: none;"
+                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                        ></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="deployMonitoring" class="section" style="display: none;">
+    <div class="right-upper-inner-div">
+        <h4 style="color: white">Deploy Monitoring System in the Cluster</h4>
+    </div>
+    <div class="right-lower-inner-div">
+        <br>
+        <p>A monitoring system with the following tools will be deployed/removed:</p>
+        <ol type="i">
+            <li>Telegraf - Monitoring Agent</li>
+            <li>Prometheus - Monitoring Backend Storage</li>
+            <li>Grafana - Metrics Visualization</li>
+        </ol>
+        <form id="monitoring-form">
+            <!--<button class="btn btn-primary">Deploy</button>-->
+            <p>Select an option:</p>
+            <label for="deploy">
+                <input type="radio" id="deploy" name="options" value="deploy" class="btn btn-primary" checked>
+                Deploy Monitoring System
+            </label>
+
+            <label for="delete">
+                <input type="radio" id="delete" name="options" value="delete" class="btn btn-primary">
+                Delete Monitoring System
+            </label>
+            <br><br>
+            <input type="submit" value="Submit" class="btn btn-success">
+        </form>
+    </div>
+</div>

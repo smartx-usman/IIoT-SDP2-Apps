@@ -1,0 +1,13 @@
+kafka-python
+#tb-mqtt-client
+paho-mqtt
+#bytewax==0.20.1
+confluent-kafka==2.10.0
+#faust-streaming
+typing-extensions
+numpy
+cassandra-driver
+mysql-connector-python
+opentelemetry-distro
+opentelemetry-instrumentation
+opentelemetry-exporter-otlp

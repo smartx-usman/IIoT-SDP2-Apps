@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mqtt-to-kafka
+  labels:
+    environment: production
+    app: mqtt-to-kafka-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mqtt-to-kafka-deployment
+  template:
+    metadata:
+      labels:
+        app: mqtt-to-kafka-deployment
+    spec:
+      containers:
+      - name: mqtt-to-kafka-container
+        image: usman476/mqtt-kafka-faust:latest
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: MQTT_BROKER
+          value: "mqtt-broker-mosquitto"
+        - name: MQTT_BROKER_PORT
+          value: "1883"
+        - name: MQTT_TOPIC
+          value: "mqtt/temperature/data"
+        - name: THINGSBOARD_DEVICE_TOKEN
+          value: "3CvCfOphVy9DnnpqVTzT"
+        - name: KAFKA_BROKER
+          value: "kafka-broker"
+        - name: KAFKA_TOPIC
+          value: "temperature-readings"
+        - name: KAFKA_NUM_PARTITIONS
+          value: "1"
+        - name: KAFKA_REPLICATION_FACTOR
+          value: "1"
+        command: ["python3"]
+        args: ["subscriber/subscriber.py"]
+        imagePullPolicy: "Always"
+        resources:
+          limits:
+            cpu: 250m
+            memory: 250Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
+      restartPolicy: Always
+      #nodeSelector:
+      #  kubernetes.io/hostname: k8s-worker-4

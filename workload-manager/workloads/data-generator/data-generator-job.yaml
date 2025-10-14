@@ -1,0 +1,44 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: data-generator-job
+  labels:
+    environment: production
+    app: data-generator-job
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 100
+  template:
+    spec:
+      containers:
+      - name: data-generator-container
+        image: usman476/mqtt-kafka-faust:latest
+        command: ["python3"]
+        args: ["generator/generator.py",
+               "--value_type", "both",
+               "--normal_start_value", "0.0", "--normal_end_value", "9.99", "--normal_total_values", "1000",
+               "--abnormal_start_value", "11.0", "--abnormal_end_value", "44.99", "--abnormal_total_values", "500",
+               "--normal_output_file", "normal_data.csv",
+               "--abnormal_output_file", "abnormal_data.csv"]
+        imagePullPolicy: "Always"
+        resources:
+          limits:
+            memory: "100Mi"
+            cpu: "200m"
+          requests:
+            memory: "100Mi"
+            cpu: "100m"
+        volumeMounts:
+        - mountPath: /data
+          name: data-volume
+      restartPolicy: Never
+      #nodeSelector:
+      #  kubernetes.io/hostname: worker1
+      volumes:
+      - name: data-volume
+        hostPath:
+          # directory location on host
+          path: /opt/data
+          # this field is optional
+          type: Directory

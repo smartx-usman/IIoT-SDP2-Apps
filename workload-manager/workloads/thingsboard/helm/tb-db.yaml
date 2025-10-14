@@ -1,0 +1,58 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: demo-flask-app-1
+  namespace: thingsboard
+  labels:
+    app: flask-app-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flask-app-1
+  template:
+    metadata:
+      labels:
+        app: flask-app-1
+    spec:
+      containers:
+        - name: demo-flask-app-1
+          image: docker.io/thingsboard/tb-node:3.4.1
+          env:
+            - name: DATABASE_TS_TYPE
+              value: "sql"
+            - name: INSTALL_TB
+              value: "true"
+            - name: LOAD_DEMO
+              value: "false"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://thingsboard-pg-pgpool:5432/thingsboard"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "postgres"
+            - name: SPRING_DRIVER_CLASS_NAME
+              value: "org.postgresql.Driver"
+            - name: SPRING_JPA_DATABASE_PLATFORM
+              value: "org.hibernate.dialect.PostgreSQLDialect"
+          command: [ "sleep" ]
+          args: [ "600" ]
+          resources:
+            requests:
+              memory: "100Mi"
+              cpu: "100m"
+            limits:
+              memory: "200Mi"
+              cpu: "200m"
+          imagePullPolicy: "Always"
+          volumeMounts:
+            - name: conf
+              mountPath: /config
+              readOnly: false
+      volumes:
+        - name: conf
+          configMap:
+            name: thingsboard-node-config
+
+      restartPolicy: Always
+      nodeSelector:
+        kubernetes.io/hostname: worker2
