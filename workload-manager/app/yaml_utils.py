@@ -12,37 +12,45 @@ from app.workload_dir_finder import get_deployment_files_path
 def add_yaml_type_workload(request, user):
     try:
         config_method = request.form.get('configMethod')
+        workload_name = request.form.get('workloadDisplayName').lower().replace(' ', '-')
+
+        query = WorkloadType.query.filter(
+            WorkloadType.created_by == user.username,
+            WorkloadType.workload_name == workload_name
+        ).first()
+
+        if query:
+            return jsonify(status='error', message='Workload with same name already exists'), 400
 
         if config_method == 'upload':
-            return handle_static_yaml(request, user.username)
+            return handle_static_yaml(request, user.username, workload_name)
 
         elif config_method == 'dynamic':
             resource_type = request.form.get('resourceType')
-            yaml_content = handle_dynamic_yaml(request.form, resource_type, user.user_level, user.namespace)
+            yaml_content = handle_dynamic_yaml(request.form, resource_type, user.user_level, user.namespace, workload_name)
             yaml_docs = [yaml_content]
 
             if resource_type == 'Deployment':
                 service_type = request.form.get('service_type')
 
                 if service_type in ['NodePort', 'ClusterIP']:
-                    service_spec = generate_service_yaml(request.form, service_type, user.namespace)
+                    service_spec = generate_service_yaml(request.form, service_type, user.namespace, workload_name)
                     yaml_docs.append(service_spec)
 
-            return save_generated_yaml(request, yaml_docs, user.username, resource_type)
+            return save_generated_yaml(request, yaml_docs, user.username, resource_type, workload_name)
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-def handle_static_yaml(request, username):
+def handle_static_yaml(request, username, workload_name):
     try:
         deploy_method = request.form.get('deployMethod')
-        workload_name = request.form.get('workloadDisplayName').lower().replace(' ', '-')
         workload_enabled = request.form.get('workload_enabled', 'true').lower() == 'true'
         files = request.files.getlist('files')
 
         # Check if workload type already exists
-        if WorkloadType.query.filter_by(workload_name=workload_name).first():
-            return jsonify(status='error', message='Workload with same name already exists'), 400
+        # if WorkloadType.query.filter_by(workload_name=workload_name).first():
+        #    return jsonify(status='error', message='Workload with same name already exists'), 400
 
         # Create directory
         upload_dir = get_deployment_files_path(str(workload_name), username)
@@ -54,6 +62,8 @@ def handle_static_yaml(request, username):
 
         save_generated_type_db(workload_name, workload_enabled, username, deploy_method)
 
+        logging.info(f"Action:Add Workload:{workload_name} Result:Success")
+
         return jsonify({"status": "success", "message": "Workload type added successfully."})
 
     except Exception as e:
@@ -61,8 +71,7 @@ def handle_static_yaml(request, username):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-def handle_dynamic_yaml(form_data, resource_type, user_level, namespace='default'):
-    name = form_data.get('workloadDisplayName').lower().replace(' ', '-')
+def handle_dynamic_yaml(form_data, resource_type, user_level, namespace='default', workload_name=None):
     image = form_data.get('image')
     container_port = form_data.get('container_port')
     cmd_interpreter = form_data.get('cmd_interpreter')
@@ -111,12 +120,12 @@ def handle_dynamic_yaml(form_data, resource_type, user_level, namespace='default
         base_spec = {
             "apiVersion": "v1",
             "kind": "Pod",
-            "metadata": {"name": name,
+            "metadata": {"name": workload_name,
                          "namespace": namespace},
             "spec": {
                 "containers": [
                     {
-                        "name": name,
+                        "name": workload_name,
                         "image": image,
                         "ports": [{"containerPort": int(container_port)}],
                         "command": [cmd_interpreter]
@@ -265,25 +274,25 @@ def handle_dynamic_yaml(form_data, resource_type, user_level, namespace='default
         base_spec = {
             "apiVersion": "apps/v1",
             "kind": "Deployment",
-            "metadata": {"name": name,
+            "metadata": {"name": workload_name,
                          "namespace": namespace},
             "spec": {
                 "replicas": int(replicas),
                 "selector": {
                     "matchLabels": {
-                        "app": name
+                        "app": workload_name
                     }
                 },
                 "template": {
                     "metadata": {
                         "labels": {
-                            "app": name
+                            "app": workload_name
                         }
                     },
                     "spec": {
                         "containers": [
                             {
-                                "name": name,
+                                "name": workload_name,
                                 "image": image,
                                 "ports": [{"containerPort": int(container_port)}],
                                 "command": [cmd_interpreter]
@@ -441,18 +450,17 @@ def handle_dynamic_yaml(form_data, resource_type, user_level, namespace='default
     return base_spec
 
 
-def generate_service_yaml(form_data, service_type, namespace='default'):
-    name = form_data.get('workloadDisplayName').lower().replace(' ', '-')
+def generate_service_yaml(form_data, service_type, namespace='default', workload_name=None):
     service_spec = {
         "apiVersion": "v1",
         "kind": "Service",
         "metadata": {
-            "name": f"{name}-service",
+            "name": f"{workload_name}-service",
             "namespace": namespace
         },
         "spec": {
             "type": service_type,
-            "selector": {"app": name},  # Must match Deployment's pod labels
+            "selector": {"app": workload_name},  # Must match Deployment's pod labels
             "ports": [{
                 "protocol": form_data.get('svcProtocol'),
                 "port": int(form_data['svcPort']),
@@ -467,15 +475,10 @@ def generate_service_yaml(form_data, service_type, namespace='default'):
     return service_spec
 
 
-def save_generated_yaml(request, data, username, resource_type):
+def save_generated_yaml(request, data, username, resource_type, workload_name):
     try:
         deploy_method = request.form.get('deployMethod')
-        workload_name = request.form.get('workloadDisplayName').lower().replace(' ', '-')
         workload_enabled = request.form.get('workload_enabled', 'true').lower() == 'true'
-
-        # Check if workload type already exists
-        if WorkloadType.query.filter_by(workload_name=workload_name).first():
-            return jsonify(status='error', message='Workload with same name already exists'), 400
 
         # Create directory using ID
         upload_dir = get_deployment_files_path(str(workload_name), username)
