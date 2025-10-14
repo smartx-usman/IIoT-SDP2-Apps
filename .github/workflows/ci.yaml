@@ -20,16 +20,16 @@ jobs:
             context_path: src/coap-server
             image_name: coap
           - dockerfile_path: src/file-server/Dockerfile
-            context_path: file-server
+            context_path: src/file-server
             image_name: file-server
           - dockerfile_path: src/iot-sensor-pipeline/Dockerfile
             context_path: src/iot-sensor-pipeline
             image_name: mqtt-kafka-faust
           - dockerfile_path: src/resource-burner/Dockerfile
-            context_path: resource-burner
+            context_path: src/resource-burner
             image_name: resource-burner
           - dockerfile_path: src/web-server/Dockerfile
-            context_path: web-server
+            context_path: src/web-server
             image_name: demo-flask-app
           - dockerfile_path: workload-manager/Dockerfile
             context_path: workload-manager
