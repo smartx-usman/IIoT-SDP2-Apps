@@ -1,19 +1,28 @@
 import logging
 import os
+import shutil
 import subprocess
 import threading
 import time
+from contextlib import contextmanager
 from datetime import datetime
+from functools import wraps
+
+import yaml
+from app import create_app, db
+from app.helm_utils import deploy_helm_workload
+from app.models import HelmWorkload, YamlWorkload, DeployedWorkload
+from app.workload_dir_finder import get_deployment_files_path
+from config import Config
+from flask import jsonify
+from kubernetes.client.rest import ApiException
 
 import kubernetes
-import yaml
-from flask import jsonify
 from kubernetes import client, config, dynamic, utils
-from kubernetes.client.rest import ApiException
-from config import Config
-from app import create_app, db
 
-from app.models import DeployedWorkload
+
+def log_workload_action(action, workload_type, namespace, status="Processing"):
+    logging.info(f"Action:{action} Workload:{workload_type} Namespace:{namespace} Result:{status}")
 
 
 def load_kube_config():
@@ -25,28 +34,39 @@ def load_kube_config():
         raise
 
 
+def create_kubernetes_clients():
+    load_kube_config()
+    return (
+        kubernetes.client.AppsV1Api(),
+        kubernetes.client.BatchV1Api(),
+        kubernetes.client.CoreV1Api()
+    )
+
+
 def create_namespace(api_instance_core, namespace_name):
     ns = kubernetes.client.V1Namespace(metadata=kubernetes.client.V1ObjectMeta(name=namespace_name))
     try:
         api_instance_core.create_namespace(ns)
-        logging.info(f"Namespace '{namespace_name}' created.")
+        logging.info(f"Action:Create Namespace:{namespace_name} Result:Success")
     except ApiException as e:
         if e.status == 409:
-            logging.info(f"Namespace '{namespace_name}' already exists. So skipping this step.")
+            logging.info(f"Action:Create Namespace:{namespace_name} Result:Skip")
         else:
-            logging.error(f"Error creating namespace '{namespace_name}': {e}")
+            logging.error(f"Action:Create Namespace:{namespace_name} Result:Error Trace:{e}")
 
 
 def ensure_user_namespace(username, namespace, quota_pods, quota_cpu, quota_memory):
     load_kube_config()
     api = kubernetes.client.CoreV1Api()
+    rbac_api = kubernetes.client.RbacAuthorizationV1Api()
     try:
         api.read_namespace(name=namespace)
         validate_resource_quota(namespace, quota_pods, quota_cpu, quota_memory)
+        create_role(rbac_api, namespace)
         return True
     except ApiException as e:
         if e.status == 404:
-            logging.info(f"Namespace '{namespace}' does not exist. Creating...")
+            logging.info(f"Action:Create Namespace:{namespace} Result:Success")
             namespace_manifest = {
                 'apiVersion': 'v1',
                 'kind': 'Namespace',
@@ -63,10 +83,11 @@ def ensure_user_namespace(username, namespace, quota_pods, quota_cpu, quota_memo
                 time.sleep(5)
 
                 validate_resource_quota(namespace, quota_pods, quota_cpu, quota_memory)
+                create_role(rbac_api, namespace)
             except ApiException as e:
-                logging.error(f"Error creating namespace {namespace}: {e}")
+                logging.error(f"Action:Create Namespace:{namespace} Result:Error Trace:{e}")
         else:
-            logging.error(f"Error reading namespace {namespace}: {e}")
+            logging.error(f"Action:Read Namespace:{namespace} Result:Error Trace:{e}")
 
 
 def validate_resource_quota(namespace, quota_pods, quota_cpu, quota_memory):
@@ -92,10 +113,74 @@ def validate_resource_quota(namespace, quota_pods, quota_cpu, quota_memory):
             }
             api = kubernetes.client.CoreV1Api()
             api.create_namespaced_resource_quota(namespace, body=quota)
-            logging.info(f"Namespace and Default quota created for namespace {namespace}")
+            logging.info(f"Action:Create Namespace:{namespace} Quota:True Result:Success")
         else:
-            logging.error(f"Error reading resource quota for namespace {namespace}: {e}")
+            logging.error(f"Action:Read Namespace:{namespace} Quota:True Result:Error Trace:{e}")
             raise
+
+
+def create_role(api_instance, namespace, role_name="lifecycle-access-role"):
+    role = client.V1Role(
+        metadata=client.V1ObjectMeta(
+            name=role_name,
+            namespace=namespace
+        ),
+        rules=[
+            client.V1PolicyRule(
+                api_groups=["", "apps", "batch", "policy"],
+                resources=[
+                    "secrets", "serviceaccounts", "services", "configmaps",
+                    "daemonsets", "deployments", "statefulsets", "jobs",
+                    "poddisruptionbudgets"
+                ],
+                verbs=["create", "get", "list", "watch", "delete"]
+            )
+        ]
+    )
+
+    try:
+        api_instance.create_namespaced_role(namespace=namespace, body=role)
+        logging.info(f"Action:Create Namespace:{namespace} Role:{role_name} Result:Success")
+
+        create_role_binding(api_instance, namespace, role_name, f"{role_name}-binding")
+    except client.exceptions.ApiException as e:
+        if e.status == 409:
+            logging.info(f"Action:Create Namespace:{namespace} Role:{role_name} Result:Skip")
+            create_role_binding(api_instance, namespace, role_name, f"{role_name}-binding")
+        else:
+            logging.error(f"Action:Create Namespace:{namespace} Role:{role_name} Result:Error Trace:{e}")
+
+
+def create_role_binding(api_instance, namespace, role_name, binding_name, sa_name="default", sa_namespace="simulation"):
+    # Define the RoleBinding
+    role_binding = client.V1RoleBinding(
+        metadata=client.V1ObjectMeta(
+            name=binding_name,
+            namespace=namespace
+        ),
+        subjects=[
+            {
+                "kind": "ServiceAccount",
+                "name": sa_name,
+                "namespace": sa_namespace
+            }
+        ],
+        role_ref=client.V1RoleRef(
+            kind="Role",
+            name=role_name,
+            api_group="rbac.authorization.k8s.io"
+        )
+    )
+
+    # Create the RoleBinding
+    try:
+        api_instance.create_namespaced_role_binding(namespace=namespace, body=role_binding)
+        logging.info(f"Action:Create Namespace:{namespace} RoleBinding:{binding_name} Result:Success")
+    except client.exceptions.ApiException as e:
+        if e.status == 409:
+            logging.info(f"Action:Create Namespace:{namespace} RoleBinding:{binding_name} Result:Skip")
+        else:
+            logging.error(f"Action:Create Namespace:{namespace} RoleBinding:{binding_name} Result:Error Trace:{e}")
 
 
 def create_kubernetes_objects(namespace, doc, api_instance_apps, api_instance_core, api_instance_rbac=None,
@@ -113,7 +198,7 @@ def create_kubernetes_objects(namespace, doc, api_instance_apps, api_instance_co
     elif doc['kind'] == 'Pod':
         api_instance_core.create_namespaced_pod(namespace=namespace, body=doc)
     elif doc['kind'] == 'Deployment':
-        doc['spec']['replicas'] = int(replicas)
+        # doc['spec']['replicas'] = int(replicas)
         api_instance_apps.create_namespaced_deployment(namespace=namespace, body=doc)
     elif doc['kind'] == 'Job':
         api_instance_batch.create_namespaced_job(namespace=namespace, body=doc)
@@ -122,13 +207,11 @@ def create_kubernetes_objects(namespace, doc, api_instance_apps, api_instance_co
     elif doc['kind'] == 'Service':
         api_instance_core.create_namespaced_service(namespace=namespace, body=doc)
     elif doc['kind'] == 'StatefulSet':
-        doc['spec']['replicas'] = int(replicas)
         api_instance_apps.create_namespaced_stateful_set(namespace=namespace, body=doc)
     elif doc['kind'] == 'Namespace':
         api_instance_core.create_namespace(body=doc)
     else:
-        logging.warning(f"Unknown resource type: {doc['kind']}")
-    logging.info(f"{doc['kind']} '{doc['metadata']['name']}' created.")
+        logging.warning(f"Action:Create Resource:{doc['kind']} Result:Skip")
 
 
 def delete_kubernetes_objects(namespace, doc, api_instance_apps, api_instance_core, api_instance_batch=None):
@@ -161,136 +244,603 @@ def delete_kubernetes_objects(namespace, doc, api_instance_apps, api_instance_co
             name=doc['metadata']['name'], body=kubernetes.client.V1DeleteOptions(propagation_policy='Foreground')
         )
     else:
-        logging.warning(f"Unknown resource type: {doc['kind']}")
+        logging.warning(f"Action:Delete Resource:{doc['kind']} Result:Skip")
 
 
-def process_helm(command):
-    subprocess.run(command, check=True, shell=True)
+@contextmanager
+def app_context():
+    app = create_app()
+    with app.app_context():
+        yield app
 
 
-def get_deployment_files_path(workload_id):
-    return os.path.join(Config.UPLOAD_FOLDER, str(workload_id))
+def with_db_rollback(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            db.session.rollback()
+            logging.error(f"Database operation failed in {func.__name__}: {e}")
+            raise
+
+    return wrapper
 
 
-def handle_workloads(workloads, chained=False, username=None, namespace=None):
+@with_db_rollback
+def create_yaml_workload_record(workload, username, created_at):
+    yaml_workload = YamlWorkload(
+        replicas=int(workload.get('replicas', 1)),
+        node_name=workload.get('node_name', 'any'),
+    )
+    db.session.add(yaml_workload)
+    db.session.flush()
+
+    new_workload = DeployedWorkload(
+        username=username,
+        workload_name=workload['type'],
+        duration=int(workload['duration']),
+        deployment_status='success',
+        is_completed=False,
+        created_at=created_at,
+        yaml_workload_id=yaml_workload.id,
+    )
+    db.session.add(new_workload)
+    db.session.flush()
+
+    return new_workload
+
+
+@with_db_rollback
+def create_helm_workload_record(workload, username, created_at):
+    helm_workload = HelmWorkload(
+        chart_name=workload.get('chart_name'),
+        chart_version=workload.get('chart_version'),
+        set_values=workload.get('set_values'),
+    )
+    db.session.add(helm_workload)
+    db.session.flush()
+
+    new_workload = DeployedWorkload(
+        username=username,
+        workload_name=workload['type'],
+        duration=int(workload['duration']),
+        deployment_status='success',
+        is_completed=False,
+        created_at=created_at,
+        helm_workload_id=helm_workload.id,
+    )
+    db.session.add(new_workload)
+    db.session.flush()
+
+    return new_workload
+
+
+def extract_previous_workload_details(previous_workload):
+    if not previous_workload:
+        return None, None
+
+    for row in previous_workload:
+        if hasattr(row, 'yaml_workload') and row.yaml_workload:
+            return row.yaml_workload.replicas, row.yaml_workload.node_name
+    return None, None
+
+
+def update_replicas_and_node_from_yaml(workload, deployment_dir, redeployment, previous_replicas, previous_node_name):
+    if not redeployment:
+        return workload
+
+    yaml_files = [f for f in os.listdir(deployment_dir) if f.endswith(('.yaml', '.yml'))]
+    if not yaml_files:
+        return workload
+
+    yaml_path = os.path.join(deployment_dir, yaml_files[0])
+
+    # Update replicas if unchanged from previous
+    if workload.get('replicas') == previous_replicas:
+        yaml_info = extract_replicas_from_yaml(yaml_path)
+        if yaml_info and 'replicas' in yaml_info:
+            workload['replicas'] = yaml_info['replicas']
+
+    # Update node name if unchanged from previous
+    if workload.get('node_name') == previous_node_name:
+        yaml_info = extract_node_selector_from_yaml(yaml_path)
+        if yaml_info and 'nodeSelector' in yaml_info:
+            node_selector = yaml_info['nodeSelector']
+            workload['node_name'] = list(node_selector.values())[
+                0] if node_selector and node_selector != "N/A" else 'any'
+
+    return workload
+
+
+def process_yaml_files(deployment_dir, namespace, workload, new_workload,
+                       api_apps, api_batch, api_core, redeployment, previous_replicas, previous_node_name):
+    resources = []
+    replicas = int(workload.get('replicas', 1))
+
+    for filename in os.listdir(deployment_dir):
+        if not filename.endswith(('.yaml', '.yml')):
+            continue
+
+        file_path = os.path.join(deployment_dir, filename)
+        with open(file_path, 'r') as file:
+            for doc in yaml.safe_load_all(file):
+                if not isinstance(doc, dict) or 'kind' not in doc:
+                    continue
+
+                # Update replicas if changed
+                if not redeployment or (redeployment and replicas != previous_replicas):
+                    if doc['kind'] in ['Deployment', 'StatefulSet']:
+                        doc['spec']['replicas'] = replicas
+
+                # Update node selector if changed
+                if not redeployment or (redeployment and workload.get('node_name') != previous_node_name):
+                    add_node_selector(doc, workload.get('node_name', 'any'))
+
+                # Add workload_id label
+                label_doc(doc, new_workload.workload_id)
+
+                create_kubernetes_objects(
+                    namespace=namespace,
+                    doc=doc,
+                    api_instance_apps=api_apps,
+                    api_instance_core=api_core,
+                    api_instance_batch=api_batch,
+                    replicas=replicas
+                )
+                resources.append(doc)
+
+    return resources
+
+
+def handle_yaml_deployment(workload, username, namespace, deployment_dir,
+                           redeployment, previous_workload, api_apps, api_batch, api_core):
+    action = "Redeploy" if redeployment else "Create"
+    log_workload_action(action, workload['type'], namespace, "Processing")
+
+    # Extract previous details for redeployment
+    previous_replicas, previous_node_name = extract_previous_workload_details(previous_workload)
+
+    # Update workload with YAML data if needed
+    workload = update_replicas_and_node_from_yaml(workload, deployment_dir, redeployment, previous_replicas, previous_node_name)
+
+    # Create database records
+    db_time = time.time()
+    new_workload = create_yaml_workload_record(workload, username, datetime.utcnow())
+    logging.info(f"Action:Measurement Function:create_yaml_workload_record Delay:{(time.time() - db_time) * 1000} ms")
+
+    # Process YAML files
+    #api_apps, api_batch, api_core = create_kubernetes_clients()
+    resources = process_yaml_files(deployment_dir, namespace, workload, new_workload, api_apps, api_batch, api_core, redeployment, previous_replicas, previous_node_name)
+
+    # Save YAML for history
+    file_time = time.time()
+    save_yaml_to_dir(resources, os.path.join(Config.UPLOAD_FOLDER, username, str(new_workload.workload_id)), f"{workload['type'].lower()}.yaml")
+    logging.info(f"Action:Measurement Function:save_yaml_to_dir Delay:{(time.time() - file_time) * 1000} ms")
+
+    db.session.commit()
+    log_workload_action(action, workload['type'], namespace, "Success")
+
+    return new_workload, resources #, api_apps, api_batch, api_core
+
+
+def handle_helm_deployment(workload, username, namespace, deployment_dir,
+                           redeployment, previous_workload_id):
+    """Handle Helm-based Kubernetes deployment."""
+    action = "Redeploy" if redeployment else "Create"
+    log_workload_action(action, workload['type'], namespace, "Processing")
+
+    # Create database records
+    new_workload = create_helm_workload_record(workload, username, datetime.utcnow())
+
+    # Deploy Helm chart
+    result, result_code = deploy_helm_workload(
+        new_workload.workload_id, workload, username, namespace,
+        redeployment, previous_workload_id
+    )
+
+    if result_code != 200:
+        raise RuntimeError(f"Helm deployment failed for {workload['type']}")
+
+    # Copy deployment files for history
+    experiment_dir = os.path.join(Config.UPLOAD_FOLDER, username, str(new_workload.workload_id))
+    os.makedirs(experiment_dir, exist_ok=True)
+
+    source_dir = deployment_dir if redeployment else get_deployment_files_path(workload['type'].lower(), username)
+    for file in os.listdir(source_dir):
+        shutil.copy2(os.path.join(source_dir, file), experiment_dir)
+
+    db.session.commit()
+    log_workload_action(action, workload['type'], namespace, "Success")
+
+    return new_workload
+
+
+def wait_and_cleanup(workload, namespace, cleanup_func, new_workload, *cleanup_args):
+    time.sleep(int(workload['duration']))
+
+    # logging.info(f"Action:Delete Workload:{workload['type']} Namespace:{namespace} Result:Processing")
+    log_workload_action("Delete", workload['type'], namespace, "Processing")
+
+    cleanup_func(*cleanup_args)
+    update_workload_status(new_workload.workload_id)
+
+    # logging.info(f"Action:Delete Workload:'{workload['type']}' Namespace:{namespace} Result:Success")
+    log_workload_action("Delete", workload['type'], namespace, "Success")
+
+
+def cleanup_yaml_resources(resources, namespace, api_apps, api_core, api_batch):
+    for resource in resources:
+        try:
+            delete_kubernetes_objects(
+                namespace=namespace,
+                doc=resource,
+                api_instance_apps=api_apps,
+                api_instance_core=api_core,
+                api_instance_batch=api_batch
+            )
+        except ApiException as e:
+            if e.status != 404:  # Ignore not found errors
+                logging.error(
+                    f"Action:Delete Kind:{resource['kind']} "
+                    f"Name:{resource['metadata']['name']} "
+                    f"Namespace:{namespace} Trace:{e}"
+                )
+
+
+def wait_and_cleanup(workload, namespace, cleanup_func, new_workload, *cleanup_args):
+    time.sleep(int(workload['duration']))
+
+    logging.info(f"Action:Delete Workload:{workload['type']} Namespace:{namespace} Result:Processing")
+
+    cleanup_func(*cleanup_args)
+    update_workload_status(new_workload.workload_id)
+
+    logging.info(f"Action:Delete Workload:'{workload['type']}' Namespace:{namespace} Result:Success")
+
+
+def manage_kubernetes_resources(workload, username, namespace, redeployment=False,
+                                previous_workload_id=None, previous_workload=None):
+    app = create_app()
+    with app.app_context():
+        api_apps, api_batch, api_core = create_kubernetes_clients()
+        deploy_method = workload.get('deploy_method', 'yaml')
+        deployment_dir = os.path.join(Config.UPLOAD_FOLDER, username,
+                                      str(previous_workload_id)) if redeployment else get_deployment_files_path(
+            workload['type'].lower(), username)
+
+        try:
+            if deploy_method == 'yaml':
+                new_workload, resources = handle_yaml_deployment(workload, username, namespace, deployment_dir, redeployment, previous_workload, api_apps, api_batch, api_core)
+
+                wait_and_cleanup(workload, namespace, cleanup_yaml_resources, new_workload,resources, namespace, api_apps, api_core, api_batch)
+
+            elif deploy_method == 'helm':
+                new_workload = handle_helm_deployment(workload, username, namespace, deployment_dir, redeployment, previous_workload_id)
+
+                wait_and_cleanup(workload, namespace,
+                    lambda: subprocess.run([f'helm delete {workload["type"].lower()} --kubeconfig {Config.KUBECONFIG_PATH} -n {namespace}'], check=True,shell=True),
+                    new_workload
+                )
+            #return jsonify({"status": "success"}), 200
+        except Exception as e:
+            logging.error(f"Workload '{workload['type']}' failed: {e}")
+            return jsonify({"status": "error", "message": str(e)}), 500
+
+    #return jsonify({"status": "success"}), 200
+
+
+def handle_workloads(workloads, redeployment=False, username=None, namespace=None, previous_workload_id=None,
+                     previous_workload=None):
     for workload in workloads:
-        threading.Thread(target=manage_kubernetes_resources, args=(workload, chained, username, namespace)).start()
+        start = time.time()
+        threading.Thread(target=manage_kubernetes_resources,
+                         args=(workload, redeployment, username, namespace, previous_workload_id, previous_workload)
+                         ).start()
+        logging.info(f"Action:Measurement Function:manage_kubernetes_resources Delay:{(time.time() - start) * 1000} ms")
         time.sleep(5)
 
 
-def manage_kubernetes_resources(workload, chained, username, namespace):
+def manage_kubernetes_resources_(workload, username, namespace, redeployment=False, previous_workload_id=None,
+                                 previous_workload=None):
     app = create_app()
     created_at = datetime.utcnow()
+    deploy_method = workload.get('deploy_method', 'yaml')
 
     with app.app_context():  # Manually push the application context
-        load_kube_config()
-        api_instance_apps = kubernetes.client.AppsV1Api()
-        api_instance_batch = kubernetes.client.BatchV1Api()
-        api_instance_core = kubernetes.client.CoreV1Api()
+        api_apps, api_batch, api_core = create_kubernetes_clients()
 
-        # create_namespace(api_instance_core, Config.WORKLOADS_NAMESPACE)
-        deployment_dir = get_deployment_files_path(workload['type'].lower())
-        resources = []
+        previous_replicas = None
+        previous_node_name = None
+
+        deployment_dir = os.path.join(Config.UPLOAD_FOLDER, username,
+                                      str(previous_workload_id)) if redeployment else get_deployment_files_path(
+            workload['type'].lower(), username)
+
+        if redeployment:
+            logging.info(f"Action:Redeploy Workload:{workload['type']} Namespace:{namespace} Result: Processing")
+        else:
+            logging.info(f"Action:Create Workload:{workload['type']} Namespace:{namespace} Result: Processing")
+
         try:
-            if workload['type'] == 'iot-sensor-pipeline':
-                commands = ['helm repo add t3n https://storage.googleapis.com/t3n-helm-charts',
-                            'helm repo add bitnami https://charts.bitnami.com/bitnami',
-                            f'helm -n {namespace} upgrade --install mqtt --kubeconfig {Config.KUBECONFIG_PATH} -f {deployment_dir}/brokers/mqtt-values.yaml t3n/mosquitto',
-                            f'helm -n {namespace} upgrade --install kafka --kubeconfig {Config.KUBECONFIG_PATH} -f {deployment_dir}/brokers/kafka-values.yaml bitnami/kafka',
-                            f'helm -n {namespace} upgrade --install mysql --kubeconfig {Config.KUBECONFIG_PATH} -f {deployment_dir}/datastores/mysql-values.yaml bitnami/mysql']
+            if deploy_method == 'yaml':
+                replicas = int(workload.get('replicas', 1))
 
-                for command in commands:
-                    process_helm(command)
+                # Add logic to ensure the replicas and node_name are valid in the database
+                if redeployment:
+                    # logging.info('Redeployment detected, checking previous workload details...')
+                    yaml_files = [f for f in os.listdir(deployment_dir) if f.endswith(('.yaml', '.yml'))]
+                    if yaml_files:
+                        # Check if Edit and Redeploy is invoked
+                        for row in previous_workload:
+                            previous_replicas = row.yaml_workload.replicas
+                            previous_node_name = row.yaml_workload.node_name
 
-                time.sleep(30)
+                        # logging.info(
+                        #    f'Previous replicas: {previous_replicas}, Previous node name: {previous_node_name} Current replicas: {replicas}, Current node name: {workload["node_name"]}')
 
-            #logging.info(f"Deploying resources from '{deployment_dir}'...")
-            replicas = workload.get('replicas', 1)  # Remove this line in future after migration to new schema
-            for filename in os.listdir(deployment_dir):
-                if filename.endswith('.yaml' or '.yml'):
-                    with open(os.path.join(deployment_dir, filename), 'r') as file:
-                        documents = yaml.safe_load_all(file)
-                        for doc in documents:
-                            resources.append(doc)
+                        if replicas == previous_replicas:
+                            info = extract_replicas_from_yaml(os.path.join(deployment_dir, yaml_files[0]))
+                            # logging.info(f'Condition met. Replicas from YAML: {info.get("replicas")}')
+                            if info:
+                                replicas = int(info['replicas'])
 
-                            try:
-                                if doc['kind'] in ['Pod'] and workload['node_name'] != 'any':
-                                    doc['spec']['containers'][0]['nodeSelector'] = {
-                                        'kubernetes.io/hostname': workload['node_name']}
+                        if workload['node_name'] == previous_node_name:
+                            info = extract_node_selector_from_yaml(os.path.join(deployment_dir, yaml_files[0]))
+                            # logging.info(f'Node selector from YAML: {info.get("nodeSelector")}')
+                            if info:
+                                if info['nodeSelector'] and info['nodeSelector'] != "N/A":
+                                    # workload['node_name'] = list(info['nodeSelector'].keys())[0]
+                                    workload['node_name'] = list(info['nodeSelector'].values())[0]
+                                else:
+                                    workload['node_name'] = 'any'
+                # logging.info(f'Replicas: {replicas}, Node Name: {workload["node_name"]}')
 
-                                if doc['kind'] in ['Deployment', 'StatefulSet', 'Job'] and workload['node_name'] != 'any':
-                                    doc['spec']['template']['spec']['nodeSelector'] = {
-                                        'kubernetes.io/hostname': workload['node_name']}
+                yaml_workload = YamlWorkload(
+                    replicas=replicas,
+                    node_name=workload['node_name'],
+                )
+                db.session.add(yaml_workload)
+                db.session.flush()
 
-                                create_kubernetes_objects(namespace=namespace,
-                                                          doc=doc,
-                                                          api_instance_apps=api_instance_apps,
-                                                          api_instance_core=api_instance_core,
-                                                          api_instance_batch=api_instance_batch,
-                                                          replicas=replicas)
+                new_workload = DeployedWorkload(
+                    username=username,
+                    workload_name=workload['type'],
+                    duration=int(workload['duration']),
+                    deployment_status='success',
+                    is_completed=False,
+                    created_at=created_at,
+                    yaml_workload_id=yaml_workload.id,
+                )
 
-                            except ApiException as e:
-                                logging.warning(f"Exception when creating {doc['kind']} {filename}: {e}")
+                db.session.add(new_workload)
+                db.session.flush()
 
-            # Log the deployment action
-            new_workload = DeployedWorkload(username=username,
-                                            workload_name=workload['type'],
-                                            duration=workload['duration'],
-                                            replicas=replicas,
-                                            node_name=workload['node_name'],
-                                            status='success',
-                                            completed=False,
-                                            created_at=created_at)
-            db.session.add(new_workload)
-            db.session.commit()
+                resources = []
+                for filename in os.listdir(deployment_dir):
+                    if filename.endswith('.yaml' or '.yml'):
+                        with open(os.path.join(deployment_dir, filename), 'r') as file:
+                            for doc in yaml.safe_load_all(file):
+                                if not isinstance(doc, dict) or 'kind' not in doc:
+                                    continue
 
-            logging.info(
-                f"Workload '{workload['type']}' created in '{namespace}' and will run '{workload['duration']}'s.")
-            #logging.info(f"Creation Time '{created_at}'.")
+                                # Ensure this is not a redeployment
+                                if not redeployment or (redeployment and replicas != previous_replicas):
+                                    if doc['kind'] in ['Deployment', 'StatefulSet']:
+                                        doc['spec']['replicas'] = int(replicas)
 
-            time.sleep(workload['duration'])
-            logging.info(f"Workload '{workload['type']}' completed. Deleting resources...")
+                                if not redeployment or (redeployment and workload['node_name'] != previous_node_name):
+                                    # logging.info(
+                                    #    f'Previous node name: {previous_node_name}, Current node name: {workload["node_name"]}')
+                                    add_node_selector(doc, workload['node_name'])
 
-            for resource in resources:
-                logging.info(f"Deleting {resource['kind']} '{resource['metadata']['name']}'...")
-                try:
-                    delete_kubernetes_objects(namespace=namespace,
-                                              doc=resource,
-                                              api_instance_apps=api_instance_apps,
-                                              api_instance_core=api_instance_core,
-                                              api_instance_batch=api_instance_batch)
+                                # Add workload_id label to enable Grafana filtering
+                                label_doc(doc, new_workload.workload_id)
 
-                except ApiException as e:
-                    if not e.status == 404:
-                        logging.warning(
-                            f"Exception when deleting {resource['kind']} {resource['metadata']['name']}: {e}")
+                                create_kubernetes_objects(
+                                    namespace=namespace,
+                                    doc=doc,
+                                    api_instance_apps=api_apps,
+                                    api_instance_core=api_core,
+                                    api_instance_batch=api_batch,
+                                    replicas=replicas
+                                )
+                                resources.append(doc)
 
-            if workload['type'] == 'iot-sensor-pipeline':
-                commands = [f'helm delete mqtt --kubeconfig {Config.KUBECONFIG_PATH} -n {namespace}',
-                            f'helm delete kafka --kubeconfig {Config.KUBECONFIG_PATH} -n {namespace}',
-                            f'helm delete mysql --kubeconfig {Config.KUBECONFIG_PATH} -n {namespace}']
-                for command in commands:
-                    process_helm(command)
-
-            workload_exists = DeployedWorkload.query.filter(
-                DeployedWorkload.username == username,
-                DeployedWorkload.workload_name == workload['type'],
-                DeployedWorkload.duration == workload['duration'],
-                DeployedWorkload.replicas == replicas,
-                DeployedWorkload.node_name == workload['node_name'],
-                DeployedWorkload.status == 'success',  # Ensure 'success' is correct
-                DeployedWorkload.completed.is_(False),  # Correct way to check boolean
-                DeployedWorkload.created_at == created_at
-            ).first()
-
-            if workload_exists:
-                workload_exists.completed = True
+                # Create a directory for the workload history and redeployments
+                save_yaml_to_dir(resources, os.path.join(Config.UPLOAD_FOLDER, username, str(new_workload.workload_id)),
+                                 f"{workload['type'].lower()}.yaml")
                 db.session.commit()
 
-            logging.info(f"Workload '{workload['type']}' deleted successfully.")
+                if redeployment:
+                    logging.info(f"Action:Redeploy Workload:{workload['type']} Namespace:{namespace} Result:Success")
+                else:
+                    logging.info(f"Action:Create Workload:'{workload['type']}' Namespace:{namespace} Result:Success")
+
+                # time.sleep(int(workload['duration']))
+                # logging.info(f"Action: Delete Workload: {workload['type']} Namespace:{namespace} Result: Processing")
+
+                # for resource in resources:
+                #     try:
+                #         delete_kubernetes_objects(namespace=namespace,
+                #                                   doc=resource,
+                #                                   api_instance_apps=api_apps,
+                #                                   api_instance_core=api_core,
+                #                                   api_instance_batch=api_batch)
+                #
+                #     except ApiException as e:
+                #         if e.status != 404:
+                #             logging.error(
+                #                 f"Action:Delete Kind:{resource['kind']} Name:{resource['metadata']['name']} Namespace:{namespace} Trace:{e}")
+                #
+                # update_workload_status(new_workload.workload_id)
+                #
+                # logging.info(f"Action:Delete Workload:'{workload['type']}' Namespace:{namespace} Result:Success")
+
+            if deploy_method == 'helm':
+                helm_workload = HelmWorkload(
+                    chart_name=workload.get('chart_name'),
+                    chart_version=workload.get('chart_version'),
+                    set_values=workload.get('set_values'),
+                )
+                db.session.add(helm_workload)
+                db.session.flush()  # Get the ID of the newly created helm_workload
+
+                new_workload = DeployedWorkload(
+                    username=username,
+                    workload_name=workload['type'],
+                    duration=workload['duration'],
+                    deployment_status='success',
+                    is_completed=False,
+                    created_at=created_at,
+                    helm_workload_id=helm_workload.id,  # Associate with Helm workload
+                )
+
+                db.session.add(new_workload)
+                db.session.flush()
+
+                result, result_code = deploy_helm_workload(new_workload.workload_id, workload, username, namespace,
+                                                           redeployment, previous_workload_id)
+
+                if result_code == 200:
+                    # Create a directory for the workload history and redeployments
+                    experiment_dir = os.path.join(Config.UPLOAD_FOLDER, username, str(new_workload.workload_id))
+                    os.makedirs(experiment_dir, exist_ok=True)
+                    source_dir = deployment_dir if redeployment else get_deployment_files_path(workload['type'].lower(),
+                                                                                               username)
+
+                    for file in os.listdir(source_dir):
+                        shutil.copy2(os.path.join(source_dir, file), experiment_dir)
+
+                    db.session.commit()
+                    time.sleep(int(workload['duration']))
+
+                    logging.info(
+                        f"Action: Delete Workload: {workload['type']} Namespace:{namespace} Result: Processing")
+
+                    subprocess.run(
+                        [f'helm delete {workload["type"].lower()} --kubeconfig {Config.KUBECONFIG_PATH} -n {namespace}'],
+                        check=True,
+                        shell=True
+                    )
+
+                    update_workload_status(new_workload.workload_id)
+
+                    logging.info(f"Action:Delete Workload:'{workload['type']}' Namespace:{namespace} Result:Success\n")
+
+                else:
+                    db.session.rollback()
+                    raise RuntimeError(f"Helm deployment failed for {workload['type']}")
+
         except Exception as e:
             db.session.rollback()
+            logging.error(f"Workload '{workload['type']}' failed: {e}")
             return jsonify({"status": "error", "message": str(e)}), 500
+
+
+def extract_replicas_from_yaml(path):
+    try:
+        with open(path, 'r') as f:
+            info = {
+                'replicas': None,
+            }
+            for doc in yaml.safe_load_all(f):
+                kind = doc.get('kind')
+
+                if isinstance(doc, dict) and doc.get('kind') in ['Deployment', 'StatefulSet', 'Job']:
+                    info['replicas'] = doc.get('spec', {}).get('replicas', 1)
+            return info
+    except yaml.YAMLError as e:
+        logging.error(f"YAML error in {path}: {e}")
+    except Exception as e:
+        logging.error(f"Unexpected error reading {path}: {e}")
+        raise Exception(f"Failed to read YAML file: {e}")
+    # return 1
+
+
+def extract_node_selector_from_yaml(path):
+    try:
+        with open(path, 'r') as f:
+            info = {
+                'nodeSelector': None
+            }
+            for doc in yaml.safe_load_all(f):
+                kind = doc.get('kind')
+
+                if kind == 'Deployment' or kind == 'StatefulSet':
+                    node_selector = doc.get('spec', {}).get('template', {}).get('spec', {}).get('nodeSelector')
+                    if isinstance(node_selector, dict):
+                        info['nodeSelector'] = node_selector
+                elif kind == 'Job':
+                    node_selector = doc.get('spec', {}).get('template', {}).get('spec', {}).get('nodeSelector')
+                    if isinstance(node_selector, dict):
+                        info['nodeSelector'] = node_selector
+                elif kind == 'Pod':
+                    node_selector = doc.get('spec', {}).get('nodeSelector')
+                    if isinstance(node_selector, dict):
+                        info['nodeSelector'] = node_selector
+                else:
+                    info['nodeSelector'] = 'N/A'
+
+            return info
+    except yaml.YAMLError as e:
+        logging.error(f"YAML error in {path}: {e}")
+    except Exception as e:
+        logging.error(f"Unexpected error reading {path}: {e}")
+        raise Exception(f"Failed to read YAML file: {e}")
+
+
+def add_node_selector(doc, node_name):
+    if node_name == 'any':
+        if doc['kind'] == 'Pod':
+            node_selector = doc.get('spec', {}).get('nodeSelector', {})
+            if 'kubernetes.io/hostname' in node_selector:
+                del doc['spec']['nodeSelector']['kubernetes.io/hostname']
+        elif doc['kind'] in ['Deployment', 'StatefulSet', 'Job']:
+            node_selector = doc.get('spec', {}).get('template', {}).get('spec', {}).get('nodeSelector', {})
+            if 'kubernetes.io/hostname' in node_selector:
+                del doc['spec']['template']['spec']['nodeSelector']['kubernetes.io/hostname']
+        else:
+            logging.warning(f"Unsupported kind: {doc['kind']}")
+        return
+
+    if doc['kind'] == 'Pod':
+        doc.setdefault('spec', {}).setdefault('nodeSelector', {})['kubernetes.io/hostname'] = node_name
+    elif doc['kind'] in ['Deployment', 'StatefulSet', 'Job']:
+        doc.setdefault('spec', {}).setdefault('template', {}).setdefault('spec', {}).setdefault('nodeSelector', {})[
+            'kubernetes.io/hostname'] = node_name
+    else:
+        logging.warning(f"Unsupported kind: {doc['kind']}")
+        return
+
+
+def label_doc(doc, workload_id):
+    if doc['kind'] == 'Pod':
+        doc.setdefault('metadata', {}).setdefault('labels', {})['workload_id'] = str(workload_id)
+    elif doc['kind'] in ['Deployment', 'StatefulSet', 'Job']:
+        doc['spec']['template'].setdefault('metadata', {}).setdefault('labels', {})['workload_id'] = str(workload_id)
+
+
+def save_yaml_to_dir(resources, experiment_dir, yaml_file_name):
+    os.makedirs(experiment_dir, exist_ok=True)
+    try:
+        with open(os.path.join(experiment_dir, yaml_file_name), 'w') as f:
+            yaml.safe_dump_all(resources, f, default_flow_style=False, sort_keys=False)
+    except Exception as e:
+        logging.error(f"Error saving YAML to file {experiment_dir}/{yaml_file_name}: {e}")
+        raise RuntimeError(f"Failed to write YAML: {e}")
+
+
+def update_workload_status(workload_id):
+    workload_exists = DeployedWorkload.query.filter(
+        DeployedWorkload.workload_id == workload_id,
+        DeployedWorkload.is_completed.is_(False),  # Correct way to check boolean
+    ).first()
+
+    if workload_exists:
+        workload_exists.is_completed = True
+        workload_exists.finished_at = datetime.utcnow()
+        db.session.commit()
 
 
 def get_cluster_nodes():
@@ -302,77 +852,70 @@ def get_cluster_nodes():
     return worker_nodes
 
 
-def delete_resources(workload_json, namespace):
+def process_helm(command):
+    subprocess.run(command, check=True, shell=True)
+
+
+def delete_resources(workload_json, namespace, username):
     # Load Kubernetes configuration
     load_kube_config()
     k8s_client = client.ApiClient()
     dyn_client = dynamic.DynamicClient(k8s_client)
-
-    # Parse all YAML files in the directory
+    workload_id = workload_json.get("workload_id")
     workload = workload_json.get("workload_name")
-    directory = get_deployment_files_path(workload.lower())
+
+    deploy_method = workload_json.get("deploy_method", "yaml")
+    deployment_dir = get_deployment_files_path(workload.lower(), username)
     resource_defs = []
 
-    for filename in os.listdir(directory):
-        if filename.lower().endswith((".yaml", ".yml")):
-            filepath = os.path.join(directory, filename)
-            with open(filepath, "r") as f:
-                for doc in yaml.safe_load_all(f):
-                    if doc and "kind" in doc and "metadata" in doc:
-                        resource_defs.append(doc)
-
-    # Delete resources defined in YAMLs
-    for resource_def in resource_defs:
-        api_version = resource_def.get("apiVersion", "v1")
-        kind = resource_def.get("kind")
-        metadata = resource_def.get("metadata", {})
-        name = metadata.get("name")
-        namespace = metadata.get("namespace", namespace)
-
-        if not name:
-            logging.info(f"Skipping resource {kind} with no name")
-            continue
-
+    if deploy_method == "helm":
         try:
-            # Get the dynamic API resource
-            resource = dyn_client.resources.get(api_version=api_version, kind=kind)
+            command = [f'helm delete {workload.lower()} --kubeconfig {Config.KUBECONFIG_PATH} -n {namespace}']
+            process_helm(command)
+            update_workload_status(workload_id)
         except Exception as e:
-            logging.info(f"Error resolving API resource {kind} ({api_version}): {e}")
-            continue
+            logging.error(
+                f"Action:Delete Method:{deploy_method} Workload:{workload}: Namespace:{namespace} Trace:{str(e)}")
 
-        try:
-            # Check if resource is namespaced
-            if resource.namespaced:
-                logging.info(f"Deleting {kind}/{name} in namespace {namespace}")
-                resource.delete(name=name, namespace=namespace)
-            else:
-                logging.info(f"Deleting cluster-scoped {kind}/{name}")
-                resource.delete(name=name)
-            time.sleep(5)
-        except ApiException as e:
-            if e.status == 404:
-                logging.info(f"{kind} {name} not found (skipping)")
-            else:
-                logging.info(f"Failed to delete {kind} {name}: {str(e)}")
+    else:
+        for filename in os.listdir(deployment_dir):
+            if filename.lower().endswith((".yaml", ".yml")):
+                filepath = os.path.join(deployment_dir, filename)
+                with open(filepath, "r") as f:
+                    for doc in yaml.safe_load_all(f):
+                        if doc and "kind" in doc and "metadata" in doc:
+                            resource_defs.append(doc)
 
+        # Delete resources defined in YAMLs
+        for resource_def in resource_defs:
+            api_version = resource_def.get("apiVersion", "v1")
+            kind = resource_def.get("kind")
+            metadata = resource_def.get("metadata", {})
+            name = metadata.get("name")
+            namespace = metadata.get("namespace", namespace)
 
-def process_helm_deployment(command):
-    """Secure Helm deployment handler with namespace support"""
-    full_cmd = command + [
-        '--namespace', Config.WORKLOADS_NAMESPACE,
-        '--kubeconfig', Config.KUBECONFIG_PATH
-    ]
+            if not name:
+                logging.info(f"Skipping resource {kind} with no name")
+                continue
 
-    try:
-        result = subprocess.run(
-            full_cmd,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            timeout=300
-        )
-        return True, result.stdout
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Helm deployment failed: {e.stderr}")
-        return False, e.stderr
+            try:
+                # Get the dynamic API resource
+                resource = dyn_client.resources.get(api_version=api_version, kind=kind)
+            except Exception as e:
+                logging.error(f"Error resolving API resource {kind} ({api_version}): {e}")
+                continue
+
+            try:
+                # Check if resource is namespaced
+                if resource.namespaced:
+                    resource.delete(name=name, namespace=namespace)
+                else:
+                    resource.delete(name=name)
+                time.sleep(5)
+            except ApiException as e:
+                if e.status == 404:
+                    logging.info(f"{kind} {name} not found (skipping)")
+                else:
+                    logging.info(f"Failed to delete {kind} {name}: {str(e)}")
+
+        update_workload_status(workload_id)
