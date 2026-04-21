@@ -15,9 +15,11 @@ def _create_auth_header(user, password):
 
 
 class GrafanaManager:
-    def __init__(self, base_url, admin_user, admin_password):
+    def __init__(self, base_url, admin_user, admin_password, verify_ssl=False):
         self.base_url = base_url
+        self.base_url = base_url.rstrip("/")
         self.auth_header = _create_auth_header(admin_user, admin_password)
+        self.verify_ssl = verify_ssl
 
     def create_grafana_user(self, username, role="Viewer"):
         """Create user in Grafana if not exists"""
@@ -32,7 +34,8 @@ class GrafanaManager:
             response = requests.post(
                 f"{self.base_url}/api/admin/users",
                 json=payload,
-                headers=self.auth_header
+                headers=self.auth_header,
+                verify=self.verify_ssl
             )
             if response.status_code == 200:
                 logging.info(f"Created Grafana user: {username}")
@@ -87,48 +90,16 @@ class GrafanaManager:
             headers=self.auth_header
         )
 
-    def create_user_dashboard(self, username, namespace):
+    def create_metrics_dashboard(self, username, namespace):
         """Create namespace-specific dashboard"""
-        with open('templates/dashboard.json') as f:
+        with open('templates/metrics-dashboard.json') as f:
             template = json.load(f)
 
             dashboard = {
                 "dashboard": {
                     **template,
-                    "title": f"User Dashboard - {username}",
-                    "uid": f"user-{username}",
-                    "templating": {
-                        "list": [
-                            {
-                                "name": "namespace",
-                                "type": "constant",
-                                "current": {
-                                    "text": namespace,
-                                    "value": namespace
-                                },
-                                "query": namespace,
-                                "hide": 2
-                            },
-                            {
-                                "definition": "label_values(label_workload_id)",
-                                "label": "workload_id",
-                                "name": "workload_id",
-                                "includeAll": True,
-                                "multi": True,
-                                "options": [],
-                                "query": {
-                                    "qryType": 1,
-                                    "query": "label_values(label_workload_id)",
-                                    "datasource": {
-                                        "type": "prometheus"
-                                    }
-                                },
-                                "refresh": 1,
-                                "regex": "",
-                                "type": "query"
-                            }
-                        ]
-                    },
+                    "title": f"Metrics Dashboard - {username}",
+                    "uid": f"metrics-{username}-uid",
                     "time": {
                         "from": "now-1h",
                         "to": "now"
@@ -138,20 +109,63 @@ class GrafanaManager:
                 "overwrite": True
             }
 
-            final_dashboard = self.replace_namespace(dashboard, "_namespace", namespace)
-
         response = requests.post(
             f"{self.base_url}/api/dashboards/db",
-            json=final_dashboard,
+            json=dashboard,
             headers=self.auth_header
         )
         return response.json()
 
-    def replace_namespace(self, obj, old_value, new_value):
-        if isinstance(obj, dict):
-            return {k: self.replace_namespace(v, old_value, new_value) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [self.replace_namespace(i, old_value, new_value) for i in obj]
-        elif isinstance(obj, str):
-            return obj.replace(old_value, new_value)
-        return obj
+    def create_logs_dashboard(self, username, namespace):
+        """Create namespace-specific dashboard"""
+        with open('templates/logs-dashboard.json') as f:
+            template = json.load(f)
+
+            dashboard = {
+                "dashboard": {
+                    **template,
+                    "title": f"Logs Dashboard - {username}",
+                    "uid": f"logs-{username}-uid",
+                    "time": {
+                        "from": "now-1h",
+                        "to": "now"
+                    },
+                    "refresh": "10s"
+                },
+                "overwrite": True
+            }
+
+            #final_dashboard = self.replace_namespace(dashboard, "_namespace", namespace)
+
+        response = requests.post(
+            f"{self.base_url}/api/dashboards/db",
+            json=dashboard,
+            headers=self.auth_header
+        )
+        return response.json()
+
+    def create_cluster_dashboard(self, username, namespace):
+        """Create namespace-specific dashboard"""
+        with open('templates/cluster-dashboard.json') as f:
+            template = json.load(f)
+
+            dashboard = {
+                "dashboard": {
+                    **template,
+                    "title": f"Cluster-wide Resources Dashboard - {username}",
+                    "uid": f"cluster-{username}-uid",
+                    "time": {
+                        "from": "now-1h",
+                        "to": "now"
+                    },
+                    "refresh": "5s"
+                },
+                "overwrite": True
+            }
+
+        response = requests.post(
+            f"{self.base_url}/api/dashboards/db",
+            json=dashboard,
+            headers=self.auth_header
+        )
+        return response.json()

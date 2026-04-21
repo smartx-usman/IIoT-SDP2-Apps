@@ -1,4 +1,41 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Store workload templates in a global variable
+    let workloadTypes = [];
+
+    // Initialize Ace editor for YAML input
+    editor = ace.edit("editor");
+    editor.setTheme("ace/theme/github");
+    editor.session.setMode("ace/mode/yaml");
+
+    // Initialize Bootstrap tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+
+    // Fetch an existing user data
+    $('#fetchUserBtn').on('click', function() {
+        const username = $('#user-update-form #username').val();
+
+        if (!username) return alert("Please enter a username first");
+
+        $.ajax({
+            url: `/workload-manager/get_user/${username}`,
+            method: 'GET',
+            success: function(data) {
+                // Populate the form fields directly
+                $('#user-update-form #role').val(data.role);
+                $('#user-update-form #level').val(data.user_level);
+                $('#user-update-form #quota_pods').val(data.quota_pods);
+                $('#user-update-form #quota_cpu').val(data.quota_cpu);
+                $('#user-update-form #quota_memory').val(data.quota_memory);
+
+                // Clear password field for security (don't show old hashes)
+                $('#user-update-form #password').val('').attr('placeholder', 'Leave blank to keep current password');
+            },
+            error: function(err) {
+                alert("User not found or access denied.");
+            }
+        });
+    });
+
     // Show active menu item
     const defaultSection = document.querySelector('.section:not([style*="none"])');
     if(defaultSection) {
@@ -8,8 +45,22 @@ document.addEventListener('DOMContentLoaded', function() {
     // Show or hide fields based on user level and content generation method
     toggleConfigMethod();
 
+    // Add event listener for CPU input validation
+    document.querySelectorAll('input[name^="cpu"]').forEach(input => {
+        input.addEventListener('input', function() {
+          validateCpu(this);
+        });
+    });
+
+    // Add event listener for memory input validation
+    document.querySelectorAll('input[name^="memory"]').forEach(input => {
+        input.addEventListener('input', function() {
+          validateMemory(this);
+        });
+    });
+
     // Fetch nodes and populate node dropdowns
-    fetch('/nodes')
+    fetch('/workload-manager/nodes')
         .then(response => response.json())
         .then(data => {
             const nodes = data.nodes;
@@ -26,28 +77,57 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => console.error('Error fetching nodes:', error));
 
     // Fetch workload types and populate workload type dropdowns
-    fetch('/workload_types')
+    fetch('/workload-manager/workload_templates')
         .then(response => response.json())
         .then(data => {
             workloadTypes = data.types;
             const workloadTypeSelects = document.getElementsByClassName('workload_type');
             for (let select of workloadTypeSelects) {
                 select.innerHTML = ''; // Clear existing options
+
                 for (let type of workloadTypes) {
                     const option = document.createElement('option');
                     option.value = type.workload_name;
                     option.text = type.workload_name;
+                    // Add data for hidden fields
+                    option.dataset.deployMethod = type.deploy_method;
+                    option.dataset.helmRepoName = type.helm_repo_name;
+                    option.dataset.helmRepoURL = type.helm_repo_url;
+                    option.dataset.helmChart = type.helm_chart;
+                    option.dataset.helmChartVersion = type.helm_chart_version;
+                    option.dataset.helmSetValues = type.helm_set_values;
                     select.add(option);
+
+                    // console.log("Workload Types:", type);
                 }
+
+                // Trigger change event to populate hidden fields initially
+                if (select.options.length > 0) {
+                    select.selectedIndex = 0;
+                    const workloadSection = select.closest('.workload-section');
+                    populateWorkloadFields(workloadSection, select.options[0]);
+                }
+
+                //initializeWorkloadSections();
             }
         })
         .catch(error => console.error('Error fetching workload types:', error));
+
+    document.getElementById('workloads').addEventListener('change', function(e) {
+        if (e.target.classList.contains('workload_type')) {
+            const workloadSection = e.target.closest('.workload-section');
+            const selectedOption = e.target.options[e.target.selectedIndex];
+
+            // Populate the fields for the selected workload type
+            populateWorkloadFields(workloadSection, selectedOption);
+        }
+    });
 
     // User Registration Form submission handler
     document.getElementById('user-registration-form').addEventListener('submit', function(event) {
         event.preventDefault();
         const formData = new FormData(this);
-        fetch('/register', {
+        fetch('/workload-manager/register', {
             method: 'POST',
             body: formData
         })
@@ -57,6 +137,23 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(error => {
             showAlert('error', 'An error occurred while registering new user.');
+        });
+    });
+
+    // User Edit Form submission handler
+    document.getElementById('user-update-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const formData = new FormData(this);
+        fetch('/workload-manager/update_user', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            showAlert(data.status, data.message);
+        })
+        .catch(error => {
+            showAlert('error', 'An error occurred while updating user details.');
         });
     });
 
@@ -79,16 +176,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Form submission handler
     document.getElementById('workload-form').addEventListener('submit', function(event) {
+        const totalStart = performance.now(); // Start total timer
         event.preventDefault();
         const formData = new FormData(this);
         const userNamespace = document.body.dataset.namespace;
         formData.append('namespace', userNamespace);
-        fetch('/submit', {
+
+        /*for (const [key, value] of formData.entries()) {
+            console.log(`${key}:`, value);
+        }*/
+
+        fetch('/workload-manager/deploy_workload', {
             method: 'POST',
             body: formData
         })
         .then(response => response.json())
         .then(data => {
+            const totalEnd = performance.now();
+            console.log(`Total execution time: ${(totalEnd - totalStart).toFixed(3)} ms`);
             showAlert(data.status, data.message);
         })
         .catch(error => {
@@ -99,63 +204,158 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add new workload section handler
     document.getElementById('addWorkloadBtn').addEventListener('click', function() {
         const workloadDiv = document.createElement('div');
+        workloadDiv.className = 'workload-section';
         workloadDiv.innerHTML = `
+            <fieldset class="form-group-section form-group-section-yellow">
+            <legend class="form-group-section-title-main">Workload Details</legend>
             <div class="form-group">
-                <label for="workload_type">Workload Type:</label>
+                <label for="duration">Run Duration (seconds):
+                    <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                        title="How long the workload should run before automatic termination (in seconds). Minimum 30 seconds.">
+                        <i class="fas fa-info-circle"></i>
+                    </span>
+                </label>
+                <input type="number" name="duration[]" class="form-control duration" min="30" value="120" required>
+            </div>
+            <div class="form-group">
+                <label for="workload_type">Workload Template:
+                    <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                        title="Select a pre-configured workload template to deploy">
+                        <i class="fas fa-info-circle"></i>
+                    </span>
+                </label>
                 <select name="workload_type[]" class="form-control workload_type" required></select>
             </div>
-            <div class="form-group">
-                <label for="duration">Duration (seconds):</label>
-                <input type="number" name="duration[]" class="form-control duration" min="1" value="120" required>
+            <input type="hidden" name="deploy_method[]" class="form-control deploy_method">
+            <div class="yaml-specific" style="display: none;">
+                <div class="form-group">
+                    <label for="replicas">No. of Replicas:
+                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                            title="Number of identical pod instances to run. Only applicable for Deployment resources">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                    </label>
+                    <input type="number" name="replicas[]" class="form-control replicas" min="1" value="1"
+                           required>
+                </div>
+                <div class="form-group">
+                    <label for="node_name">Cluster Node for Deployment:
+                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                        title="Select a specific cluster node to run this workload, or 'Any' for automatic scheduling">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                    </label>
+                    <select name="node_name[]" class="form-control node_name" required>
+                        <option value="any">Any</option>
+                    </select>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="replicas">Replicas:</label>
-                <input type="number" name="replicas[]" class="form-control replicas" min="1" value="1" required>
+            <div class="helm-specific" style="display: none;">
+                <div class="form-group" style="display: none;">
+                    <label for="helm_repo_name">Repository Name (Used for adding repo):
+                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                            title="Alias name for the Helm repository (used when adding repos)">
+                                <i class="fas fa-info-circle"></i>
+                        </span>
+                    </label>
+                    <input type="text" class="form-control helm-field helm_repo_name" name="helm_repo_name[]" placeholder="Repository Name" title="It is an alias you assign when adding a repository." >
+                </div>
+                <div class="form-group" style="display: none;">
+                    <label for="helm_repo_url">Helm Repository URL:
+                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                            title="URL of the Helm chart repository">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                    </label>
+                    <input type="text" class="form-control helm-field helm_repo_url" name="helm_repo_url[]" placeholder="Helm Repository" title="This is the URL where the Helm chart repository is hosted.">
+                </div>
+                <div class="form-group">
+                    <label for="helm_chart">Chart Name:
+                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                            title="Name of the Helm chart to deploy (e.g., nginx, mysql)">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                    </label>
+                    <input type="text" class="form-control helm-field helm_chart" name="helm_chart[]" placeholder="Chart Name" title="It is the URL path to the chart.">
+                </div>
+                <div class="advanced-helm-fields" style="display: none;">
+                    <div class="form-group">
+                        <label for="helm_chart_version">Chart Version:
+                            <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                title="Specific version of the chart to install (leave blank for latest)">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                        </label>
+                        <input type="text" class="form-control helm-field helm_chart_version" name="helm_chart_version[]" placeholder="Chart Version" title="It specifies chart version to install.">
+                    </div>
+                    <div class="form-group">
+                        <label for="helm_set_values">Set Values:
+                            <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                title="Custom chart values in key=value format (semicolon separated)">
+                                <i class="fas fas-info-circle"></i>
+                            </span>
+                        </label>
+                        <textarea class="form-control helm-field helm_set_values" name="helm_set_values[]"
+                              placeholder="key1=value1;key2=value2" title="It will set values on the command line."></textarea>
+                    </div>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="node_name">Node:</label>
-                <select name="node_name[]" class="form-control node_name" required>
-                    <option value="any">Any</option>
-                </select>
-            </div>
-            <button type="button" class="btn btn-danger" onclick="removeWorkload(this)">Remove</button>
-            <button type="button" id="addWorkloadBtn" class="btn btn-primary">Add More Workload</button>
-            <hr>
+            <button type="button" class="btn btn-danger" onclick="removeWorkload(this)">Remove Entry</button>
+            </fieldset>
         `;
-        document.getElementById('workloads').appendChild(workloadDiv);
 
-        // Fetch workload types for the new section
-        const workloadTypeSelects = workloadDiv.getElementsByClassName('workload_type');
-        for (let select of workloadTypeSelects) {
-            for (let type of workloadTypes) {
-                const option = document.createElement('option');
-                option.value = type.workload_name;
-                option.text = type.workload_name;
-                select.add(option);
-            }
+        const userLevel = document.body.dataset.userLevel;
+        if (userLevel === 'intermediate' || userLevel === 'advanced') {
+            workloadDiv.querySelector('.advanced-helm-fields').style.display = 'block';
         }
 
-        // Fetch nodes for the new section
-        fetch('/nodes')
+        document.getElementById('workloads').appendChild(workloadDiv);
+
+        // Get the newly created workload type dropdown
+        const newSelect = workloadDiv.querySelector('.workload_type');
+
+        // Populate the dropdown with the pre-fetched workload types
+        workloadTypes.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type.workload_name;
+            option.text = type.workload_name;
+            option.dataset.deployMethod = type.deploy_method;
+            option.dataset.helmRepoName = type.helm_repo_name;
+            option.dataset.helmRepoURL = type.helm_repo_url;
+            option.dataset.helmChart = type.helm_chart;
+            option.dataset.helmChartVersion = type.helm_chart_version;
+            option.dataset.helmSetValues = type.helm_set_values;
+            newSelect.add(option);
+        });
+
+        // Check if there's a pre-populated workload and use it to initialize the fields.
+        if (newSelect.options.length > 0) {
+            newSelect.selectedIndex = 0;
+            // Explicitly call the function to populate the fields for the new block.
+            populateWorkloadFields(workloadDiv, newSelect.options[0]);
+        }
+
+        // Fetch and populate nodes for the new section
+        fetch('/workload-manager/nodes')
             .then(response => response.json())
             .then(data => {
+                const nodeSelect = workloadDiv.querySelector('.node_name');
                 const nodes = data.nodes;
-                const nodeSelects = workloadDiv.getElementsByClassName('node_name');
-                for (let select of nodeSelects) {
-                    for (let node of nodes) {
-                        const option = document.createElement('option');
-                        option.value = node;
-                        option.text = node;
-                        select.add(option);
-                    }
-                }
+                nodeSelect.innerHTML = '<option value="any">Any</option>'; // Clear and add default
+                nodes.forEach(node => {
+                    const option = document.createElement('option');
+                    option.value = node;
+                    option.text = node;
+                    nodeSelect.add(option);
+                });
             })
             .catch(error => console.error('Error fetching nodes:', error));
     });
 
     // Handle adding workload type form submission
-    document.getElementById('workload-type-form').addEventListener('submit', function(event) {
+    document.getElementById('workload-template-form').addEventListener('submit', function(event) {
         event.preventDefault();
+        const userLevel = document.body.dataset.userLevel;
 
         // Add manual fields
         const fieldsToAdd = [
@@ -166,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ];
 
         // Get the form element
-        const form = document.getElementById('workload-type-form');
+        const form = document.getElementById('workload-template-form');
         const formData = new FormData(form);
 
         fieldsToAdd.forEach(field => {
@@ -201,15 +401,26 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         else if (deploymentMethod === 'helm') {
-            const helmChart = document.getElementById('helmChart').value;
-            const helmVersion = document.getElementById('helmVersion').value;
-            const helmRepo = document.getElementById('helmRepo').value;
-            const helmValues = document.getElementById('helmValues').value;
+            const repoName = document.getElementById('helmRepoName').value.trim();
+            const repoURL = document.getElementById('helmRepoURL').value.trim();
+            const chart = document.getElementById('helmChart').value.trim();
+            formData.append('helm_repo_name', repoName);
+            formData.append('helm_repo_url', repoURL);
+            formData.append('helm_chart_name', chart);
 
-            formData.append('helm_chart', helmChart);
-            formData.append('helm_version', helmVersion);
-            formData.append('helm_repo', helmRepo);
-            formData.append('helm_values', helmValues);
+            if (userLevel === 'intermediate' || userLevel === 'advanced') {
+                const helmChartVersion = document.getElementById('helmChartVersion').value.trim();
+                const helmSetValues = document.getElementById('helmSetValues').value.trim();
+                formData.append('helm_chart_version', helmChartVersion);
+                formData.append('helm_set_values', helmSetValues);
+            }
+
+            /*if (userLevel === 'advanced') {
+                const files = document.getElementById('helmValuesFile').files;
+                if (files.length > 0) {
+                    formData.append('helm_values_file', files[0]);
+                }
+            }*/
         }
         else {
             showAlert('error', 'Select a deployment method (YAML or Helm)');
@@ -223,39 +434,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 (value instanceof File && value.name && value.size > 0) ||
                 (typeof value !== 'string' && value !== null && value !== undefined)) {
                 filteredData.append(key, value);
+                //console.log(`Filtered Data - ${key}:`, value);
             }
         }
 
-        //console.log('Final FormData:');
-        //for (const [key, value] of filteredData.entries()) {
-        //    console.log(`${key}:`, value);
-        //}
-
-        /*try {
-                const response = fetch("/add_workload_type", {
-                method: 'POST',
-                body: filteredData,
-            });
-
-            if (response.ok) {
-              showAlert(data.status, data.message);
-              // Reload the page to reflect new workload type
-              location.reload();
-            } else {
-              console.error("Failed to add workload type");
-            }
-          } catch (error) {
-            showAlert('error', 'An error occurred while adding the workload type.');
-          }*/
-
-        fetch('/add_workload_type', {
+        fetch('/workload-manager/create_workload_template', {
             method: 'POST',
             body: filteredData
         })
         .then(response => response.json())
         .then(data => {
             // After successfully adding a new workload type, refresh all the dropdowns for workload_types
-            fetch('/workload_types')
+            fetch('/workload-manager/workload_templates')
               .then(response => response.json())
               .then(data => {
                 workloadTypes = data.types;
@@ -264,20 +454,84 @@ document.addEventListener('DOMContentLoaded', function() {
                 allDropdowns.forEach(select => {
                   select.innerHTML = ''; // Clear existing options
                   workloadTypes.forEach(type => {
+                    //console.log("Workload Types 2:", type);
                     const option = document.createElement('option');
                     option.value = type.workload_name;
                     option.text = type.workload_name;
+                    option.dataset.deployMethod = type.deploy_method;
+                    option.dataset.helmRepoName = type.helm_repo_name;
+                    option.dataset.helmRepoURL = type.helm_repo_url;
+                    option.dataset.helmChart = type.helm_chart;
+                    option.dataset.helmChartVersion = type.helm_chart_version;
+                    option.dataset.helmSetValues = type.helm_set_values;
                     select.appendChild(option);
                   });
+                  // Re-trigger change event
+                  select.dispatchEvent(new Event('change'));
                 });
               });
 
             showAlert(data.status, data.message);
-            // Reload the page to reflect new workload type
-            //location.reload();
         })
         .catch(error => {
             showAlert('error', 'An error occurred while adding the workload type.');
+        });
+    });
+
+    // Clear workload form button handler
+    document.getElementById('clearFormBtn').addEventListener('click', function() {
+        const workloadsContainer = document.getElementById('workloads');
+        const initialWorkloadSectionHtml = workloadsContainer.innerHTML;
+        workloadsContainer.innerHTML = '';
+    });
+
+    // Handle Edit and Redeploy workload form submission
+    document.getElementById('editRedeployForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = e.target;
+
+        const workloadId = document.getElementById('editWorkloadId').value;
+        const workloadName = document.getElementById('editWorkloadName').value.trim();
+        const method = document.getElementById('editDeployMethod').value;
+        const duration = document.getElementById('editDuration').value;
+
+        const payload = {
+            previous_workload_id: workloadId,
+            workload_name: workloadName,
+            method: method,
+            duration: duration
+        };
+        console.log("Method:", method);
+        if (method === 'yaml') {
+            payload.replicas = document.getElementById('editReplicas').value;
+            payload.node_name = document.getElementById('editNodeName').value;
+        }
+
+        if (method === 'helm') {
+            payload.chart_name = document.getElementById('editChartName').value;
+            payload.version = document.getElementById('editVersion').value;
+            payload.values = document.getElementById('editValues').value;
+        }
+
+        //console.log("Payload:", payload);
+
+        fetch(`/edit_and_redeploy/${workloadId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            //if (response.ok) {
+                closeEditModal();
+                showAlert(data.status, data.message, true);
+                fetchDeployedWorkloads(); // refresh table
+            /*} else {
+                showAlert('error', 'An error occurred while redeploying the workload.');
+            }*/
+        })
+        .catch(err => {
+            showAlert('error', 'An error occurred while redeploying the workload: ' + err.message);
         });
     });
 
@@ -297,104 +551,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-let workloadTypes = []; // Global variable to store fetched types
+// File editing options
+let selectedFolder = "";
+let selectedFile = "";
+let editor;
 
+// Initialize workload sections
+function populateWorkloadFields(workloadSection, selectedOption) {
+    const deployMethod = selectedOption.dataset.deployMethod;
+    const helmFields = workloadSection.querySelector('.helm-specific');
+    const yamlFields = workloadSection.querySelector('.yaml-specific');
+
+    // Show/hide the correct form fields based on the deploy method
+    helmFields.style.display = deployMethod === 'helm' ? 'block' : 'none';
+    yamlFields.style.display = deployMethod === 'yaml' ? 'block' : 'none';
+
+    // Update the hidden deploy_method field
+    workloadSection.querySelector('.deploy_method').value = deployMethod;
+
+    // Populate fields based on the deployment method
+    if (deployMethod === 'helm') {
+        workloadSection.querySelector('[name="helm_repo_name[]"]').value = selectedOption.dataset.helmRepoName;
+        workloadSection.querySelector('[name="helm_repo_url[]"]').value = selectedOption.dataset.helmRepoURL;
+        workloadSection.querySelector('[name="helm_chart[]"]').value = selectedOption.dataset.helmChart;
+
+        // Handle advanced Helm fields based on user level
+        const userLevel = document.body.dataset.userLevel;
+        if (userLevel === 'intermediate' || userLevel === 'advanced') {
+            const advancedHelmFields = workloadSection.querySelector('.advanced-helm-fields');
+            if (advancedHelmFields) {
+                advancedHelmFields.style.display = 'block';
+                workloadSection.querySelector('[name="helm_chart_version[]"]').value = selectedOption.dataset.helmChartVersion;
+                workloadSection.querySelector('[name="helm_set_values[]"]').value = selectedOption.dataset.helmSetValues;
+            }
+        }
+    } else {
+        // Clear Helm fields if the method changes to YAML
+        workloadSection.querySelectorAll('.helm-field').forEach(field => field.value = '');
+        const advancedHelmFields = workloadSection.querySelector('.advanced-helm-fields');
+        if (advancedHelmFields) {
+            advancedHelmFields.style.display = 'none';
+        }
+    }
+}
+
+// Remove a workload section
 function removeWorkload(button) {
     button.closest('div').remove();
-}
-
-// Update service fields based on service type
-function updateServiceFields() {
-    const resourceType = document.getElementById('resourceType').value;
-    const serviceType = document.querySelector('[name="service_type"]').value;
-    const serviceFieldsDiv = document.getElementById('serviceOptions');
-
-    // Common fields for both ClusterIP and NodePort
-    const commonFields = `
-        <div class="form-group">
-            <label>Port:</label>
-            <input type="number" class="form-control" name="svcPort" required>
-        </div>
-        <div class="form-group">
-            <label>Target Port:</label>
-            <input type="number" class="form-control" name="targetPort" required>
-        </div>
-        <div class="form-group">
-            <label>Protocol:</label>
-            <select class="form-control" name="svcProtocol">
-                <option value="TCP">TCP</option>
-                <option value="UDP">UDP</option>
-            </select>
-        </div>
-    `;
-
-    let serviceSpecificFields = '';
-
-    if (serviceType === 'NodePort') {
-        serviceSpecificFields = `
-            <div class="form-group">
-                <label>Node Port:</label>
-                <input type="number" class="form-control" name="nodePort" min="30000" max="32767">
-            </div>
-        `;
-    }
-
-    // Combine fields based on service type
-    const html = serviceType ?
-        commonFields + serviceSpecificFields :
-        '<p>Select a service type to configure</p>';
-
-    // Update the container and toggle visibility
-    serviceFieldsDiv.innerHTML = html;
-    serviceFieldsDiv.style.display = serviceType ? 'block' : 'none';
-
-}
-
-// Update form fields based on resource type and user level
-function updateFormFields() {
-    const resourceType = document.getElementById('resourceType').value;
-    const userLevel = document.body.dataset.userLevel;
-    const userNamespace = document.body.dataset.namespace;
-
-    // Show/hide service section
-    document.querySelector('.service-section').style.display =
-        ['Deployment', 'StatefulSet', 'DaemonSet'].includes(resourceType) ? 'block' : 'none';
-
-    // Get fields for current resource and user level
-    const fields = FIELDS_CONFIG[resourceType][userLevel] || [];
-    //console.log("Debug: Fields:", fields);
-    //console.log("User Level:", userLevel);
-    //document.getElementById('dynamicFields').style.display = 'none';
-
-    // Generate HTML for fields
-    const html = fields.map(field => `
-            ${generateFieldInput(field, userLevel)}
-    `).join('');
-
-    //console.log("Debug: Final HTML:", html);
-    document.getElementById('dynamicFields').innerHTML = html;
-}
-
-function generateFieldInput(field, userLevel) {
-    //console.log("Debug: Generating field:", field, "and user level:", userLevel);
-    const baseHtml = {
-        image: '<div class="form-group" id="div_container_image"><label>Container Image:</label><input type="text" class="form-control" name="image" id="image" value="usman476/coap:latest" placeholder="Enter container info."></div>',
-        command: '<div class="form-group" id="div_container_interpreter"><label>Command Interpreter:</label><input type="text" class="form-control" name="cmd_interpreter" id="cmd_interpreter" value="python3" placeholder="Enter command interpreter (e.g., shell)"></div>',
-        args: '<div class="form-group" id="div_container_arguments"><label>Command Arguments (space-separated):</label><input type="text" class="form-control" name="cmd_arguments" id="cmd_arguments" value="coap-server.py" placeholder="arg1 arg2 arg3"></div>',
-        port: '<div class="form-group" id="div_container_port"><label>Container Port:</label><input type="number" class="form-control" name="container_port" id="container_port" value="5683" placeholder="Enter container port number"></div>',
-        replicas: '<div class="form-group"><label for="replicas">No. of Replicas:</label><input type="number" name="replicas" class="form-control replicas" min="1" value="1" required></div>',
-        env: '<div class="form-group" id="envVars"><div class="form-group env-entry"><label>Environment Variables:</label><input type="text" class="form-control" name="envName[]" placeholder="ENV_NAME"><input type="text" class="form-control" name="envValue[]" placeholder="ENV_VALUE"><button type="button" class="btn btn-danger" onclick="removeEntry(this)">Remove</button><button type="button" class="btn btn-primary" onclick="addEnvVar()">Add More</button></div></div>',
-        imagePullPolicy: '<div class="form-group" id="div_image_pull_policy"><label>Image Pull Policy:</label><select name="imagePullPolicy" id="pull_policy" class="form-control"><option value="Always">Always</option><option value="IfNotPresent" selected>IfNotPresent</option><option value="Never">Never</option></select></div>',
-        volumes: '<div class="form-group" id="volumes"><div class="form-group volume-entry"><label>Volumes and Mounts:</label><input type="text" class="form-control" name="volumeName[]" placeholder="Volume Name (e.g., shared-data)" required><select class="form-control" name="volumeType[]"><option value="emptyDir">emptyDir</option><option value="hostPath" selected>hostPath</option><option value="configMap">configMap</option></select><input type="text" class="form-control" name="volumeSource[]" placeholder="Source (e.g., /host/path)" required><input type="text" class="form-control" name="mountPath[]" placeholder="Mount Path (e.g., /container/path)" required><button type="button" class="btn btn-danger" onclick="removeVolume(this)">Remove</button><button type="button" id="addVolumeBtn" class="btn btn-primary" onclick="addVolume()">Add More</button></div></div>',
-        resources: '<div class="resource-section form-group"><label>Requests:</label> <input class="form-control" type="text" name="cpuRequest" placeholder="CPU (e.g., 100m)"> <input class="form-control" type="text" name="memoryRequest" placeholder="Memory (e.g., 256Mi)"> <label>Limits:</label> <input class="form-control" type="text" name="cpuLimit" placeholder="CPU Limit"> <input class="form-control" type="text" name="memoryLimit" placeholder="Memory Limit"></div>',
-        restartPolicy: '<div class="advanced-section form-group"><div class="restart-section form-group"><label>Restart Policy:</label><select class="form-control" name="restartPolicy"><option value="Always">Always</option><option value="OnFailure">OnFailure</option><option value="Never">Never</option></select></div></div>',
-        affinity: '<div class="affinity-section form-group"><label>Affinity Rule:</label> <input class="form-control" type="text" name="nodeAffinityKey" placeholder="Node label key"> <input class="form-control" type="text" name="nodeAffinityValue" placeholder="Node label value"></div>',
-        toleration: '<div class="toleration-section form-group"><label>Toleration:</label> <input type="text" class="form-control" name="tolerationKey" placeholder="Toleration key"> <input type="text" class="form-control" name="tolerationValue" placeholder="Toleration value"> <select class="form-control" name="tolerationEffect"><option class="form-control" value="NoSchedule">NoSchedule</option> <option class="form-control" value="PreferNoSchedule">PreferNoSchedule</option> <option class="form-control" value="NoExecute">NoExecute</option></select></div>',
-        securityContext: '<div class="security-context form-group"><label>Security Context:</label> <input type="number" class="form-control" name="runAsUser" placeholder="Run as User ID"> <input type="number" class="form-control" name="runAsGroup" placeholder="Run as Group ID"> <input type="checkbox" name="privileged"> Privileged</div>',
-        probes: '<div class="probe-section form-group"><label>Liveness Probe</label> <input type="text" class="form-control" name="livenessPath" placeholder="Path (e.g., /healthz)"> <input type="number" class="form-control" name="livenessPort" placeholder="Port"> <input type="number" class="form-control" name="livenessInitialDelay" placeholder="Initial Delay (s)"> <label>Readiness Probe</label> <input type="text" class="form-control" name="readinessPath" placeholder="Path"> <input type="number" class="form-control" name="readinessPort" placeholder="Port"> <input type="number" class="form-control" name="readinessInitialDelay" placeholder="Initial Delay (s)"></div>',
-    };
-
-    return baseHtml[field] || `<input type="text" class="form-control" name="${field}">`;
 }
 
 // Show or hide fields based on deployment method
@@ -403,9 +606,8 @@ function toggleDeployMethod() {
     document.getElementById('yamlSection').style.display = method === 'yaml' ? 'block' : 'none';
     document.getElementById('helmSection').style.display = method === 'helm' ? 'block' : 'none';
 
-    // Show/hide advanced Helm fields based on user level
     const userLevel = document.body.dataset.userLevel;
-    //console.log("User Level:", userLevel);
+
     if (method === 'helm') {
         if (userLevel === 'beginner' || userLevel === 'intermediate' || userLevel === 'advanced') {
             document.getElementById('helm_beginner_div').style.display = method === 'helm' ? 'block' : 'none';
@@ -419,293 +621,11 @@ function toggleDeployMethod() {
             document.getElementById('helm_advanced_div').style.display = method === 'helm' ? 'block' : 'none';
         }
     }
-    //document.querySelectorAll('.helm-advanced-fields').forEach(el => {
-    //    el.style.display = userLevel === 'advanced' ? 'block' : 'none';
-    //});
 }
 
 // Show or hide fields static or dynamic configuration method
 function toggleConfigMethod() {
     const method = document.getElementById('configMethod').value;
-    // const yamlFileInput = document.getElementById('workloadYaml');
-    // const containerImage = document.getElementById('image');
     document.getElementById('dynamicConfig').style.display = method === 'dynamic' ? 'block' : 'none';
     document.getElementById('uploadConfig').style.display = method === 'upload' ? 'block' : 'none';
-
-    //if (method === 'upload') {
-        //yamlFileInput.setAttribute('required', 'required');
-        //containerImage.removeAttribute('required');
-    //}
-    /*if (method === 'dynamic') {
-        yamlFileInput.removeAttribute('required');
-        containerImage.setAttribute('required', 'required');
-        cmd_interpreter.setAttribute('required', 'required');
-        cmd_arguments.setAttribute('required', 'required');
-    } else {
-        containerImage.removeAttribute('required');
-        cmd_interpreter.removeAttribute('required');
-        cmd_arguments.removeAttribute('required');
-        yamlFileInput.setAttribute('required', 'required');
-    }*/
-}
-
-// Validate workload name field
-function validateWorkloadName(input) {
-    const errorElement = document.getElementById('nameError');
-    const pattern = new RegExp(input.pattern);
-
-    // Reset previous states
-    input.setCustomValidity('');
-    errorElement.textContent = '';
-    input.classList.remove('is-invalid');
-
-    if (!input.checkValidity()) {
-        let message = input.title;
-        if (!pattern.test(input.value)) {
-            message = "Invalid characters detected. Only use A-Z, a-z, 0-9, _, -";
-        }
-        input.setCustomValidity(message);
-        input.classList.add('is-invalid');
-        errorElement.textContent = message;
-    }
-}
-
-// Add environment variables dynamically
-function addEnvVar() {
-  const div = document.createElement('div');
-  div.className = 'env-entry form-group';
-  div.innerHTML = `
-    <hr>
-    <label>Environment Variables:</label>
-    <input type="text" class="form-control" name="envName[]" placeholder="ENV_NAME">
-    <input type="text" class="form-control" name="envValue[]" placeholder="ENV_VALUE">
-    <button type="button" class="btn btn-danger" onclick="removeEntry(this)">Remove</button>
-    <button type="button" class="btn btn-primary" onclick="addEnvVar()">Add More</button>
-  `;
-  document.getElementById('envVars').appendChild(div);
-}
-
-// Remove environment variable entry
-function removeEntry(btn) {
-  btn.closest('.env-entry').remove();
-}
-
-// Add volume entry dynamically
-function addVolume() {
-  const div = document.createElement('div');
-  div.className = 'volume-entry form-group';
-  div.innerHTML = `
-    <hr>
-    <label>Volumes and Mounts:</label>
-    <input type="text" name="volumeName[]" placeholder="Volume Name">
-    <select class="form-control" name="volumeType[]">
-      <option value="emptyDir">emptyDir</option>
-      <option value="hostPath">hostPath</option>
-      <option value="configMap">configMap</option>
-    </select>
-    <input class="form-control" type="text" name="volumeSource[]" placeholder="Path/Name">
-    <input class="form-control" type="text" name="mountPath[]" placeholder="Mount Path">
-    <button type="button" class="btn btn-danger" onclick="removeVolume(this)">Remove</button>
-    <button type="button" id="addVolumeBtn" class="btn btn-primary" onclick="addVolume()">Add More</button>
-  `;
-  document.getElementById('volumes').appendChild(div);
-}
-
-// Remove volume entry
-function removeVolume(button) {
-  button.closest('.volume-entry').remove();
-}
-
-// Fetch deployed workloads via an AJAX call
-function fetchDeployedWorkloads() {
-    fetch('/deployed_workloads')
-        .then(response => response.json())
-        .then(data => {
-            var workloadList = document.getElementById('workload-list');
-            workloadList.innerHTML = "";  // Clear previous contents
-
-            // If there are workloads, display them
-            if (data.length > 0) {
-                var table = document.createElement('table');
-                var header = table.createTHead();
-                var headerRow = header.insertRow(0);
-                headerRow.style.backgroundColor = '#535379'; // Dark blue-gray background
-                headerRow.style.color = 'white';
-                headerRow.insertCell(0).innerHTML = "Workload Name";
-                headerRow.insertCell(1).innerHTML = "Duration";
-                headerRow.insertCell(2).innerHTML = "Replicas";
-                headerRow.insertCell(3).innerHTML = "Node";
-                headerRow.insertCell(4).innerHTML = "Status";
-                headerRow.insertCell(5).innerHTML = "Deployed By";
-                headerRow.insertCell(6).innerHTML = "Created At";
-
-                var body = table.createTBody();
-                data.forEach(workload => {
-                    var row = body.insertRow();
-                    row.insertCell(0).innerHTML = workload.workload_name;
-                    row.insertCell(1).innerHTML = workload.duration;
-                    row.insertCell(2).innerHTML = workload.replicas;
-                    row.insertCell(3).innerHTML = workload.node_name;
-                    row.insertCell(4).innerHTML = workload.status;
-                    row.insertCell(5).innerHTML = workload.username;
-                    row.insertCell(6).innerHTML = workload.created_at;
-                });
-
-                workloadList.appendChild(table);
-            } else {
-                workloadList.innerHTML = "<p>No workloads deployed yet.</p>";
-            }
-        })
-        .catch(error => {
-            console.error("Error fetching deployed workloads:", error);
-        });
-}
-
-// Fetch running workloads via an AJAX call
-function fetchRunningWorkloads() {
-    //const spinner = document.getElementById('loading-spinner');
-    const tableBody = document.getElementById('workload-table-body');
-
-    //try {
-        // Show spinner
-        //spinner.style.display = 'block';
-        //tableBody.innerHTML = '';  // Clear previous content
-
-        fetch('/running_workloads')
-            .then(response => response.json())
-            .then(data => {
-                var workloadList = document.getElementById('workload-list-delete');
-                workloadList.innerHTML = "";  // Clear previous contents
-
-                // If there are workloads, display them
-                if (data.length > 0) {
-                    var table = document.createElement('table');
-                    var header = table.createTHead();
-                    var headerRow = header.insertRow(0);
-                    headerRow.style.backgroundColor = '#535379';
-                    headerRow.style.color = 'white';
-                    headerRow.insertCell(0).innerHTML = "Workload Name";
-                    headerRow.insertCell(1).innerHTML = "Duration";
-                    headerRow.insertCell(2).innerHTML = "Node";
-                    headerRow.insertCell(3).innerHTML = "Deployed By";
-                    headerRow.insertCell(4).innerHTML = "Created At";
-                    headerRow.insertCell(5).innerHTML = "Action";
-
-                    var body = table.createTBody();
-                    data.forEach(workload => {
-                        var row = body.insertRow();
-                        row.insertCell(0).innerHTML = workload.workload_name;
-                        row.insertCell(1).innerHTML = workload.duration;
-                        row.insertCell(2).innerHTML = workload.node_name;
-                        row.insertCell(3).innerHTML = workload.username;
-                        row.insertCell(4).innerHTML = workload.created_at;
-                        var deleteButton = document.createElement('button');
-                        deleteButton.textContent = 'Delete';
-                        deleteButton.className = 'btn btn-danger';
-                        deleteButton.onclick = function() {
-                            deleteWorkload(workload.workload_name);
-                        };
-                        row.insertCell(5).appendChild(deleteButton);
-                    });
-
-                    workloadList.appendChild(table);
-                } else {
-                    workloadList.innerHTML = "<p>No workloads deployed yet.</p>";
-                }
-            })
-            .catch(error => {
-                console.error("Error fetching running workloads:", error);
-            });
-    //} catch (error) {
-    //    console.error('Error:', error);
-    //    tableBody.innerHTML = `<tr><td colspan="4">Error loading workloads</td></tr>`;
-    //} finally {
-    //    // Hide spinner whether successful or not
-    //    spinner.style.display = 'none';
-  //}
-}
-
-// Delete a running workload via an AJAX call
-function deleteWorkload(workload_name) {
-    console.log('Deleting workload:', workload_name);
-    fetch('/delete_running_workloads', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            workload_name: workload_name
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        showAlert(data.status, data.message);
-        fetchRunningWorkloads();
-    })
-    .catch(error => {
-        showAlert('error', 'An error occurred while deleting the workload.');
-    });
-}
-
-function showSection(sectionId) {
-    document.querySelectorAll('.section').forEach(section => {
-        section.style.display = 'none';
-    });
-
-    // Show selected section
-    const activeSection = document.getElementById(sectionId);
-    if(activeSection) {
-        if (sectionId === 'listWorkload') {
-            fetchDeployedWorkloads();
-        }
-        if (sectionId === 'deleteWorkload') {
-            fetchRunningWorkloads();
-        }
-        if (sectionId === 'showMonitoring') {
-            var serverUrl = window.grafanaServerUrl
-            var namespace = document.body.dataset.namespace;
-            var username = document.body.dataset.namespace;
-            var grafanaUrl = `${serverUrl}/d/${namespace}/user-dashboard-${username}`;
-            //var grafanaUrl = `/grafana/d/${namespace}/user-dashboard-${username}`;
-            var iframe = document.getElementById("grafana-iframe");
-            iframe.src = grafanaUrl;
-            //iframe.src = "/grafana_proxy/d/"+namespace+"/user-dashboard-"+username;  // Proxy request to Grafana
-            iframe.style.display = "block";
-        }
-        activeSection.style.display = 'block';
-    }
-
-    // Update menu state
-    setActiveMenuItem(sectionId);
-}
-
-function setActiveMenuItem(targetId) {
-    // Remove active class from all items
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.classList.remove('active');
-    });
-
-    // Add active class to clicked item
-    const activeItem = document.querySelector(`[onclick*="${targetId}"]`);
-    if(activeItem) {
-        activeItem.classList.add('active');
-    }
-}
-
-function showAlert(type, message) {
-    const successAlert = document.getElementById('alert-success');
-    const errorAlert = document.getElementById('alert-error');
-    if (type === 'success') {
-        successAlert.textContent = message;
-        successAlert.style.display = 'block';
-        errorAlert.style.display = 'none';
-    } else {
-        errorAlert.textContent = message;
-        errorAlert.style.display = 'block';
-        successAlert.style.display = 'none';
-    }
-    setTimeout(() => {
-        successAlert.style.display = 'none';
-        errorAlert.style.display = 'none';
-    }, 5000);
 }

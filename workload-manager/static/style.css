@@ -387,6 +387,11 @@ caption {
     border-left-color: #4d94ff;
 }
 
+.logout-item:hover {
+    background-color: #fff5f5;
+    color: #dc3545;
+}
+
 .menu-item.active {
     background: #e9f5ff;
     border-left-color: #007acc;
@@ -394,15 +399,23 @@ caption {
     transform: translateX(4px);
 }
 
-.menu-icon {
-    width: 24px;
-    height: 24px;
-    fill: currentColor;
-}
-
 .menu-item:not(.active):hover {
     background: #f5f5f5;
     border-left-color: #90caf9;
+}
+
+/* Icon alignment */
+.menu-icon {
+    width: 25px;
+    margin-right: 12px;
+    text-align: center;
+}
+
+/* Submenu Indentation */
+.submenu-item {
+    padding-left: 45px !important;
+    background-color: #fafafa;
+    font-size: 0.95rem;
 }
 
 /* Make iframe fill container */

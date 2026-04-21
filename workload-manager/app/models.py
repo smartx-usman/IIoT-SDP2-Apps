@@ -14,7 +14,7 @@ class User(UserMixin, db.Model):
     user_level = db.Column(db.String(15), nullable=False, default='beginner')  # 'beginner', 'intermediate', 'advanced'
     namespace = db.Column(db.String(50), unique=True, nullable=False)
     quota_pods = db.Column(db.Integer, nullable=False, default=2)
-    quota_cpu = db.Column(db.String(15), nullable=False, default='1000m')  # In millicores
+    quota_cpu = db.Column(db.String(15), nullable=False, default='1000m')
     quota_memory = db.Column(db.String(15), nullable=False, default='1Gi')
 
     def __init__(self, **kwargs):
@@ -31,7 +31,7 @@ class User(UserMixin, db.Model):
 class WorkloadType(db.Model):
     workload_name = db.Column(db.String(255), primary_key=True, nullable=False)
     workload_enabled = db.Column(db.Boolean, nullable=False, default=True)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     deploy_method = db.Column(db.String(50), nullable=False, default='yaml')
     helm_repo_name = db.Column(db.String(150))
     helm_repo_url = db.Column(db.String(255))
@@ -77,7 +77,6 @@ class DeployedWorkload(db.Model):
     helm_workload = db.relationship('HelmWorkload')
 
 
-# what do you think which one is the better and user friendly approach to have workload type seperate from deploy workload? I want to reduce the burden of the user for recursive deployment of same type of workload instead of reselecting all the fields again and again.But user should be able to see and modify existing fields that were set during workload type creation.
 class HelmDeployment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     release_name = db.Column(db.String(255), nullable=False)
@@ -87,4 +86,4 @@ class HelmDeployment(db.Model):
     values_files = db.Column(db.Text)  # JSON list of stored values files
     set_values = db.Column(db.Text)  # JSON key-value pairs
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))

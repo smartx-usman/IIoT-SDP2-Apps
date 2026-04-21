@@ -3,7 +3,7 @@ import re
 
 import requests
 from flask import Blueprint, jsonify, request, render_template, redirect, url_for, flash, session
-from flask_login import login_user, logout_user, current_user
+from flask_login import login_user, login_required, logout_user, current_user
 from app import db, login_manager
 from app.models import User
 from app.kubernetes_utils import ensure_user_namespace
@@ -67,7 +67,7 @@ def register():
             role = request.form.get('role')
             level = request.form.get('level')
             hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-            namespace = f"user-{re.sub(r'[^a-z0-9-]', '', username.lower())[:45]}"
+            namespace = f"{re.sub(r'[^a-z0-9-]', '', username.lower())[:45]}"
             quota_pods = request.form.get('quota_pods')
             quota_cpu = request.form.get('quota_cpu')
             quota_memory = request.form.get('quota_memory')
@@ -81,11 +81,14 @@ def register():
             grafana_mgr = GrafanaManager(
                 Config.GRAFANA_INTERNAL_URL,
                 Config.GRAFANA_ADMIN_USER,
-                Config.GRAFANA_ADMIN_PASSWORD
+                Config.GRAFANA_ADMIN_PASSWORD,
+                verify_ssl=False
             )
             if not grafana_mgr.user_exists(username):
                 grafana_mgr.create_grafana_user(username=username)
-                grafana_mgr.create_user_dashboard(username, namespace)
+                grafana_mgr.create_cluster_dashboard(username, namespace)
+                grafana_mgr.create_metrics_dashboard(username, namespace)
+                grafana_mgr.create_logs_dashboard(username, namespace)
 
             db.session.add(new_user)
             db.session.commit()
@@ -95,3 +98,51 @@ def register():
     except Exception as e:
         db.session.rollback()
         return jsonify({"status": "error", "message": str(e)})
+
+
+@auth_bp.route('/workload-manager/get_user/<username>', methods=['GET'])
+@login_required
+def get_user(username):
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    return jsonify({
+        'username': user.username,
+        'role': user.role,
+        'user_level': user.user_level,
+        'quota_pods': user.quota_pods,
+        'quota_cpu': user.quota_cpu,
+        'quota_memory': user.quota_memory
+    })
+
+
+@auth_bp.route('/workload-manager/update_user', methods=['POST'])
+@login_required
+def update_user():
+    if current_user.role != 'admin':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    username = request.form.get('username')
+    user = User.query.filter_by(username=username).first()
+
+    if user:
+        user.role = request.form.get('role')
+        user.user_level = request.form.get('level')
+        user.quota_pods = request.form.get('quota_pods')
+        user.quota_cpu = request.form.get('quota_cpu')
+        user.quota_memory = request.form.get('quota_memory')
+
+        # Only update password if a new one is provided
+        new_password = request.form.get('password')
+        if new_password:
+            user.password = generate_password_hash(new_password)
+
+        db.session.commit()
+        logging.info(f'User details updated: Username: {username}')
+        return jsonify({"status": "success", "message": 'User details updated successfully!'})
+
+    return jsonify({'error': 'Update failed'}), 400

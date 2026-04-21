@@ -1,0 +1,393 @@
+<div id="addWorkloadType" class="section" style="display: none;">
+    <div class="right-upper-inner-div">
+        <h4>Create New Workload Template</h4>
+    </div>
+    <div class="right-lower-inner-div">
+        <form id="workload-template-form" enctype="multipart/form-data">
+            <fieldset class="form-group-section form-group-section-yellow">
+                <legend class="form-group-section-title-main">Basic Workload Information</legend>
+                <div class="form-group">
+                    <label for="workloadDisplayName">Workload Name:
+                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                            title="Unique name for your workload. Only letters, numbers, underscores (_), and hyphens (-) are allowed.">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                    </label>
+                    <input type="text" id="workloadDisplayName" class="form-control" pattern="[A-Za-z0-9][A-Za-z0-9_-]*" title="Name can only contain letters, numbers, underscores (_), and hyphens (-)." required>
+                </div>
+                <div class="form-group">
+                    <label for="workloadEnabled" hidden="">Workload Enabled:</label>
+                    <select id="workloadEnabled" class="form-control" required hidden="">
+                        <option value="true" selected>True</option>
+                        <option value="false">False</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label title="">Deployment Method:
+                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                            title="Choose between YAML configuration or Helm chart for deployment">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                    </label>
+                    <select id="deployMethod" class="form-control" onchange="toggleDeployMethod()">
+                        <option value="yaml" selected>YAML</option>
+                        <option value="helm">Helm Chart</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <fieldset class="form-group-section form-group-section-yellow">
+                <legend class="form-group-section-title-main">Deployment Configurations</legend>
+
+                <div id="yamlSection">
+                    <div class="form-group">
+                        <label>Configuration Method:
+                            <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                title="Choose between dynamic form configuration or uploading existing YAML files">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                        </label>
+                        <select id="configMethod" class="form-control" onchange="toggleConfigMethod()">
+                            <option value="dynamic" selected>Dynamic Configuration</option>
+                            <option value="upload">Upload YAML</option>
+                        </select>
+                    </div>
+
+                    <div id="dynamicConfig">
+                        <div class="form-group">
+                            <label>Resource Type:
+                                <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                title="Select Kubernetes resource type for your workload">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                            </label>
+                            <select id="resourceType" class="form-control" onchange="updateFormFields()">
+                                <option value="Pod" selected>Pod</option>
+                                <option value="Deployment">Deployment</option>
+                                <!--<option value="StatefulSet">StatefulSet</option>
+                                <option value="DaemonSet">DaemonSet</option>
+                                <option value="Job">Job</option>-->
+                            </select>
+                        </div>
+
+                        <div id="dynamicFields">
+                            {% if current_user.user_level == 'beginner' or current_user.user_level == 'intermediate' or current_user.user_level == 'advanced' %}
+                            <fieldset class="form-group-section form-group-section-blue">
+                                <legend class="form-group-section-title-sub">Container Basic Settings</legend>
+                                <div class="beginner-section form-group">
+                                    <div class="form-group" id="div_container_image">
+                                        <label>Container Image:
+                                            <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                                title="Container image name and tag (e.g., nginx:latest)">
+                                                <i class="fas fa-info-circle"></i>
+                                            </span>
+                                        </label>
+                                        <input type="text" class="form-control" name="image" id="image"
+                                               value="usman476/coap:latest" placeholder="Enter container info.">
+                                    </div>
+                                    <div class="form-group" id="div_container_interpreter">
+                                        <label>Command Interpreter:
+                                            <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                                title="Entrypoint command interpreter (e.g., /bin/sh, python)">
+                                                <i class="fas fa-info-circle"></i>
+                                            </span>
+                                        </label>
+                                        <input type="text" class="form-control" name="cmd_interpreter" id="cmd_interpreter"
+                                               value="python3" placeholder="Enter command interpreter (e.g., python3)">
+                                    </div>
+                                    <div class="form-group" id="div_container_arguments">
+                                        <label>Command Arguments (space-separated):
+                                            <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                                title="Arguments passed to the command interpreter, space-separated">
+                                                <i class="fas fa-info-circle"></i>
+                                            </span>
+                                        </label>
+                                        <input type="text" class="form-control" name="cmd_arguments" id="cmd_arguments"
+                                               value="coap-server.py" placeholder="arg1 arg2 arg3">
+                                    </div>
+                                    <div class="form-group" id="div_container_port" style="display: true;">
+                                        <label>Container Port (A number in range 1–9999):
+                                            <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                                title="Port number exposed by the container (1-9999)">
+                                                <i class="fas fa-info-circle"></i>
+                                            </span>
+                                        </label>
+                                        <input type="number" class="form-control" name="container_port" id="container_port"
+                                               value="5683" placeholder="Enter container port number" min="1" max="9999">
+                                    </div>
+                                </div>
+                            </fieldset>
+                            {% endif %}
+                            {% if current_user.user_level == 'intermediate' or current_user.user_level == 'advanced' %}
+                            <fieldset class="form-group-section form-group-section-blue">
+                                <legend class="form-group-section-title-sub">Resources and Storage Settings</legend>
+                                <div class="intermediate-section form-group">
+                                    <div class="form-group" id="div_image_pull_policy">
+                                        <label>Image Pull Policy:
+                                            <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                                title="When to pull container images from registry">
+                                                <i class="fas fa-info-circle"></i>
+                                            </span>
+                                        </label>
+                                        <select name="imagePullPolicy" id="pull_policy" class="form-control">
+                                            <option value="Always">Always</option>
+                                            <option value="IfNotPresent" selected>IfNotPresent</option>
+                                            <option value="Never">Never</option>
+                                          </select>
+                                    </div>
+                                    <div class="form-group" id="envVars">
+                                        <div class="form-group env-entry">
+                                            <label>Environment Variables:
+                                                <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                                title="Environment variables injected into the container">
+                                                <i class="fas fa-info-circle"></i>
+                                            </span>
+                                            </label>
+                                            <input type="text" class="form-control" name="envName[]" placeholder="ENV_NAME">
+                                            <input type="text" class="form-control" name="envValue[]"
+                                                   placeholder="ENV_VALUE">
+                                            <button type="button" class="btn btn-danger" onclick="removeEntry(this)">
+                                                Remove
+                                            </button>
+                                            <button type="button" class="btn btn-primary" onclick="addEnvVar()">Add More</button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group" id="volumes">
+                                        <div class="form-group volume-entry">
+                                            <label>Volumes and Mounts:
+                                                <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                                    title="Configure persistent storage and mount points">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </span>
+                                            </label>
+                                            <input type="text" class="form-control" name="volumeName[]"
+                                                   placeholder="Volume Name (e.g., shared-data)">
+                                            <select class="form-control" name="volumeType[]">
+                                              <!--<option value="emptyDir">emptyDir</option>-->
+                                              <option value="hostPath" selected>hostPath</option>
+                                              <!--<option value="configMap">configMap</option>-->
+                                            </select>
+                                            <input type="text" class="form-control" name="volumeSource[]"
+                                                   placeholder="Source (e.g., /host/path)">
+                                            <input type="text" class="form-control" name="mountPath[]"
+                                                   placeholder="Mount Path (e.g., /container/path)">
+                                            <button type="button" class="btn btn-danger" onclick="removeVolume(this)">
+                                                Remove
+                                            </button>
+                                            <button type="button" id="addVolumeBtn" class="btn btn-primary"  onclick="addVolume()">Add More</button>
+                                        </div>
+                                    </div>
+                                    <div class="resource-section form-group">
+                                      <label>Requests:
+                                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                            title="Minimum resources guaranteed for the container. CPU must be in millicores (e.g., 100m), Memory in Mi or Gi (e.g., 256Mi)">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                      </label>
+                                      <input class="form-control" type="text" name="cpuRequest" pattern="^\d+m$" placeholder="CPU (e.g., 100m)" oninput="validateCpu(this)">
+                                      <input class="form-control" type="text" name="memoryRequest" pattern="^\d+(Mi|Gi)$" placeholder="Memory (e.g., 256Mi)" oninput="validateMemory(this)">
+
+                                      <label>Limits:
+                                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                            title="Maximum resources the container can use. CPU must be in millicores (e.g., 200m), Memory in Mi or Gi (e.g., 512Mi)">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                      </label>
+                                      <input class="form-control" type="text" name="cpuLimit" pattern="^\d+m$" placeholder="CPU Limit" oninput="validateCpu(this)">
+                                      <input class="form-control" type="text" name="memoryLimit" pattern="^\d+(Mi|Gi)$" placeholder="Memory Limit" oninput="validateMemory(this)">
+                                    </div>
+                                </div>
+                            </fieldset>
+                            {% endif %}
+                            {% if current_user.user_level == 'advanced' %}
+                            <fieldset class="form-group-section form-group-section-blue">
+                                <legend class="form-group-section-title-sub">Advanced Settings</legend>
+                                <div class="advanced-section form-group">
+                                  <div class="restart-section form-group">
+                                    <label>Restart Policy:
+                                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                            title="Container restart behavior">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                    </label>
+                                      <select class="form-control" name="restartPolicy">
+                                        <option value="Always">Always</option>
+                                        <option value="OnFailure">OnFailure</option>
+                                        <option value="Never">Never</option>
+                                      </select>
+                                  </div>
+                                  <div class="affinity-section form-group">
+                                    <label>Affinity Rule:
+                                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                            title="Schedule pods on specific nodes using labels">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                    </label>
+                                    <input class="form-control" type="text" name="nodeAffinityKey" placeholder="Node label key">
+                                    <input class="form-control" type="text" name="nodeAffinityValue" placeholder="Node label value">
+                                  </div>
+                                  <div class="toleration-section form-group">
+                                    <label>Toleration:
+                                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                            title="Allow pods to schedule on tainted nodes">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                    </label>
+                                    <input type="text" class="form-control" name="tolerationKey" placeholder="Toleration key">
+                                    <input type="text" class="form-control" name="tolerationValue" placeholder="Toleration value">
+                                    <select class="form-control" name="tolerationEffect">
+                                      <option class="form-control" value="NoSchedule">NoSchedule</option>
+                                      <option class="form-control" value="PreferNoSchedule">PreferNoSchedule</option>
+                                      <option class="form-control" value="NoExecute">NoExecute</option>
+                                    </select>
+                                  </div>
+                                  <div class="security-context form-group">
+                                    <label>Security Context:
+                                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                            title="Container security privileges">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                    </label>
+                                    <input type="number" class="form-control" name="runAsUser" placeholder="Run as User ID">
+                                    <input type="number" class="form-control" name="runAsGroup" placeholder="Run as Group ID">
+                                    <input type="checkbox" name="privileged"> Privileged
+                                  </div>
+                                  <div class="probe-section form-group">
+                                    <label>Liveness Probe
+                                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                            title="Container health checks">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                    </label>
+                                    <input type="text" class="form-control" name="livenessPath" placeholder="Path (e.g., /healthz)">
+                                    <input type="number" class="form-control" name="livenessPort" placeholder="Port">
+                                    <input type="number" class="form-control" name="livenessInitialDelay" placeholder="Initial Delay (s)">
+
+                                    <label>Readiness Probe
+                                        <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                            title="Container readiness checks">
+                                            <i class="fas fa-info-circle"></i>
+                                        </span>
+                                    </label>
+                                    <input type="text" class="form-control" name="readinessPath" placeholder="Path">
+                                    <input type="number" class="form-control" name="readinessPort" placeholder="Port">
+                                    <input type="number" class="form-control" name="readinessInitialDelay" placeholder="Initial Delay (s)">
+                                  </div>
+                                </div>
+                            </fieldset>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group service-section" style="display: none;" onchange="updateServiceFields()">
+                            <fieldset class="form-group-section form-group-section-blue">
+                                <legend class="form-group-section-title-sub">Service Settings</legend>
+                                <label>Create Service:
+                                    <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                        title="Expose your workload internally or externally">
+                                        <i class="fas fa-info-circle"></i>
+                                    </span>
+                                </label>
+                                <select class="form-control" name="service_type">
+                                    <option value="" selected>None</option>
+                                    <option value="ClusterIP">ClusterIP</option>
+                                    <option value="NodePort">NodePort</option>
+                                </select>
+                                <br>
+                            </fieldset>
+                        </div>
+                        <div class="form-group service-section" id="serviceOptions" style="display: none;">
+                        </div>
+
+                    </div>
+
+                    <div id="uploadConfig" style="display: none;">
+                        <div class="form-group">
+                            <label>Upload YAML File:
+                                <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                    title="Upload Kubernetes YAML configuration files">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                            </label>
+                            <input type="file" class="form-control-file" id="workloadYaml" name="yaml_file"
+                                   accept=".yaml,.yml" multiple>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Helm Chart Section -->
+                <div id="helmSection" style="display: none;">
+                    <div class="helm-basic-fields" id="helm_beginner_div" style="display: none;">
+                        <div class="form-group">
+                            <label>Repository Name (Used for adding repo):
+                                <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                    title="Alias for the Helm repository">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                            </label>
+                            <input type="text" class="form-control" id="helmRepoName" value="bitnami" title="It is an alias you assign when adding a repository.">
+                        </div>
+                        <div class="form-group">
+                            <label>Repository URL:
+                                <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                    title="URL of the Helm chart repository">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                            </label>
+                            <input type="text" class="form-control" id="helmRepoURL" value="https://charts.bitnami.com/bitnami" title="This is the URL where the Helm chart repository is hosted.">
+                        </div>
+                        <div class="form-group">
+                            <label>Chart Name:
+                                <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                    title="Name of the Helm chart to deploy">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                            </label>
+                            <input type="text" class="form-control" id="helmChart" value="mysql" title="It is the actual name of the chart you wanna deploy.">
+                        </div>
+                    </div>
+
+                    {% if current_user.user_level == 'intermediate' or current_user.user_level == 'advanced' %}
+                    <div class="helm-intermediate-fields" id="helm_intermediate_div" style="display: none;">
+                        <div class="form-group">
+                            <label>Chart Version:
+                                <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                    title="Specific chart version to install">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                            </label>
+                            <input type="text" class="form-control" id="helmChartVersion" value="" title="It specifies chart version to install.">
+                        </div>
+                        <div class="form-group">
+                            <label>Set Values:
+                                <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                    title="Custom values for Helm chart (semicolon-separated)">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                            </label>
+                            <textarea class="form-control" id="helmSetValues"
+                                      value="" title="It will set/modify values using the command line. key1=value1;key2=value2">primary.persistence.enabled=false</textarea>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if current_user.user_level == 'advanced' %}
+                    <div class="helm-advanced-fields" id="helm_advanced_div" style="display: none;">
+                        <div class="form-group">
+                            <label>Values File:
+                                <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                    title="YAML file with custom configuration values. File name must be values.yaml.">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                            </label>
+                            <input type="file" class="form-control-file" id="helmValuesFile" name="helm_file" accept=".yaml,.yml" title="It will upload a values file.">
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-primary" value="Submit">Save Workload Template</button>
+                <br><br>
+            </fieldset>
+        </form>
+    </div>
+</div>

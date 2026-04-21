@@ -1,0 +1,34 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: workload-manager-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  namespace: simulation
+spec:
+  ingressClassName: "nginx"
+  tls:
+    - hosts:
+        - master.local
+      secretName: workload-manager-tls
+  rules:
+    - host: master.local
+      http:
+        paths:
+          - path: /workload-manager
+            pathType: Prefix
+            backend:
+              service:
+                name: workload-manager-service
+                port:
+                  number: 9000
+    - host: ""
+      http:
+        paths:
+          - path: /workload-manager
+            pathType: Prefix
+            backend:
+              service:
+                name: workload-manager-service
+                port:
+                  number: 9000

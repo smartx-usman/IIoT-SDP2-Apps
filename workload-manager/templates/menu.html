@@ -7,38 +7,61 @@
         <b>Expertise-level:</b> {{ current_user.user_level }}
     </p>
     <ul class="side-menu">
+        {% if not current_user.user_level.startswith('beginner') %}
         <li class="menu-item" onclick="showSection('addWorkloadType')">
-            <svg class="menu-icon" ...><!-- Add workload icon --></svg>
+            <!--<svg class="menu-icon" ...>&lt;!&ndash; Add workload icon &ndash;&gt;</svg>-->
+            <i class="fa-solid fa-file-circle-plus menu-icon"></i>
             Create Workload Template
         </li>
+        {% endif %}
         <li class="menu-item" onclick="showSection('createWorkload')">
-            <svg class="menu-icon" ...><!-- Deploy icon --></svg>
+            <i class="fa-solid fa-rocket menu-icon"></i>
             Deploy New Workloads
         </li>
         <li class="menu-item" onclick="showSection('listWorkload')">
-            <svg class="menu-icon" ...><!-- List icon --></svg>
+            <i class="fa-solid fa-list-ul menu-icon"></i>
             List Deployed Workloads
         </li>
+        {% if not current_user.user_level.startswith('beginner') %}
         <li class="menu-item" onclick="showSection('showMonitoring')">
-            <svg class="menu-icon" ...><!-- Monitoring icon --></svg>
+            <i class="fa-solid fa-chart-line menu-icon"></i>
             Monitor Cluster-wide Resources
         </li>
+        {% endif %}
         <li class="menu-item" onclick="showSection('deleteWorkload')">
-            <svg class="menu-icon" ...><!-- List icon --></svg>
+            <i class="fa-solid fa-list-check menu-icon"></i>
             Manage Running Workloads
         </li>
         {% if current_user.role == 'admin' %}
         <li class="menu-item" onclick="showSection('deployMonitoring')">
-            <svg class="menu-icon" ...><!-- Monitoring icon --></svg>
+            <i class="fa-solid fa-gauge-high menu-icon"></i>
             Deploy Monitoring System
         </li>
-        <li class="menu-item" onclick="showSection('registerUser')">
-            <svg class="menu-icon" ...><!-- User icon --></svg>
-            Register New User
+
+        <li class="menu-item" data-toggle="collapse" data-target="#userSubmenu" aria-expanded="false">
+            <i class="fa-solid fa-users-gear menu-icon"></i>
+            Manage Users
+            <i class="fa-solid fa-chevron-down float-right arrow-icon"></i>
         </li>
+
+        <ul class="collapse list-unstyled" id="userSubmenu">
+            <li class="menu-item submenu-item" onclick="showSection('registerUser')">
+                <i class="fa-solid fa-user-plus menu-icon"></i>
+                Register New User
+            </li>
+            <li class="menu-item submenu-item" onclick="showSection('updateUser')">
+                <i class="fa-solid fa-user-pen menu-icon"></i>
+                Update User
+            </li>
+        </ul>
+
+        <!--<li class="menu-item" onclick="showSection('registerUser')">
+            <svg class="menu-icon" ...>&lt;!&ndash; User icon &ndash;&gt;</svg>
+            Register New User
+        </li>-->
         {% endif %}
         <li class="menu-item" onclick="location.href='{{ url_for('auth.logout') }}'">
-            <svg class="menu-icon" ...><!-- Logout icon --></svg>
+            <i class="fa-solid fa-right-from-bracket menu-icon"></i>
             Logout
         </li>
     </ul>
