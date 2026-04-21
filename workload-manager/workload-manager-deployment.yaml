@@ -1,0 +1,81 @@
+#---
+#apiVersion: v1
+#kind: Namespace
+#metadata:
+#  name: simulation
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workload-manager
+  namespace: simulation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workload-manager
+  template:
+    metadata:
+      labels:
+        app: workload-manager
+    spec:
+      containers:
+      - name: workload-manager
+        image: usman476/workload-manager:latest
+        imagePullPolicy: "Always"
+        ports:
+        - containerPort: 9000
+        env:
+          - name: UPLOAD_FOLDER
+            value: "workloads"
+          - name: GRAFANA_INTERNAL_URL
+            value: "GRAFANA_INT_URL"
+          - name: GRAFANA_PUBLIC_URL
+            value: "GRAFANA_PUB_URL"
+          - name: GRAFANA_ADMIN_USER
+            value: "admin"
+          - name: GRAFANA_ADMIN_PASSWORD
+            value: "admin"
+        volumeMounts:
+          - name: kubeconfig
+            mountPath: /home/.kube
+            readOnly: true
+          - name: data
+            mountPath: /mnt/data
+            readOnly: false
+          #- name: tls-certs-volume # 3. Reference the Volume in the container
+          #  mountPath: /certs       # 4. Set the Mount Path
+          #  readOnly: true
+      volumes:
+        - name: kubeconfig
+          hostPath:
+            path: /home/aida/.kube
+        - name: data
+          hostPath:
+            path: /home/aida/data
+        #- name: tls-certs-volume # 1. Define the Volume
+        #  secret:
+        #    secretName: workload-manager-tls # 2. Link it to the Secret
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      nodeSelector:
+        kubernetes.io/hostname: master
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workload-manager-service
+  namespace: simulation
+spec:
+  selector:
+    app: workload-manager
+  ports:
+    - protocol: TCP
+      port: 9000
+      targetPort: 9000
+  #    nodePort: 30009
+  #type: NodePort
+  type: ClusterIP
