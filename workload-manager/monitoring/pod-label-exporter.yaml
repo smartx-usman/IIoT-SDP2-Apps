@@ -1,0 +1,141 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: pod-label-exporter
+  namespace: simulation
+spec:
+  selector:
+    app: pod-label-exporter
+  ports:
+    - protocol: TCP
+      port: 9128
+      targetPort: 9128
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pod-label-exporter
+  namespace: simulation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pod-label-exporter
+  template:
+    metadata:
+      labels:
+        app: pod-label-exporter
+    spec:
+      serviceAccountName: telegraf
+      initContainers:
+        - name: install-deps
+          image: python:3.13-slim
+          command: [ 'sh', '-c', 'pip install --no-cache-dir --target=/deps prometheus_client kubernetes' ]
+          volumeMounts:
+            - name: deps-volume
+              mountPath: /deps
+      containers:
+        - name: pod-label-exporter
+          image: python:3.13-slim
+          command: ["python"]
+          args: ["/app/pod_labels_exporter.py"]
+          volumeMounts:
+            - name: app-code
+              mountPath: /app
+            - name: deps-volume
+              mountPath: /deps
+          env:
+            - name: PYTHONPATH
+              value: /deps
+            - name: MEASUREMENT_INTERVAL
+              value: "10"
+          ports:
+            - containerPort: 9128
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      nodeSelector:
+        kubernetes.io/hostname: master
+      volumes:
+        - name: app-code
+          configMap:
+            name: pod-label-exporter-script
+        - name: deps-volume
+          emptyDir: { }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pod-label-exporter-script
+  namespace: simulation
+data:
+  pod_labels_exporter.py: |
+    from prometheus_client import start_http_server, Gauge
+    from kubernetes import client, config
+    import os
+    import time
+    import logging
+    
+    # Configure logging
+    logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', level=logging.INFO)
+    
+    # Load in-cluster config or local kubeconfig
+    if os.getenv('KUBERNETES_SERVICE_HOST'):
+        config.load_incluster_config()
+    else:
+        config.load_kube_config()
+    
+    v1 = client.CoreV1Api()
+    
+    # Gauge metric: label_pod_info{namespace=..., pod=..., label_<key>=...} 1
+    pod_label_gauge = Gauge(
+        'label_pod_info',
+        'Custom labels for each pod',
+        ['namespace', 'pod_name', 'host', 'label_workload_id']
+    )
+    
+    def collect_pod_labels():
+        pod_label_gauge.clear()
+        pods = v1.list_pod_for_all_namespaces(watch=False)
+        logging.info(f"Found {len(pods.items)} pods in the cluster")
+        #logging.info(pods)
+    
+        for pod in pods.items:
+            namespace = pod.metadata.namespace
+            pod_name = pod.metadata.name
+            host = pod.spec.node_name
+            labels = pod.metadata.labels or {}
+            
+            # Only include required labels that start with 'workload_id'
+            label_keys = [k for k in labels.keys() if k.startswith('workload_id')]
+            
+            if not label_keys:
+                continue
+    
+            metric_labels = {
+                'namespace': namespace,
+                'pod_name': pod_name,
+                'host': host,
+            }
+    
+            for key in label_keys:
+                # Convert label keys to valid Prometheus label names
+                safe_key = 'label_' + key.replace('-', '_').replace('.', '_')
+                metric_labels[safe_key] = labels[key]
+                #logging.info(f"Adding label {safe_key} with value {labels[key]} for pod {pod_name}")
+            
+            logging.info(f"Setting metric for pod {pod_name} with labels: {metric_labels}")
+            # Use `Gauge.labels(**metric_labels).set(1)` to expose it
+            pod_label_gauge.labels(**metric_labels).set(1)
+    
+    if __name__ == '__main__':
+        measurement_interval = int(os.environ.get('MEASUREMENT_INTERVAL'))
+        # Start HTTP server on port 9128
+        start_http_server(9128)
+        logging.info("Pod label exporter is running on port 9128")
+    
+        while True:
+            collect_pod_labels()
+            time.sleep(measurement_interval)  
+
