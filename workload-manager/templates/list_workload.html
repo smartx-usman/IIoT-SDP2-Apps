@@ -1,0 +1,123 @@
+<div class="section" id="listWorkload">
+    <div class="right-upper-inner-div">
+        <h4>List Deployed Workload(s)</h4>
+    </div>
+    <div class="right-lower-inner-div">
+        <div id="workload-list"></div>
+    </div>
+    <br>
+
+    <!-- Workload monitoring info Container -->
+    <div class="workloadMonitoringDiv" id="singleMonitoringDiv" style="display:none;"></div>
+
+    <!-- Container to hold both panels side by side -->
+    <div id="yamlEditorPanel" style="display: flex; gap: 5px; margin-top: 15px;">
+        <!-- Left: File Browser -->
+        <div class="fileBrowserEditor" id="fileModal" style="display:none; width: 30%; border:3px solid #ffd11a;">
+            <h5 id="modalHeading" style="background: #ffd11a;">Workload Files Browser</h5>
+            <ul id="fileList" style="list-style: none; padding-left: 15px;"></ul>
+        </div>
+
+        <!-- Right: YAML Editor -->
+        <div class="fileBrowserEditor" id="editorContainer"
+             style="display:none; flex-grow: 1; border: 3px solid #bf4080;">
+            <h5 style="background: #bf4080;">YAML Editor - <span id="currentFilename">No file selected</span></h5>
+            <div id="editor" style="height: 380px; width: 100%;"></div>
+            <button class="btn btn-primary" onclick="saveYAML()" style="margin-top: 10px;">Save</button>
+            <button class="btn btn-success" onclick="downloadYAML()" style="margin-top: 10px;">Download</button>
+        </div>
+    </div>
+
+    <!-- Bootstrap Edit Modal -->
+    <div aria-hidden="true" aria-labelledby="editModalLabel" class="modal fade" id="editModal" role="dialog"
+         tabindex="-1">
+        <div class="modal-dialog modal-lg" role="document">
+            <form class="needs-validation" id="editRedeployForm" novalidate>
+                <div class="modal-content">
+                    <div class="modal-header" style="background-color: #bf4080; text-align: center">
+                        <h5 id="editModalLabel" style="width: 100%;" >Edit and Redeploy Workload</h5>
+                    </div>
+                    <div class="modal-body">
+                        <input id="editWorkloadId" type="hidden">
+                        <input id="editWorkloadName" type="hidden">
+                        <input id="editDeployMethod" type="hidden">
+
+                        <div class="form-group col-md-12">
+                            <label for="editDuration">Duration (in seconds)</label>
+                            <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                title="How long the workload should run before automatic termination (in seconds). Minimum 30 seconds.">
+                                <i class="fas fa-info-circle"></i>
+                            </span>
+                            <input class="form-control" id="editDuration" min="30" required type="number">
+                            <div class="invalid-feedback">Please provide a valid duration.</div>
+                        </div>
+
+                        <div id="editYamlFields" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="editReplicas">Replicas</label>
+                                    <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                        title="Number of identical pod instances to run. Only applicable for Deployment resources">
+                                        <i class="fas fa-info-circle"></i>
+                                    </span>
+                                    <input class="form-control" id="editReplicas" min="1" max="100" type="number">
+                                    <div class="invalid-feedback">Replicas must be at least 1.</div>
+                                </div>
+
+                                <div class="form-group col-md-6">
+                                    <label for="editNodeName">Node Name</label>
+                                    <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                    title="Select a specific cluster node to run this workload, or 'Any' for automatic scheduling">
+                                        <i class="fas fa-info-circle"></i>
+                                    </span>
+                                    <select class="form-control" id="editNodeName">
+                                        <option value="any">Any</option>
+                                        <!-- dynamically populated -->
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="editHelmFields" style="display: none;">
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="editChartName">Chart Name</label>
+                                    <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                        title="Name of the Helm chart to deploy (e.g., nginx, mysql)">
+                                        <i class="fas fa-info-circle"></i>
+                                    </span>
+                                    <input class="form-control" id="editChartName" type="text" required >
+                                    <div class="invalid-feedback">Please provide a valid chart name.</div>
+                                </div>
+                                {% if current_user.user_level == 'intermediate' or current_user.user_level == 'advanced' %}
+                                <div class="form-group col-md-6">
+                                    <label for="editVersion">Chart Version</label>
+                                    <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                        title="Specific version of the chart to install (leave blank for latest)">
+                                        <i class="fas fa-info-circle"></i>
+                                    </span>
+                                    <input class="form-control" id="editVersion" type="text">
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if current_user.user_level == 'intermediate' or current_user.user_level == 'advanced' %}
+                            <div class="form-group">
+                                <label for="editValues">Values (YAML format or key=value,...)</label>
+                                <span class="ml-1" data-toggle="tooltip" data-placement="right" style="cursor: pointer; color: #007bff;"
+                                    title="Custom chart values in key=value format (semicolon separated)">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                                <textarea class="form-control" id="editValues" rows="3"></textarea>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="closeEditModal()" type="button">Cancel</button>
+                        <button class="btn btn-primary" type="submit">Save & Redeploy</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
